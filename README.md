@@ -1,8 +1,8 @@
 # Disha Saathi — Flutter App
 
 **Smart India Hackathon 2026 · Problem Statement 26097**
-> AI-Driven Voice Assistant for Livelihood Mapping and NSQF-Aligned Skilling
-> Recommendations for SC Communities under the GIA component of PM-AJAY
+> AI-Driven Voice Assistant for Livelihood Mapping and NSQF-Aligned Skilling  
+> Recommendations for SC Communities under the GIA component of PM-AJAY  
 > Team: **The AI Alchemists**
 
 This is the **Flutter frontend** for Disha Saathi — a voice-first, multilingual
@@ -14,8 +14,8 @@ NSQF-aligned training and job pathways.
 | Layer     | Technology                     |
 |-----------|---------------------------------|
 | Frontend  | **Flutter** (this repo)        |
-| Backend   | Node.js + Express               |
-| AI / ML   | Python + FastAPI + NLP          |
+| Backend   | Node.js + Express              |
+| AI / ML   | Python + FastAPI + NLP         |
 | Database  | MongoDB                         |
 
 This repo ships the complete Flutter client with all screens from the design
@@ -26,16 +26,40 @@ the backend is ready (see `backend/` and `ai-service/` stubs below).
 
 ## Screenshots
 
+### Splash, Language & Login
+
 | | | |
 |---|---|---|
 | ![Splash](screenshots/01_splash.png) | ![Language Selection](screenshots/02_language_selection.png) | ![Login](screenshots/03_login.png) |
 | Splash screen | Language selection (22 languages) | Login — Mobile/Email OTP |
+
+### Registration
+
+| | | |
+|---|---|---|
 | ![Personal Info](screenshots/04_personal_info.png) | ![Livelihood](screenshots/05_livelihood.png) | ![Skills](screenshots/06_skills.png) |
 | Registration — Personal Info | Registration — Livelihood | Registration — Skills & Interests |
-| ![Home](screenshots/07_home.png) | ![AI Chat](screenshots/08_ai_chat.png) | ![Recommendations](screenshots/09_recommendations.png) |
-| Home dashboard | AI Voice/Chat livelihood assessment | AI skill recommendations (NSQF match) |
-| ![Progress](screenshots/11_progress.png) | ![Achievements](screenshots/12_achievements.png) | ![Profile](screenshots/13_profile.png) |
-| My Progress — skill journey tracker | Achievements & stats | Profile & career interests |
+
+### Main App
+
+| | | |
+|---|---|---|
+| ![Home](screenshots/07_home.png) | ![AI Chat](screenshots/08_ai_chat.png) | ![Recommendations](screenshots/09_recommendations_digital_office.png) |
+| Home dashboard | AI Voice/Chat livelihood assessment | AI skill recommendations — Digital Office Assistant |
+
+### Recommendations
+
+| | | |
+|---|---|---|
+| ![Data Entry](screenshots/10_recommendations_data_entry.png) | ![Recommendations List](screenshots/11_recommendations_list.png) | ![Progress](screenshots/12_progress_journey.png) |
+| Data Entry Operator recommendation | Multiple skill recommendations | My Progress — skill journey tracker |
+
+### Achievements & Profile
+
+| | |
+|---|---|
+| ![Achievements](screenshots/13_achievements.png) | ![Profile](screenshots/14_profile.png) |
+| Achievements & stats | Profile & career interests |
 
 ## Screens included
 
@@ -93,7 +117,7 @@ existing `lib/`, `android/`, `web/`, `linux/`, `windows/`, or `pubspec.yaml`.
 
 ## Project structure
 
-```
+```text
 lib/
   main.dart                     # App entry point, Provider setup
   theme/app_theme.dart          # Colors, gradients, ThemeData
@@ -123,17 +147,18 @@ lib/
 Replace the mock logic in `AppState` with HTTP calls, e.g.:
 
 ```dart
-final res = awaithttp.post(
+final res = await http.post(
   Uri.parse('$apiBaseUrl/api/auth/otp/verify'),
   body: {'mobile': mobile, 'otp': otp},
 );
 ```
 
 Suggested Express endpoints:
-- `POST /api/auth/otp/send`, `POST /api/auth/otp/verify`
+- `POST /api/auth/otp/send`
+- `POST /api/auth/otp/verify`
 - `POST /api/beneficiary/profile`
-- `GET  /api/recommendations/:beneficiaryId`
-- `GET  /api/training?district=&nsqfLevel=`
+- `GET /api/recommendations/:beneficiaryId`
+- `GET /api/training?district=&nsqfLevel=`
 
 Suggested FastAPI (AI/ML) endpoints:
 - `POST /ai/stt` — speech-to-text (multilingual)
