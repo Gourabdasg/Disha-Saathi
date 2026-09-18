@@ -1,0 +1,24 @@
+.dart_tool/
+.packages
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+*.iml
+.idea/
+android/.gradle/
+android/local.properties
+ios/Flutter/Flutter.podspec
+ios/Pods/
+.DS_Store
+
+# Node.js
+node_modules/
+
+# Environment variables
+.env
+
+# Logs
+*.log
+npm-debug.log*

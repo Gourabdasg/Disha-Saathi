@@ -1,0 +1,378 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import '../providers/app_state.dart';
+import '../theme/app_theme.dart';
+
+class AiChatScreen extends StatefulWidget {
+  const AiChatScreen({super.key});
+
+  @override
+  State<AiChatScreen> createState() => _AiChatScreenState();
+}
+
+class _AiChatScreenState extends State<AiChatScreen> {
+  final _textController = TextEditingController();
+  final _scrollController = ScrollController();
+  final stt.SpeechToText _speech = stt.SpeechToText();
+
+  bool _isListening = false;
+  bool _speechEnabled = false;
+  String _lastWords = '';
+
+  final List<String> _sampleVoicePrompts = const [
+    'मैं खेती का काम करता हूँ और सिलाई भी जानता हूँ।',
+    'I am 10th pass and know basic computer operations and typing.',
+    'मुझे बिजली की वायरिंग का काम आता है और जॉब चाहिए।',
+    'I want a full-time tailoring job in Kolkata.',
+    'मैं ड्राइविंग जानता हूँ और कमर्शियल ड्राइवर बनना चाहता हूँ।',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _initSpeech();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppState>().loadChatHistory().then((_) => _scrollToBottom());
+    });
+  }
+
+  /// Initializes the device microphone speech-to-text engine.
+  Future<void> _initSpeech() async {
+    try {
+      _speechEnabled = await _speech.initialize(
+        onStatus: (status) {
+          if (status == 'done' || status == 'notListening') {
+            setState(() => _isListening = false);
+          }
+        },
+        onError: (errorNotification) {
+          setState(() => _isListening = false);
+        },
+      );
+    } catch (_) {
+      _speechEnabled = false;
+    }
+  }
+
+  /// Toggles live microphone listening to transcribe spoken words into the text box.
+  Future<void> _toggleListening() async {
+    if (_isListening) {
+      await _speech.stop();
+      setState(() => _isListening = false);
+      return;
+    }
+
+    if (!_speechEnabled) {
+      _speechEnabled = await _speech.initialize();
+    }
+
+    if (_speechEnabled) {
+      setState(() => _isListening = true);
+      await _speech.listen(
+        onResult: (result) {
+          setState(() {
+            _lastWords = result.recognizedWords;
+            _textController.text = _lastWords;
+            _textController.selection = TextSelection.fromPosition(
+              TextPosition(offset: _textController.text.length),
+            );
+          });
+        },
+        listenOptions: stt.SpeechListenOptions(
+          listenMode: stt.ListenMode.dictation,
+          partialResults: true,
+          cancelOnError: false,
+        ),
+      );
+    } else {
+      // Fallback if mic permission denied or STT unavailable on device (e.g. Emulator)
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Live speech recognition unavailable on emulator. Loaded sample voice prompt.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      _useSampleVoicePrompt();
+    }
+  }
+
+  void _useSampleVoicePrompt([String? customPrompt]) {
+    final prompt = customPrompt ?? _sampleVoicePrompts[0];
+    setState(() {
+      _textController.text = prompt;
+      _textController.selection = TextSelection.fromPosition(
+        TextPosition(offset: _textController.text.length),
+      );
+    });
+  }
+
+  Future<void> _send() async {
+    if (_isListening) {
+      await _speech.stop();
+      setState(() => _isListening = false);
+    }
+    final text = _textController.text;
+    if (text.trim().isEmpty) return;
+    _textController.clear();
+    await context.read<AppState>().sendChatMessage(text);
+    if (mounted) _scrollToBottom();
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  void _showVoiceOptionsModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF192238),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: const [
+                  Text(
+                    'Voice Prompts Selector',
+                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  Icon(Icons.record_voice_over_rounded, color: AppColors.tealLight),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Select a voice sample to populate into your text box:',
+                style: TextStyle(color: Colors.white70, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              ..._sampleVoicePrompts.map((p) => ListTile(
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.mic, color: AppColors.tealLight, size: 20),
+                    title: Text(p, style: const TextStyle(color: Colors.white, fontSize: 13.5)),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      _useSampleVoicePrompt(p);
+                    },
+                  )),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final messages = context.watch<AppState>().chatMessages;
+    return Scaffold(
+      backgroundColor: const Color(0xFF10182B),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top App Bar
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 16, 8),
+              child: Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  ),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text('AI SKILL ASSISTANT',
+                            style: TextStyle(color: AppColors.tealLight, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
+                        Text('Livelihood Assessment', style: TextStyle(color: Colors.white, fontSize: 15.5, fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).maybePop(),
+                    child: const Text('End', style: TextStyle(color: AppColors.tealLight, fontWeight: FontWeight.w700)),
+                  ),
+                ],
+              ),
+            ),
+
+            // Progress Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: const [
+                      Text('Livelihood Assessment', style: TextStyle(color: Colors.white60, fontSize: 12)),
+                      Text('60% Complete', style: TextStyle(color: AppColors.tealLight, fontSize: 12, fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(value: 0.6, minHeight: 6, backgroundColor: Colors.white12, color: AppColors.tealLight),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Messages List
+            Expanded(
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(16),
+                itemCount: messages.length,
+                itemBuilder: (context, i) {
+                  final m = messages[i];
+                  return Align(
+                    alignment: m.isBot ? Alignment.centerLeft : Alignment.centerRight,
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 14),
+                      padding: const EdgeInsets.all(14),
+                      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
+                      decoration: BoxDecoration(
+                        color: m.isBot ? const Color(0xFF1D2740) : AppColors.teal,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (m.isBot)
+                            const Padding(
+                              padding: EdgeInsets.only(right: 8, top: 2),
+                              child: CircleAvatar(
+                                  radius: 10, backgroundColor: AppColors.teal, child: Icon(Icons.podcasts, size: 12, color: Colors.white)),
+                            ),
+                          Flexible(
+                            child: Text(m.text, style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.4)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            // Text Input & Voice Controls
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(color: const Color(0xFF1D2740), borderRadius: BorderRadius.circular(28)),
+                          child: TextField(
+                            controller: _textController,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: const InputDecoration(
+                              hintText: 'Type your response...',
+                              hintStyle: TextStyle(color: Colors.white38),
+                              border: InputBorder.none,
+                              filled: false,
+                              contentPadding: EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            onSubmitted: (_) => _send(),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      InkWell(
+                        onTap: _send,
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: const BoxDecoration(color: AppColors.teal, shape: BoxShape.circle),
+                          child: const Icon(Icons.arrow_forward_rounded, color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Voice Action Controls
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _roundIcon(Icons.list_alt_rounded, _showVoiceOptionsModal),
+                      const SizedBox(width: 22),
+                      InkWell(
+                        onTap: _toggleListening,
+                        child: Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: const LinearGradient(colors: AppColors.buttonGradient),
+                            boxShadow: _isListening
+                                ? [BoxShadow(color: AppColors.teal.withOpacity(0.9), blurRadius: 28, spreadRadius: 8)]
+                                : [],
+                          ),
+                          child: Icon(_isListening ? Icons.graphic_eq_rounded : Icons.mic_rounded, color: Colors.white, size: 28),
+                        ),
+                      ),
+                      const SizedBox(width: 22),
+                      _roundIcon(Icons.backspace_outlined, () {
+                        _textController.clear();
+                        if (_isListening) {
+                          _speech.stop();
+                          setState(() => _isListening = false);
+                        }
+                      }),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    _isListening ? 'Listening live... Speak now!' : 'Tap mic to speak · बोलने के लिए दबाएं',
+                    style: TextStyle(
+                      color: _isListening ? AppColors.tealLight : Colors.white38,
+                      fontSize: 12,
+                      fontWeight: _isListening ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _roundIcon(IconData icon, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: const BoxDecoration(color: Color(0xFF1D2740), shape: BoxShape.circle),
+        child: Icon(icon, color: Colors.white70, size: 20),
+      ),
+    );
+  }
+}

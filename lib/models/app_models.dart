@@ -1,0 +1,312 @@
+/// Supported UI languages (from language-select screen).
+/// Includes all 22 languages listed in the Eighth Schedule of the
+/// Constitution of India, plus English (used for the PM-AJAY/GIA portal UI).
+class AppLanguage {
+  final String code;
+  final String nativeName;
+  final String englishName;
+  final String flagLabel; // short language-code badge shown in the UI
+  const AppLanguage(this.code, this.nativeName, this.englishName, this.flagLabel);
+
+  static const List<AppLanguage> all = [
+    AppLanguage('as', 'অসমীয়া', 'Assamese', 'AS'),
+    AppLanguage('bn', 'বাংলা', 'Bengali', 'BN'),
+    AppLanguage('brx', 'बड़ो', 'Bodo', 'BR'),
+    AppLanguage('doi', 'डोगरी', 'Dogri', 'DO'),
+    AppLanguage('en', 'English', 'English', 'EN'),
+    AppLanguage('gu', 'ગુજરાતી', 'Gujarati', 'GU'),
+    AppLanguage('hi', 'हिंदी', 'Hindi', 'HI'),
+    AppLanguage('kn', 'ಕನ್ನಡ', 'Kannada', 'KN'),
+    AppLanguage('ks', 'कॉशुर', 'Kashmiri', 'KS'),
+    AppLanguage('kok', 'कोंकणी', 'Konkani', 'KO'),
+    AppLanguage('mai', 'मैथिली', 'Maithili', 'MA'),
+    AppLanguage('ml', 'മലയാളം', 'Malayalam', 'ML'),
+    AppLanguage('mni', 'মৈতৈলোন্', 'Manipuri (Meitei)', 'MN'),
+    AppLanguage('mr', 'मराठी', 'Marathi', 'MR'),
+    AppLanguage('ne', 'नेपाली', 'Nepali', 'NE'),
+    AppLanguage('or', 'ଓଡ଼ିଆ', 'Odia', 'OD'),
+    AppLanguage('pa', 'ਪੰਜਾਬੀ', 'Punjabi', 'PA'),
+    AppLanguage('sa', 'संस्कृतम्', 'Sanskrit', 'SA'),
+    AppLanguage('sat', 'ᱥᱟᱱᱛᱟᱲᱤ', 'Santali', 'ST'),
+    AppLanguage('sd', 'سنڌي', 'Sindhi', 'SD'),
+    AppLanguage('ta', 'தமிழ்', 'Tamil', 'TA'),
+    AppLanguage('te', 'తెలుగు', 'Telugu', 'TE'),
+    AppLanguage('ur', 'اردو', 'Urdu', 'UR'),
+  ];
+}
+
+
+/// Beneficiary profile collected across the 4-step registration flow.
+class UserProfile {
+  String mobile;
+  String name;
+  String fatherName;
+  String motherName;
+  String aadhaar;
+  String annualIncome;
+  String category; // SC / ST / OBC / General
+  String district;
+  String state;
+
+  String highestQualification;
+  String stream;
+  int yearsOfStudy;
+  int workExperienceYears;
+
+  String livelihood; // Agriculture, Daily Wage, Self-employed, etc.
+
+  List<String> existingSkills;
+  List<String> careerInterests;
+
+  int profileCompletionPercent;
+  int journeyPercent;
+
+  UserProfile({
+    this.mobile = '',
+    this.name = 'Rahul Kumar',
+    this.fatherName = '',
+    this.motherName = '',
+    this.aadhaar = '',
+    this.annualIncome = '',
+    this.category = 'Scheduled Caste (SC)',
+    this.district = 'Murshidabad',
+    this.state = 'West Bengal',
+    this.highestQualification = '10th Pass',
+    this.stream = '',
+    this.yearsOfStudy = 10,
+    this.workExperienceYears = 0,
+    this.livelihood = 'Agriculture',
+    List<String>? existingSkills,
+    List<String>? careerInterests,
+    this.profileCompletionPercent = 72,
+    this.journeyPercent = 65,
+  })  : existingSkills = existingSkills ?? ['Basic Mobile', 'Agriculture', 'Physical Labour', 'Tool Handling', 'Communication'],
+        careerInterests = careerInterests ?? ['Digital Work', 'Government Jobs', 'IT & Technology'];
+
+  /// Field names below match `backend/models/Beneficiary.js` exactly, so
+  /// this maps directly onto whatever the Express API returns.
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    return UserProfile(
+      mobile: json['mobile'] ?? '',
+      name: (json['name'] as String?)?.isNotEmpty == true ? json['name'] : 'Rahul Kumar',
+      fatherName: json['fatherName'] ?? '',
+      motherName: json['motherName'] ?? '',
+      aadhaar: json['aadhaar'] ?? '',
+      annualIncome: json['annualIncome'] ?? '',
+      category: json['category'] ?? 'Scheduled Caste (SC)',
+      district: json['district'] ?? '',
+      state: json['state'] ?? '',
+      highestQualification: json['highestQualification'] ?? '',
+      stream: json['stream'] ?? '',
+      yearsOfStudy: (json['yearsOfStudy'] as num?)?.toInt() ?? 0,
+      workExperienceYears: (json['workExperienceYears'] as num?)?.toInt() ?? 0,
+      livelihood: json['livelihood'] ?? '',
+      existingSkills: (json['existingSkills'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      careerInterests: (json['careerInterests'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      profileCompletionPercent: (json['profileCompletionPercent'] as num?)?.toInt() ?? 0,
+      journeyPercent: (json['journeyPercent'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'mobile': mobile,
+    'name': name,
+    'fatherName': fatherName,
+    'motherName': motherName,
+    'aadhaar': aadhaar,
+    'annualIncome': annualIncome,
+    'category': category,
+    'district': district,
+    'state': state,
+    'highestQualification': highestQualification,
+    'stream': stream,
+    'yearsOfStudy': yearsOfStudy,
+    'workExperienceYears': workExperienceYears,
+    'livelihood': livelihood,
+    'existingSkills': existingSkills,
+    'careerInterests': careerInterests,
+  };
+}
+
+/// A single NSQF-aligned skill/career recommendation generated by the AI engine.
+class SkillRecommendation {
+  final String title;
+  final int matchPercent;
+  final int nsqfLevel;
+  final String duration;
+  final String icon; // emoji / material icon key
+  final String insight;
+  final List<String> pathway;
+  final List<String> skillsToLearn;
+  final String expectedSalary;
+  final String colorKey; // maps to AppColors
+
+  const SkillRecommendation({
+    required this.title,
+    required this.matchPercent,
+    required this.nsqfLevel,
+    required this.duration,
+    required this.icon,
+    required this.insight,
+    required this.pathway,
+    required this.skillsToLearn,
+    required this.expectedSalary,
+    required this.colorKey,
+  });
+
+  static List<SkillRecommendation> mock = [
+    const SkillRecommendation(
+      title: 'Digital Office Assistant',
+      matchPercent: 92,
+      nsqfLevel: 3,
+      duration: '3 months',
+      icon: 'computer',
+      insight: 'Your 10th pass education and interest in digital skills make this a perfect fit.',
+      pathway: ['Basic Computer', 'Office Software', 'Data Entry', 'Job Ready'],
+      skillsToLearn: ['Computer Operation', 'MS Office', 'Data Entry', 'Internet Use'],
+      expectedSalary: '₹12,000–18,000/month',
+      colorKey: 'navy',
+    ),
+    const SkillRecommendation(
+      title: 'Data Entry Operator',
+      matchPercent: 87,
+      nsqfLevel: 2,
+      duration: '2 months',
+      icon: 'assignment',
+      insight: 'Strong attention to detail and literacy background suits data entry roles perfectly.',
+      pathway: ['Typing Training', 'Data Tools', 'Accuracy Practice', 'Certified'],
+      skillsToLearn: ['Typing Speed', 'Data Accuracy', 'Computer Basics', 'File Management'],
+      expectedSalary: '₹10,000–15,000/month',
+      colorKey: 'purple',
+    ),
+    const SkillRecommendation(
+      title: 'Retail Sales Associate',
+      matchPercent: 81,
+      nsqfLevel: 2,
+      duration: '6 weeks',
+      icon: 'cart',
+      insight: 'Your communication skills and customer interaction experience are key assets here.',
+      pathway: ['Retail Basics', 'Customer Skills', 'POS Training', 'Job Ready'],
+      skillsToLearn: ['Customer Service', 'Cash Handling', 'Inventory', 'Communication'],
+      expectedSalary: '₹9,000–14,000/month',
+      colorKey: 'teal',
+    ),
+    const SkillRecommendation(
+      title: 'Customer Service Associate',
+      matchPercent: 76,
+      nsqfLevel: 3,
+      duration: '3 months',
+      icon: 'call',
+      insight: 'Language skills and willingness to learn make you suitable for call center roles.',
+      pathway: ['Communication', 'CRM Tools', 'Mock Calls', 'Certified'],
+      skillsToLearn: ['Hindi/Bengali', 'Active Listening', 'Problem Solving', 'Computer Basics'],
+      expectedSalary: '₹11,000–16,000/month',
+      colorKey: 'orange',
+    ),
+  ];
+}
+
+/// A nearby / online training opportunity (NSDC / PMKK / SSDM partners).
+class TrainingCourse {
+  final String title;
+  final String provider;
+  final double distanceKm;
+  final String duration;
+  final int nsqfLevel;
+  final bool freeGiaFunded;
+  final int? seatsLeft;
+  final String mode; // Classroom / Hybrid / Online
+  final String schedule;
+  final String eligibility;
+  final String icon;
+
+  const TrainingCourse({
+    required this.title,
+    required this.provider,
+    required this.distanceKm,
+    required this.duration,
+    required this.nsqfLevel,
+    required this.freeGiaFunded,
+    this.seatsLeft,
+    required this.mode,
+    required this.schedule,
+    required this.eligibility,
+    required this.icon,
+  });
+
+  static List<TrainingCourse> mock = const [
+    TrainingCourse(
+      title: 'Digital Office Assistant',
+      provider: 'NSDC Training Partner',
+      distanceKm: 4.2,
+      duration: '3 Months',
+      nsqfLevel: 3,
+      freeGiaFunded: true,
+      mode: 'Classroom',
+      schedule: 'Mon–Sat, 9am–12pm',
+      eligibility: '10th Pass, Age 18–35',
+      icon: 'computer',
+    ),
+    TrainingCourse(
+      title: 'Data Entry Operator',
+      provider: 'Pradhan Mantri Kaushal Kendra',
+      distanceKm: 7.8,
+      duration: '2 Months',
+      nsqfLevel: 2,
+      freeGiaFunded: true,
+      seatsLeft: 3,
+      mode: 'Hybrid',
+      schedule: 'Mon–Fri, 2pm–5pm',
+      eligibility: '8th Pass, Age 18–40',
+      icon: 'assignment',
+    ),
+    TrainingCourse(
+      title: 'Retail Sales Associate',
+      provider: 'SSDM West Bengal',
+      distanceKm: 11.3,
+      duration: '6 Weeks',
+      nsqfLevel: 2,
+      freeGiaFunded: true,
+      mode: 'Classroom',
+      schedule: 'Mon–Sat, 10am–1pm',
+      eligibility: '7th Pass, Age 18–45',
+      icon: 'cart',
+    ),
+  ];
+}
+
+/// A step in the "My Progress" skill journey tracker.
+class JourneyStep {
+  final String title;
+  final String subtitle;
+  final JourneyStepState state;
+  final String icon;
+  const JourneyStep(this.title, this.subtitle, this.state, this.icon);
+}
+
+enum JourneyStepState { completed, active, locked }
+
+/// Notification item.
+class AppNotification {
+  final String title;
+  final String body;
+  final String time;
+  final String icon;
+  final bool unread;
+  const AppNotification(this.title, this.body, this.time, this.icon, this.unread);
+
+  static List<AppNotification> mock = const [
+    AppNotification('New Match Found!', 'Digital Office Assistant — 92% match to your profile', '2 min ago', 'star', true),
+    AppNotification('Training Starting Soon', 'Data Entry Operator course begins Sep 1 at Berhampore center', '1 hour ago', 'school', true),
+    AppNotification('Application Confirmed', 'Your enquiry for Retail Sales course has been received', 'Yesterday', 'check', false),
+    AppNotification('Complete Your Profile', 'Add your Aadhaar number to unlock government scheme benefits', '2 days ago', 'alarm', false),
+    AppNotification('Skill Journey Update', "You're 65% through your skill journey. Great progress!", '3 days ago', 'medal', false),
+  ];
+}
+
+/// A chat/voice bubble in the AI Skill Assistant conversation.
+class ChatMessage {
+  final String text;
+  final bool isBot;
+  const ChatMessage(this.text, this.isBot);
+}
