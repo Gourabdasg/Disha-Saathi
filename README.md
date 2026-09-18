@@ -24,6 +24,19 @@ demoable without a live backend. Swap the mock calls in
 `lib/providers/app_state.dart` for real HTTP calls to your Express API when
 the backend is ready (see `backend/` and `ai-service/` stubs below).
 
+## Screenshots
+
+| | | |
+|---|---|---|
+| ![Splash](screenshots/01_splash.png) | ![Language Selection](screenshots/02_language_selection.png) | ![Login](screenshots/03_login.png) |
+| Splash screen | Language selection (22 languages) | Login — Mobile/Email OTP |
+| ![Personal Info](screenshots/04_personal_info.png) | ![Livelihood](screenshots/05_livelihood.png) | ![Skills](screenshots/06_skills.png) |
+| Registration — Personal Info | Registration — Livelihood | Registration — Skills & Interests |
+| ![Home](screenshots/07_home.png) | ![AI Chat](screenshots/08_ai_chat.png) | ![Recommendations](screenshots/09_recommendations.png) |
+| Home dashboard | AI Voice/Chat livelihood assessment | AI skill recommendations (NSQF match) |
+| ![Progress](screenshots/11_progress.png) | ![Achievements](screenshots/12_achievements.png) | ![Profile](screenshots/13_profile.png) |
+| My Progress — skill journey tracker | Achievements & stats | Profile & career interests |
+
 ## Screens included
 
 1. Splash (`दिशा साथी` / Disha Saathi)
