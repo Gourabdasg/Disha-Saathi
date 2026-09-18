@@ -1,11 +1,11 @@
-# Disha Saathi — Flutter App
+# Disha Saathi – Flutter App
 
 **Smart India Hackathon 2026 · Problem Statement 26097**
 > AI-Driven Voice Assistant for Livelihood Mapping and NSQF-Aligned Skilling  
 > Recommendations for SC Communities under the GIA component of PM-AJAY  
 > Team: **The AI Alchemists**
 
-This is the **Flutter frontend** for Disha Saathi — a voice-first, multilingual
+This is the **Flutter frontend** for Disha Saathi – a voice-first, multilingual
 AI assistant that maps a beneficiary's livelihood and skills, then recommends
 NSQF-aligned training and job pathways.
 
@@ -31,28 +31,28 @@ the backend is ready (see `backend/` and `ai-service/` stubs below).
 | | | |
 |---|---|---|
 | ![Splash](screenshots/01_splash.png) | ![Language Selection](screenshots/02_language_selection.png) | ![Login](screenshots/03_login.png) |
-| Splash screen | Language selection (22 languages) | Login — Mobile/Email OTP |
+| Splash screen | Language selection (22 languages) | Login – Mobile/Email OTP |
 
 ### Registration
 
 | | | |
 |---|---|---|
 | ![Personal Info](screenshots/04_personal_info.png) | ![Livelihood](screenshots/05_livelihood.png) | ![Skills](screenshots/06_skills.png) |
-| Registration — Personal Info | Registration — Livelihood | Registration — Skills & Interests |
+| Registration – Personal Info | Registration – Livelihood | Registration – Skills & Interests |
 
 ### Main App
 
 | | | |
 |---|---|---|
 | ![Home](screenshots/07_home.png) | ![AI Chat](screenshots/08_ai_chat.png) | ![Recommendations](screenshots/09_recommendations_digital_office.png) |
-| Home dashboard | AI Voice/Chat livelihood assessment | AI skill recommendations — Digital Office Assistant |
+| Home dashboard | AI Voice/Chat livelihood assessment | AI skill recommendations – Digital Office Assistant |
 
 ### Recommendations
 
 | | | |
 |---|---|---|
 | ![Data Entry](screenshots/10_recommendations_data_entry.png) | ![Recommendations List](screenshots/11_recommendations_list.png) | ![Progress](screenshots/12_progress_journey.png) |
-| Data Entry Operator recommendation | Multiple skill recommendations | My Progress — skill journey tracker |
+| Data Entry Operator recommendation | Multiple skill recommendations | My Progress – skill journey tracker |
 
 ### Achievements & Profile
 
@@ -64,12 +64,11 @@ the backend is ready (see `backend/` and `ai-service/` stubs below).
 ## Screens included
 
 1. Splash (`दिशा साथी` / Disha Saathi)
-2. Language selection (all 22 languages in the Eighth Schedule of the
-   Constitution of India, plus English)
+2. Language selection (all 22 languages of India, plus English)
 3. Onboarding carousel (3 slides)
-4. Login — Password / OTP tabs
-5. OTP verification
-6. Registration — 4 steps: Personal Info → Education → Livelihood → Skills
+4. Registration – 4 steps: Name → Mobile No. / Email → SC Category No. → OTP verification
+5. Login – Mobile No. / Email → OTP tabs
+6. OTP verification
 7. Home dashboard (profile completion, voice assistant CTA, quick links)
 8. AI Recommendations (NSQF match %, skill-gap pathway, expected salary)
 9. Training Opportunities (filters, GIA-funded badges, apply flow)
@@ -90,22 +89,22 @@ Requires Flutter 3.22+ (Dart 3.x). Tested against Material 3.
 
 ### Platform folders included
 
-- `android/` — full Gradle project (Kotlin `MainActivity`, manifest, launcher
+- `android/` – full Gradle project (Kotlin `MainActivity`, manifest, launcher
   icons, Gradle wrapper). Open this repo root in **Android Studio** with the
   Flutter/Dart plugins installed; it will detect the project automatically.
   The first sync auto-generates `android/local.properties` with your SDK
-  paths — if it doesn't, set `sdk.dir` / `flutter.sdk` there yourself.
-- `web/` — runs with `flutter run -d chrome`.
-- `linux/` — GTK + CMake desktop build (`flutter run -d linux`, needs GTK 3
+  paths – if it doesn't, set `sdk.dir` / `flutter.sdk` there yourself.
+- `web/` – runs with `flutter run -d chrome`.
+- `linux/` – GTK + CMake desktop build (`flutter run -d linux`, needs GTK 3
   dev libraries on the build machine).
-- `windows/` — Win32 + CMake desktop build (`flutter run -d windows`, needs
+- `windows/` – Win32 + CMake desktop build (`flutter run -d windows`, needs
   Visual Studio with the "Desktop development with C++" workload).
-- `test/` — a starter widget test (`flutter test`).
+- `test/` – a starter widget test (`flutter test`).
 
 **Not included:** `ios/`, `macos/`. Both platforms' core project file
 (`Runner.xcodeproj/project.pbxproj`) is an Xcode-managed indexed format
-that's unsafe to hand-write — a single bad reference silently corrupts the
-project — and Xcode itself only runs on macOS. Each folder has a
+that's unsafe to hand-write – a single bad reference silently corrupts the
+project – and Xcode itself only runs on macOS. Each folder has a
 `PLATFORM_SETUP.md` with the one command to generate it properly on a Mac:
 
 ```bash
@@ -161,9 +160,9 @@ Suggested Express endpoints:
 - `GET /api/training?district=&nsqfLevel=`
 
 Suggested FastAPI (AI/ML) endpoints:
-- `POST /ai/stt` — speech-to-text (multilingual)
-- `POST /ai/tts` — text-to-speech
-- `POST /ai/skill-match` — NLP-based skill/interest extraction + NSQF matching
+- `POST /ai/stt` – speech-to-text (multilingual)
+- `POST /ai/tts` – text-to-speech
+- `POST /ai/skill-match` – NLP-based skill/interest extraction + NSQF matching
 
 ## References
 
