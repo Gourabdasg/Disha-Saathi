@@ -36,6 +36,8 @@ class AppState extends ChangeNotifier {
   String annualIncome = '';
   String category = 'Scheduled Caste (SC)';
   String scCategoryNo = '';
+  String scCertificateUrl = '';
+  String scCertificateFilename = '';
   String district = 'Murshidabad';
   String stateName = 'West Bengal';
   String location = 'Barasat, West Bengal';
@@ -111,6 +113,8 @@ class AppState extends ChangeNotifier {
     annualIncome = '';
     category = 'Scheduled Caste (SC)';
     scCategoryNo = '';
+    scCertificateUrl = '';
+    scCertificateFilename = '';
     district = 'Murshidabad';
     stateName = 'West Bengal';
     location = 'Barasat, West Bengal';
@@ -136,8 +140,6 @@ class AppState extends ChangeNotifier {
       district: 'Murshidabad',
       state: 'West Bengal',
       location: 'Barasat, West Bengal',
-      profileCompletionPercent: 65,
-      journeyPercent: 26,
     );
 
     chatMessages
@@ -171,6 +173,8 @@ class AppState extends ChangeNotifier {
     aadhaar = '';
     annualIncome = '';
     scCategoryNo = '';
+    scCertificateUrl = '';
+    scCertificateFilename = '';
     highestQualification = '';
     stream = '';
     yearsOfStudy = '';
@@ -187,8 +191,6 @@ class AppState extends ChangeNotifier {
       district: district,
       state: stateName,
       location: location,
-      profileCompletionPercent: 65,
-      journeyPercent: 26,
     );
   }
 
@@ -219,7 +221,7 @@ class AppState extends ChangeNotifier {
       if (existing != null) {
         profile = existing;
         name = existing.name;
-        mobile = existing.mobile;
+        this.mobile = existing.mobile;
         email = existing.email;
         isAuthenticated = true;
         notifyListeners();
@@ -265,7 +267,7 @@ class AppState extends ChangeNotifier {
         profile = existing;
         name = existing.name;
         mobile = existing.mobile;
-        email = existing.email;
+        this.email = existing.email;
         isAuthenticated = true;
         notifyListeners();
         return 'existing';
@@ -290,7 +292,7 @@ class AppState extends ChangeNotifier {
       if (existing != null) {
         profile = existing;
         name = existing.name;
-        mobile = existing.mobile;
+        this.mobile = existing.mobile;
         email = existing.email;
         isAuthenticated = true;
         notifyListeners();
@@ -319,7 +321,7 @@ class AppState extends ChangeNotifier {
       if (existing != null) {
         profile = existing;
         this.name = existing.name.isNotEmpty ? existing.name : name;
-        this.mobile = existing.mobile;
+        mobile = existing.mobile;
         this.email = existing.email.isNotEmpty ? existing.email : email;
         isAuthenticated = true;
         notifyListeners();
@@ -361,8 +363,8 @@ class AppState extends ChangeNotifier {
       isLoading = false;
       if (existing != null) {
         profile = existing;
-        this.name = existing.name;
-        this.mobile = existing.mobile;
+        name = existing.name;
+        mobile = existing.mobile;
         this.email = existing.email;
         isAuthenticated = true;
         notifyListeners();
@@ -378,15 +380,32 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  // --- Registration ---
+  // --- Registration & Profile Updates ---
+
+  Future<bool> updateUserProfile(UserProfile updatedProfile) async {
+    _setLoading(true);
+    try {
+      profile = await ApiService.saveProfile(updatedProfile);
+      isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      profile = updatedProfile;
+      isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
 
   Future<bool> completeRegistration() async {
     profile.mobile = mobile.isNotEmpty ? mobile : email;
     profile.email = email;
     profile.name = name.isNotEmpty ? name : profile.name;
     profile.annualIncome = annualIncome;
-    profile.category = category;
+    profile.category = 'Scheduled Caste (SC)';
     profile.scCategoryNo = scCategoryNo;
+    profile.scCertificateUrl = scCertificateUrl;
+    profile.scCertificateFilename = scCertificateFilename;
     profile.district = district.isNotEmpty ? district : profile.district;
     profile.state = stateName.isNotEmpty ? stateName : profile.state;
     profile.location = location.isNotEmpty ? location : profile.location;
@@ -395,8 +414,6 @@ class AppState extends ChangeNotifier {
     profile.yearsOfStudy = int.tryParse(yearsOfStudy) ?? profile.yearsOfStudy;
     profile.workExperienceYears = int.tryParse(workExperience) ?? profile.workExperienceYears;
     profile.livelihood = selectedLivelihood.isNotEmpty ? selectedLivelihood : profile.livelihood;
-    profile.profileCompletionPercent = 65;
-    profile.journeyPercent = 26;
 
     if (selectedSkills.isNotEmpty) {
       profile.existingSkills
