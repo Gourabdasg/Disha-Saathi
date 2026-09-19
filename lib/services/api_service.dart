@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/app_models.dart';
@@ -126,9 +127,6 @@ class ApiService {
 
   // --- Beneficiary profile (backend/routes/beneficiary.js) ---
 
-  /// Returns null if no profile exists yet for this mobile number (HTTP 404)
-  /// — that's the signal the app uses to send a first-time user to
-  /// registration instead of the home dashboard.
   static Future<UserProfile?> fetchProfile(String mobile) async {
     try {
       final json = await _get('/api/beneficiary/profile/$mobile');
@@ -144,18 +142,71 @@ class ApiService {
     return UserProfile.fromJson(json['profile'] as Map<String, dynamic>);
   }
 
+  // --- SC Caste Certificate Upload ---
+
+  static Future<Map<String, dynamic>?> uploadCertificateFile(PlatformFile file) async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        ApiConfig.uri('/api/media/upload-certificate'),
+      );
+      if (file.bytes != null) {
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'certificate',
+            file.bytes!,
+            filename: file.name,
+          ),
+        );
+      } else if (file.path != null) {
+        request.files.add(
+          await http.MultipartFile.fromPath('certificate', file.path!),
+        );
+      }
+      final streamedResponse = await request.send().timeout(_timeout);
+      final response = await http.Response.fromStream(streamedResponse);
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      }
+    } catch (e) {
+      // Fallback for offline mode
+    }
+    return null;
+  }
+
+  // --- NVIDIA Speech-to-Text & Text-to-Speech Media Endpoints ---
+
+  static Future<String?> textToSpeech(String text, String languageCode) async {
+    try {
+      final json = await _post('/api/media/tts', {
+        'text': text,
+        'languageCode': languageCode,
+      });
+      return json['audioBase64'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<String?> speechToText(String audioBase64, String languageCode) async {
+    try {
+      final json = await _post('/api/media/stt', {
+        'audioBase64': audioBase64,
+        'languageCode': languageCode,
+      });
+      return json['text'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
   // --- AI Chat (backend/routes/chat.js) ---
 
-  /// Sends a chat message for [mobile], gets back the rule-based matched
-  /// reply (see backend/data/skillsDataset.js), and returns just the reply
-  /// text for display. Both the user's message and this reply are already
-  /// persisted server-side by the time this returns.
   static Future<String> sendChatMessage(String mobile, String text) async {
     final json = await _post('/api/chat/message', {'mobile': mobile, 'text': text});
     return json['reply'] as String? ?? '';
   }
 
-  /// Loads the full stored conversation for [mobile], oldest first.
   static Future<List<ChatMessage>> fetchChatHistory(String mobile) async {
     final list = await _getList('/api/chat/history/$mobile');
     return list
