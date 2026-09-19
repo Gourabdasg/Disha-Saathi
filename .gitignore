@@ -13,6 +13,10 @@ ios/Flutter/Flutter.podspec
 ios/Pods/
 .DS_Store
 
+# Gradle & Android build home
+.gradle_home/
+android_home/
+
 # Node.js
 node_modules/
 
