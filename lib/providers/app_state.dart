@@ -36,6 +36,9 @@ class AppState extends ChangeNotifier {
   String annualIncome = '';
   String category = 'Scheduled Caste (SC)';
   String scCategoryNo = '';
+  String district = 'Murshidabad';
+  String stateName = 'West Bengal';
+  String location = 'Barasat, West Bengal';
 
   // Step 2: Education
   String highestQualification = '';
@@ -108,6 +111,9 @@ class AppState extends ChangeNotifier {
     annualIncome = '';
     category = 'Scheduled Caste (SC)';
     scCategoryNo = '';
+    district = 'Murshidabad';
+    stateName = 'West Bengal';
+    location = 'Barasat, West Bengal';
 
     highestQualification = '';
     stream = '';
@@ -127,8 +133,11 @@ class AppState extends ChangeNotifier {
       mobile: '',
       email: '',
       name: 'Beneficiary',
-      district: '',
-      state: '',
+      district: 'Murshidabad',
+      state: 'West Bengal',
+      location: 'Barasat, West Bengal',
+      profileCompletionPercent: 65,
+      journeyPercent: 26,
     );
 
     chatMessages
@@ -175,8 +184,11 @@ class AppState extends ChangeNotifier {
       mobile: newMobile,
       email: newEmail,
       name: newName.isNotEmpty ? newName : 'Beneficiary',
-      district: '',
-      state: '',
+      district: district,
+      state: stateName,
+      location: location,
+      profileCompletionPercent: 65,
+      journeyPercent: 26,
     );
   }
 
@@ -375,11 +387,17 @@ class AppState extends ChangeNotifier {
     profile.annualIncome = annualIncome;
     profile.category = category;
     profile.scCategoryNo = scCategoryNo;
+    profile.district = district.isNotEmpty ? district : profile.district;
+    profile.state = stateName.isNotEmpty ? stateName : profile.state;
+    profile.location = location.isNotEmpty ? location : profile.location;
     profile.highestQualification = highestQualification;
     profile.stream = stream;
     profile.yearsOfStudy = int.tryParse(yearsOfStudy) ?? profile.yearsOfStudy;
     profile.workExperienceYears = int.tryParse(workExperience) ?? profile.workExperienceYears;
     profile.livelihood = selectedLivelihood.isNotEmpty ? selectedLivelihood : profile.livelihood;
+    profile.profileCompletionPercent = 65;
+    profile.journeyPercent = 26;
+
     if (selectedSkills.isNotEmpty) {
       profile.existingSkills
         ..clear()
@@ -405,6 +423,8 @@ class AppState extends ChangeNotifier {
       return false;
     }
   }
+
+  // --- AI Chat Features (Requirements 5, 6, 7, 8, 9) ---
 
   Future<void> loadChatHistory() async {
     final lookupKey = mobile.isNotEmpty ? mobile : email;
@@ -438,6 +458,73 @@ class AppState extends ChangeNotifier {
       ));
     }
     notifyListeners();
+  }
+
+  /// Permanently clears current conversation history on server & local state.
+  Future<void> clearChat() async {
+    final lookupKey = mobile.isNotEmpty ? mobile : email;
+    if (lookupKey.isNotEmpty) {
+      await ApiService.clearChatHistory(lookupKey);
+    }
+    _chatHistoryLoaded = true;
+    chatMessages
+      ..clear()
+      ..add(
+        const ChatMessage(
+          "Hello! I'm your AI Skill Assistant. Tell me about the work you currently do. आप वर्तमान में क्या काम करते हैं?",
+          true,
+        ),
+      );
+    notifyListeners();
+  }
+
+  /// Restarts current conversation flow and onboarding context.
+  Future<void> restartChat() async {
+    final lookupKey = mobile.isNotEmpty ? mobile : email;
+    if (lookupKey.isNotEmpty) {
+      await ApiService.restartChat(lookupKey);
+    }
+    _chatHistoryLoaded = true;
+    chatMessages
+      ..clear()
+      ..add(
+        const ChatMessage(
+          "Hello! 👋 Welcome to Disha Saathi AI Assistant. What is your name?",
+          true,
+        ),
+      );
+    notifyListeners();
+  }
+
+  /// Starts a completely new chat session without carrying over prior conversation context.
+  void startNewChat() {
+    chatMessages
+      ..clear()
+      ..add(
+        const ChatMessage(
+          "New conversation started! How can I assist you today with your skills and career?",
+          true,
+        ),
+      );
+    notifyListeners();
+  }
+
+  /// Deletes an individual chat message by index.
+  void deleteChatMessage(int index) {
+    if (index >= 0 && index < chatMessages.length) {
+      chatMessages.removeAt(index);
+      notifyListeners();
+    }
+  }
+
+  /// Edits a previous user message, removes subsequent responses, and resends.
+  Future<void> editAndResendMessage(int index, String newText) async {
+    if (index >= 0 && index < chatMessages.length) {
+      // Remove this message and any messages after it
+      chatMessages.removeRange(index, chatMessages.length);
+      notifyListeners();
+      await sendChatMessage(newText);
+    }
   }
 
   List<JourneyStep> get journeySteps => const [

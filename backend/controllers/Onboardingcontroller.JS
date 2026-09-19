@@ -26,12 +26,34 @@ async function safeSaveProfile(profile) {
 }
 
 /**
+ * Resets the onboarding progress for a given mobile number or email.
+ */
+async function resetOnboarding(mobile) {
+  const key = mobile || 'anonymous';
+  if (inMemoryProfiles.has(key)) {
+    inMemoryProfiles.delete(key);
+  }
+  if (mongoose.connection.readyState === 1) {
+    try {
+      await UserProfile.findOneAndUpdate(
+        { $or: [{ mobile: key }, { email: key }] },
+        { $set: { onboardingComplete: false, name: '', age: null, skills: '', careerGoal: '' } }
+      );
+    } catch (e) {
+      console.warn('DB onboarding reset warning:', e.message);
+    }
+  }
+}
+
+/**
  * Fetches (or creates) the UserProfile doc for a given mobile number.
  */
 async function getOrCreateProfile(mobile) {
   if (mongoose.connection.readyState === 1) {
     try {
-      let profile = await UserProfile.findOne({ mobile });
+      let profile = await UserProfile.findOne({
+        $or: [{ mobile }, { email: mobile }],
+      });
       if (!profile) {
         profile = await UserProfile.create({ mobile });
       }
@@ -147,4 +169,5 @@ async function handleOnboardingMessage(mobile, message, llmClient = null) {
 module.exports = {
   handleOnboardingMessage,
   getOrCreateProfile,
+  resetOnboarding,
 };

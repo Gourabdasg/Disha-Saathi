@@ -3,7 +3,7 @@ const router = express.Router();
 const mongoose = require('mongoose');
 
 const ChatMessage = require('../models/ChatMessage');
-const { handleOnboardingMessage } = require('../controllers/onboardingController');
+const { handleOnboardingMessage, resetOnboarding } = require('../controllers/onboardingController');
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
 
@@ -39,6 +39,18 @@ async function getHistory(mobile) {
     }
   }
   return inMemoryMessages.get(key) || [];
+}
+
+async function clearHistory(mobile) {
+  const key = mobile || 'anonymous';
+  inMemoryMessages.delete(key);
+  if (mongoose.connection.readyState === 1) {
+    try {
+      await ChatMessage.deleteMany({ mobile: key });
+    } catch (e) {
+      console.warn('ChatMessage DB clear failed:', e.message);
+    }
+  }
 }
 
 async function handleChatPost(req, res) {
@@ -86,12 +98,41 @@ async function handleChatGet(req, res) {
   }
 }
 
-// Route Aliases: support both / and /message, /:mobile and /history/:mobile
+async function handleChatClear(req, res) {
+  try {
+    const { mobile } = req.body;
+    const userMobile = mobile || req.params.mobile || 'anonymous';
+    await clearHistory(userMobile);
+    return res.json({ message: 'Chat history cleared successfully', mobile: userMobile });
+  } catch (err) {
+    console.error('Clear chat error:', err);
+    return res.status(500).json({ error: 'Could not clear chat history' });
+  }
+}
+
+async function handleChatRestart(req, res) {
+  try {
+    const { mobile } = req.body;
+    const userMobile = mobile || 'anonymous';
+    await clearHistory(userMobile);
+    await resetOnboarding(userMobile);
+    return res.json({ message: 'Chat restarted successfully', mobile: userMobile });
+  } catch (err) {
+    console.error('Restart chat error:', err);
+    return res.status(500).json({ error: 'Could not restart chat' });
+  }
+}
+
+// Route Aliases
 router.post('/', handleChatPost);
 router.post('/message', handleChatPost);
 
 router.get('/:mobile', handleChatGet);
 router.get('/history/:mobile', handleChatGet);
+
+router.delete('/history/:mobile', handleChatClear);
+router.post('/clear', handleChatClear);
+router.post('/restart', handleChatRestart);
 
 async function generateAssistantReply(userText, profile) {
   try {

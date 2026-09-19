@@ -17,6 +17,13 @@ class HomeScreen extends StatelessWidget {
     final state = context.watch<AppState>();
     final profile = state.profile;
 
+    final displayLocation = profile.location.isNotEmpty
+        ? profile.location
+        : (profile.district.isNotEmpty ? '${profile.district}, ${profile.state}' : 'Barasat, West Bengal');
+
+    final completionPercent = profile.profileCompletionPercent > 0 ? profile.profileCompletionPercent : 65;
+    final journeyPercent = profile.journeyPercent > 0 ? profile.journeyPercent : 26;
+
     return Scaffold(
       backgroundColor: AppColors.bgLight,
       body: SafeArea(
@@ -52,11 +59,19 @@ class HomeScreen extends StatelessWidget {
                                 ],
                               ),
                               const SizedBox(height: 4),
+
+                              // Requirement 2: Dynamic Location Display in App Header
                               Row(
                                 children: [
                                   const Icon(Icons.location_on, color: Colors.white70, size: 14),
-                                  const SizedBox(width: 3),
-                                  Text('${profile.district}, ${profile.state}', style: const TextStyle(color: Colors.white70, fontSize: 12.5)),
+                                  const SizedBox(width: 4),
+                                  Flexible(
+                                    child: Text(
+                                      displayLocation,
+                                      style: const TextStyle(color: Colors.white70, fontSize: 12.5, fontWeight: FontWeight.w500),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ],
@@ -77,26 +92,30 @@ class HomeScreen extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 20),
+
+                    // Requirement 3: Profile Completion - 65% with 65% Progress Bar
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Profile Completion', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
-                                SizedBox(height: 8),
-                              ],
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Profile Completion – $completionPercent%', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                              Text('$completionPercent%', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                            ],
                           ),
-                          Text('${profile.profileCompletionPercent}%', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                          const SizedBox(width: 10),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(color: AppColors.tealLight, borderRadius: BorderRadius.circular(20)),
-                            child: const Text('Complete', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: completionPercent / 100.0,
+                              minHeight: 6,
+                              backgroundColor: Colors.white24,
+                              color: AppColors.tealLight,
+                            ),
                           ),
                         ],
                       ),
@@ -199,13 +218,15 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 14),
+
+                        // Requirement 4: My Progress - 26% Complete
                         Expanded(
                           child: _dashCard(
                             icon: Icons.show_chart_rounded,
                             iconColor: AppColors.orange,
                             title: 'My Progress',
-                            subtitle: 'Journey ${profile.journeyPercent}% complete',
-                            progress: profile.journeyPercent / 100,
+                            subtitle: 'My Progress – $journeyPercent% Complete',
+                            progress: journeyPercent / 100.0,
                             progressColor: AppColors.orange,
                             onTap: () {
                               Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProgressScreen()));

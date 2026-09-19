@@ -37,7 +37,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     });
   }
 
-  /// Initializes the device microphone speech-to-text engine.
+  /// Initializes device microphone speech-to-text engine.
   Future<void> _initSpeech() async {
     try {
       _speechEnabled = await _speech.initialize(
@@ -46,7 +46,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
             setState(() => _isListening = false);
           }
         },
-        onError: (errorNotification) {
+        onError: (_) {
           setState(() => _isListening = false);
         },
       );
@@ -55,7 +55,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     }
   }
 
-  /// Toggles live microphone listening to transcribe spoken words into the text box.
+  /// Toggles live microphone listening to transcribe spoken words.
   Future<void> _toggleListening() async {
     if (_isListening) {
       await _speech.stop();
@@ -86,11 +86,10 @@ class _AiChatScreenState extends State<AiChatScreen> {
         ),
       );
     } else {
-      // Fallback if mic permission denied or STT unavailable on device (e.g. Emulator)
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Live speech recognition unavailable on emulator. Loaded sample voice prompt.'),
+            content: Text('Live speech recognition unavailable. Loaded sample voice prompt.'),
             duration: Duration(seconds: 2),
           ),
         );
@@ -117,6 +116,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     final text = _textController.text;
     if (text.trim().isEmpty) return;
     _textController.clear();
+    if (!mounted) return;
     await context.read<AppState>().sendChatMessage(text);
     if (mounted) _scrollToBottom();
   }
@@ -129,6 +129,109 @@ class _AiChatScreenState extends State<AiChatScreen> {
         curve: Curves.easeOut,
       );
     }
+  }
+
+  // Requirement 5: Restart Confirmation Dialog
+  void _confirmRestartChat() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Restart Conversation?'),
+        content: const Text('Are you sure you want to restart your current AI conversation flow?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.black54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.teal),
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<AppState>().restartChat();
+            },
+            child: const Text('Restart', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Requirement 6: Clear Chat Confirmation Dialog
+  void _confirmClearChat() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Clear Chat History?'),
+        content: const Text('Are you sure you want to permanently delete all messages in this conversation?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.black54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<AppState>().clearChat();
+            },
+            child: const Text('Clear Chat', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Requirement 7: Individual Message Action Options (Delete / Edit & Resend)
+  void _showMessageOptionsModal(int index, String text, bool isBot) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF192238),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 14),
+              Text(
+                isBot ? 'Bot Message Options' : 'User Message Options',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+              const SizedBox(height: 10),
+              if (!isBot) ...[
+                ListTile(
+                  leading: const Icon(Icons.edit_rounded, color: AppColors.tealLight),
+                  title: const Text('Edit & Resend', style: TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    setState(() {
+                      _textController.text = text;
+                      _textController.selection = TextSelection.fromPosition(TextPosition(offset: text.length));
+                    });
+                    context.read<AppState>().editAndResendMessage(index, text);
+                  },
+                ),
+                const Divider(color: Colors.white12),
+              ],
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded, color: AppColors.danger),
+                title: const Text('Delete Message', style: TextStyle(color: Colors.white)),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.read<AppState>().deleteChatMessage(index);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showVoiceOptionsModal() {
@@ -181,15 +284,17 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final messages = context.watch<AppState>().chatMessages;
+    final state = context.watch<AppState>();
+    final messages = state.chatMessages;
+
     return Scaffold(
       backgroundColor: const Color(0xFF10182B),
       body: SafeArea(
         child: Column(
           children: [
-            // Top App Bar
+            // Requirement 5 & 9: Top App Bar with "Restart" & Three-Dot Menu (⋯)
             Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 16, 8),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
               child: Row(
                 children: [
                   IconButton(
@@ -206,9 +311,73 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       ],
                     ),
                   ),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    child: const Text('End', style: TextStyle(color: AppColors.tealLight, fontWeight: FontWeight.w700)),
+
+                  // Requirement 5: Replace "End" with "Restart"
+                  TextButton.icon(
+                    onPressed: _confirmRestartChat,
+                    icon: const Icon(Icons.restart_alt_rounded, color: AppColors.tealLight, size: 18),
+                    label: const Text('Restart', style: TextStyle(color: AppColors.tealLight, fontWeight: FontWeight.w700)),
+                  ),
+
+                  // Requirement 9: Three-Dot Menu (⋯)
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+                    color: const Color(0xFF192238),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    onSelected: (val) {
+                      if (val == 'new') {
+                        state.startNewChat();
+                      } else if (val == 'restart') {
+                        _confirmRestartChat();
+                      } else if (val == 'clear') {
+                        _confirmClearChat();
+                      } else if (val == 'history') {
+                        state.loadChatHistory();
+                      }
+                    },
+                    itemBuilder: (ctx) => [
+                      const PopupMenuItem(
+                        value: 'new',
+                        child: Row(
+                          children: [
+                            Icon(Icons.add_rounded, color: AppColors.tealLight, size: 18),
+                            SizedBox(width: 10),
+                            Text('New Chat', style: TextStyle(color: Colors.white, fontSize: 13.5)),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'restart',
+                        child: Row(
+                          children: [
+                            Icon(Icons.restart_alt_rounded, color: AppColors.tealLight, size: 18),
+                            SizedBox(width: 10),
+                            Text('Restart Conversation', style: TextStyle(color: Colors.white, fontSize: 13.5)),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'history',
+                        child: Row(
+                          children: [
+                            Icon(Icons.history_rounded, color: AppColors.tealLight, size: 18),
+                            SizedBox(width: 10),
+                            Text('Chat History', style: TextStyle(color: Colors.white, fontSize: 13.5)),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuDivider(height: 1),
+                      const PopupMenuItem(
+                        value: 'clear',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_sweep_rounded, color: AppColors.danger, size: 18),
+                            SizedBox(width: 10),
+                            Text('Clear Chat', style: TextStyle(color: AppColors.danger, fontSize: 13.5)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -237,7 +406,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
             ),
             const SizedBox(height: 10),
 
-            // Messages List
+            // Messages List with Long Press / Tap Action Menu (Requirement 7)
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
@@ -245,30 +414,33 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 itemCount: messages.length,
                 itemBuilder: (context, i) {
                   final m = messages[i];
-                  return Align(
-                    alignment: m.isBot ? Alignment.centerLeft : Alignment.centerRight,
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 14),
-                      padding: const EdgeInsets.all(14),
-                      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
-                      decoration: BoxDecoration(
-                        color: m.isBot ? const Color(0xFF1D2740) : AppColors.teal,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (m.isBot)
-                            const Padding(
-                              padding: EdgeInsets.only(right: 8, top: 2),
-                              child: CircleAvatar(
-                                  radius: 10, backgroundColor: AppColors.teal, child: Icon(Icons.podcasts, size: 12, color: Colors.white)),
+                  return GestureDetector(
+                    onLongPress: () => _showMessageOptionsModal(i, m.text, m.isBot),
+                    child: Align(
+                      alignment: m.isBot ? Alignment.centerLeft : Alignment.centerRight,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 14),
+                        padding: const EdgeInsets.all(14),
+                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
+                        decoration: BoxDecoration(
+                          color: m.isBot ? const Color(0xFF1D2740) : AppColors.teal,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (m.isBot)
+                              const Padding(
+                                padding: EdgeInsets.only(right: 8, top: 2),
+                                child: CircleAvatar(
+                                    radius: 10, backgroundColor: AppColors.teal, child: Icon(Icons.podcasts, size: 12, color: Colors.white)),
+                              ),
+                            Flexible(
+                              child: Text(m.text, style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.4)),
                             ),
-                          Flexible(
-                            child: Text(m.text, style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.4)),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   );

@@ -162,4 +162,16 @@ class ApiService {
         .map((m) => ChatMessage(m['text'] as String, m['sender'] == 'bot'))
         .toList();
   }
+
+  static Future<void> clearChatHistory(String mobile) async {
+    try {
+      await http.delete(ApiConfig.uri('/api/chat/history/$mobile')).timeout(_timeout);
+    } catch (_) {}
+  }
+
+  static Future<void> restartChat(String mobile) async {
+    try {
+      await _post('/api/chat/restart', {'mobile': mobile});
+    } catch (_) {}
+  }
 }
