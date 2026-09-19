@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { sendOtpEmail } = require('../utils/emailService');
 
 // In-memory authentication stores (demo & fallback for offline DB)
 const otpStore = new Map();
@@ -33,24 +34,38 @@ router.post('/login', (req, res) => {
 
 // --- Email OTP Authentication ---
 
-router.post('/email/otp/send', (req, res) => {
+router.post('/email/otp/send', async (req, res) => {
   const { email } = req.body;
   if (!email || !email.includes('@')) {
     return res.status(400).json({ error: 'Valid email address is required' });
   }
-  const otp = '123456'; // demo fixed Email OTP
-  emailOtpStore.set(email.toLowerCase(), otp);
-  res.json({ message: 'Email OTP sent to ' + email, demoOtp: otp, email });
+
+  const cleanEmail = email.toLowerCase().trim();
+  // Generate dynamic 6-digit OTP code
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  emailOtpStore.set(cleanEmail, otp);
+
+  // Send real email via SMTP if configured in .env
+  const sentViaSmtp = await sendOtpEmail(cleanEmail, otp);
+
+  res.json({
+    message: sentViaSmtp ? `Email OTP sent to ${cleanEmail}` : `Email OTP generated for ${cleanEmail}`,
+    email: cleanEmail,
+    demoOtp: otp, // Includes the generated OTP in response for easy testing
+  });
 });
 
 router.post('/email/otp/verify', (req, res) => {
   const { email, otp } = req.body;
   if (!email) return res.status(400).json({ error: 'email is required' });
-  const storedOtp = emailOtpStore.get(email.toLowerCase());
+
+  const cleanEmail = email.toLowerCase().trim();
+  const storedOtp = emailOtpStore.get(cleanEmail);
+
   if (storedOtp === otp || otp === '123456') {
-    return res.json({ verified: true, token: 'demo-email-otp-token', email });
+    return res.json({ verified: true, token: 'demo-email-otp-token', email: cleanEmail });
   }
-  res.status(400).json({ verified: false, error: 'Invalid Email OTP' });
+  res.status(400).json({ verified: false, error: 'Invalid Email OTP code' });
 });
 
 // --- Google Sign-In Authentication ---

@@ -17,8 +17,8 @@
 /// (not just hot-reload) the app.
 class ApiConfig {
   // static const String baseUrl = 'http://localhost:4000';   // Web / iOS Simulator / USB ADB
-  static const String baseUrl = 'http://10.0.2.2:4000';   // Android Emulator (Default)
-  // static const String baseUrl = 'http://10.228.206.96:4000'; // Real physical phone on Wi-Fi
+  // static const String baseUrl = 'http://10.0.2.2:4000';   // Android Emulator
+  static const String baseUrl = 'http://10.228.206.96:4000'; // Real physical phone on Wi-Fi (PC IP)
 
   static Uri uri(String path) => Uri.parse('$baseUrl$path');
 }
