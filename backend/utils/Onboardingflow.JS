@@ -4,6 +4,7 @@
  */
 
 const { parseNaturalLanguage } = require('./nlpEngine');
+const nsqfDataset = require('../data/NSQF_Training_Recommendation');
 
 // ---------------------------------------------------------------------------
 // 1. Field definitions (canonical order)
@@ -118,19 +119,16 @@ function ruleBasedExtract(message, expectedKey) {
 
   // Strict handling for expected field
   if (expectedKey === 'name') {
-    // Check if phrase explicitly states a name
     const explicitNameMatch = text.match(/\b(?:my name is|i am|mera naam|naam)\s+([a-zA-Z\u0900-\u097F. ]{2,25})\b/i);
     if (explicitNameMatch && explicitNameMatch[1]) {
       result.name = explicitNameMatch[1].trim();
     } else {
-      // Check if text is just a sentence about work/skills/education (NOT a name)
       const looksLikeWorkOrSkill = /\b(काम|खेती|सिलाई|दूकान|pass|know|working|job|study|10th|12th)\b/i.test(text);
       if (!looksLikeWorkOrSkill && text.length <= 25 && !/\d/.test(text)) {
         result.name = text;
       }
     }
   } else if (expectedKey === 'age') {
-    // Exclude 10th/12th/8th pass from age parsing
     const cleanTextForAge = text.replace(/\b(10th|12th|8th)\b/gi, '');
     const ageMatch = cleanTextForAge.match(/\b(\d{2})\b/);
     if (ageMatch) {
@@ -176,8 +174,52 @@ function getQuestionFor(field, profile) {
 }
 
 // ---------------------------------------------------------------------------
-// 5. Final summary
+// 5. NSQF Dataset Matcher & Final Summary
 // ---------------------------------------------------------------------------
+
+function searchNsqfRecommendations(profile, limit = 3) {
+  if (!Array.isArray(nsqfDataset) || nsqfDataset.length === 0) return [];
+
+  const queryTerms = [
+    profile.careerGoal,
+    profile.skills,
+    profile.education,
+    profile.currentOccupation,
+    profile.interests,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  const words = queryTerms.split(/\s+/).filter((w) => w.length >= 3);
+
+  const scored = nsqfDataset.map((item) => {
+    let score = 0;
+    const title = (item.Title || '').toLowerCase();
+    const sector = (item['Sector Name'] || '').toLowerCase();
+    const desc = (item.Description || '').toLowerCase();
+    const occupation = (item['Proposed Occupation'] || '').toLowerCase();
+
+    for (const word of words) {
+      if (title.includes(word)) score += 15;
+      if (occupation.includes(word)) score += 10;
+      if (sector.includes(word)) score += 5;
+      if (desc.includes(word)) score += 2;
+    }
+
+    return { item, score };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+
+  // If top items scored 0 (no specific term matched), pick 3 diverse popular Level 3/4 courses
+  if (scored.length > 0 && scored[0].score === 0) {
+    return [nsqfDataset[0], nsqfDataset[1], nsqfDataset[4]];
+  }
+
+  return scored.slice(0, limit).map((s) => s.item);
+}
+
 function buildSummary(profile) {
   const parts = [];
   const displayName = profile.name || 'Friend';
@@ -190,10 +232,23 @@ function buildSummary(profile) {
     ? `You are ${parts.join(', ')}`
     : `I've noted your profile information`;
 
-  return (
-    `Thanks, ${displayName}! I've captured your career profile. ${descriptor}. ` +
-    `I'll use this information to provide personalized NSQF skill training recommendations.`
-  );
+  let responseText = `Thanks, ${displayName}! I've captured your career profile. ${descriptor}.\n\n`;
+
+  const topNsqf = searchNsqfRecommendations(profile, 3);
+  if (topNsqf && topNsqf.length > 0) {
+    responseText += `🎯 Recommended NSQF Skill Training Options for You:\n\n`;
+    topNsqf.forEach((rec, idx) => {
+      responseText += `${idx + 1}. ${rec.Title} (${rec.Level || 'NSQF'})\n`;
+      responseText += `   • Sector: ${rec['Sector Name'] || 'Skill Development'}\n`;
+      responseText += `   • Duration: ${rec['Minimum Notational Hours'] || rec['Maximum Notational Hours'] || '300 Hours'}\n`;
+      if (rec['Proposed Occupation']) {
+        responseText += `   • Career: ${rec['Proposed Occupation']}\n`;
+      }
+      responseText += `\n`;
+    });
+  }
+
+  return responseText.trim();
 }
 
 module.exports = {
@@ -206,4 +261,5 @@ module.exports = {
   getNextField,
   getQuestionFor,
   buildSummary,
+  searchNsqfRecommendations,
 };
