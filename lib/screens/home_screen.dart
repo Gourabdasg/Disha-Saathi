@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import '../widgets/contact_icons_row.dart';
 import 'ai_chat_screen.dart';
 import 'notifications_screen.dart';
+import 'profile_completion_screen.dart';
 import 'progress_screen.dart';
 import 'recommendations_screen.dart';
 import 'training_screen.dart';
@@ -21,8 +22,9 @@ class HomeScreen extends StatelessWidget {
         ? profile.location
         : (profile.district.isNotEmpty ? '${profile.district}, ${profile.state}' : 'Barasat, West Bengal');
 
-    final completionPercent = profile.profileCompletionPercent > 0 ? profile.profileCompletionPercent : 65;
-    final journeyPercent = profile.journeyPercent > 0 ? profile.journeyPercent : 26;
+    final completionPercent = profile.calculateCompletionPercent();
+    final journeyPercent = profile.calculateProgressPercent();
+    final missing = profile.missingFields;
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
@@ -60,7 +62,7 @@ class HomeScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
 
-                              // Requirement 2: Dynamic Location Display in App Header
+                              // Dynamic Location Display in App Header
                               Row(
                                 children: [
                                   const Icon(Icons.location_on, color: Colors.white70, size: 14),
@@ -93,31 +95,50 @@ class HomeScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 20),
 
-                    // Requirement 3: Profile Completion - 65% with 65% Progress Bar
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Profile Completion – $completionPercent%', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
-                              Text('$completionPercent%', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              value: completionPercent / 100.0,
-                              minHeight: 6,
-                              backgroundColor: Colors.white24,
-                              color: AppColors.tealLight,
+                    // Requirement 8: Profile Completion Card on Dashboard with Action Button
+                    InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const ProfileCompletionScreen()),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Profile Completion – $completionPercent%', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(color: AppColors.tealLight, borderRadius: BorderRadius.circular(20)),
+                                  child: Text(completionPercent == 100 ? 'Complete ✓' : 'Complete Profile →', style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w700)),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 8),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: completionPercent / 100.0,
+                                minHeight: 6,
+                                backgroundColor: Colors.white24,
+                                color: AppColors.tealLight,
+                              ),
+                            ),
+                            if (missing.isNotEmpty) ...[
+                              const SizedBox(height: 6),
+                              Text(
+                                'Missing: ${missing.take(2).join(', ')}${missing.length > 2 ? ' +${missing.length - 2} more' : ''}',
+                                style: const TextStyle(color: Colors.white70, fontSize: 11),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -182,9 +203,11 @@ class HomeScreen extends StatelessWidget {
                             icon: Icons.agriculture_rounded,
                             iconColor: AppColors.success,
                             title: 'Livelihood Profile',
-                            subtitle: '${profile.livelihood} · Daily wage',
+                            subtitle: profile.livelihood.isNotEmpty ? profile.livelihood : 'Map Livelihood Work',
                             progress: 0.55,
-                            onTap: () {},
+                            onTap: () {
+                              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileCompletionScreen()));
+                            },
                           ),
                         ),
                         const SizedBox(width: 14),
@@ -219,7 +242,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                         const SizedBox(width: 14),
 
-                        // Requirement 4: My Progress - 26% Complete
+                        // Requirement 7: Automatic My Progress
                         Expanded(
                           child: _dashCard(
                             icon: Icons.show_chart_rounded,

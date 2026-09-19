@@ -1,7 +1,10 @@
+import 'dart:convert';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../providers/app_state.dart';
+import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 
 class AiChatScreen extends StatefulWidget {
@@ -15,10 +18,14 @@ class _AiChatScreenState extends State<AiChatScreen> {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
   final stt.SpeechToText _speech = stt.SpeechToText();
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   bool _isListening = false;
   bool _speechEnabled = false;
   String _lastWords = '';
+
+  int? _playingMessageIndex;
+  bool _isSynthesizingTts = false;
 
   final List<String> _sampleVoicePrompts = const [
     'मैं खेती का काम करता हूँ और सिलाई भी जानता हूँ।',
@@ -32,9 +39,26 @@ class _AiChatScreenState extends State<AiChatScreen> {
   void initState() {
     super.initState();
     _initSpeech();
+    _audioPlayer.onPlayerComplete.listen((_) {
+      if (mounted) {
+        setState(() {
+          _playingMessageIndex = null;
+        });
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AppState>().loadChatHistory().then((_) => _scrollToBottom());
     });
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.stop();
+    _audioPlayer.dispose();
+    _textController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   /// Initializes device microphone speech-to-text engine.
@@ -43,11 +67,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
       _speechEnabled = await _speech.initialize(
         onStatus: (status) {
           if (status == 'done' || status == 'notListening') {
-            setState(() => _isListening = false);
+            if (mounted) setState(() => _isListening = false);
           }
         },
         onError: (_) {
-          setState(() => _isListening = false);
+          if (mounted) setState(() => _isListening = false);
         },
       );
     } catch (_) {
@@ -131,7 +155,50 @@ class _AiChatScreenState extends State<AiChatScreen> {
     }
   }
 
-  // Requirement 5: Restart Confirmation Dialog
+  /// Requirements 15 & 16 & 17: NVIDIA Text-to-Speech playback via Backend Proxy
+  Future<void> _playTtsForMessage(int index, String text) async {
+    if (_playingMessageIndex == index) {
+      await _audioPlayer.stop();
+      setState(() => _playingMessageIndex = null);
+      return;
+    }
+
+    await _audioPlayer.stop();
+    setState(() {
+      _playingMessageIndex = index;
+      _isSynthesizingTts = true;
+    });
+
+    final langCode = context.read<AppState>().selectedLanguage.code;
+
+    try {
+      final audioBase64 = await ApiService.textToSpeech(text, langCode);
+      setState(() => _isSynthesizingTts = false);
+
+      if (audioBase64 != null && audioBase64.isNotEmpty) {
+        final bytes = base64Decode(audioBase64);
+        await _audioPlayer.play(BytesSource(bytes));
+      } else {
+        setState(() => _playingMessageIndex = null);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Reading message aloud...'), duration: Duration(seconds: 2)),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _isSynthesizingTts = false;
+        _playingMessageIndex = null;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Audio speech playback error.'), duration: Duration(seconds: 2)),
+        );
+      }
+    }
+  }
+
   void _confirmRestartChat() {
     showDialog(
       context: context,
@@ -157,7 +224,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
     );
   }
 
-  // Requirement 6: Clear Chat Confirmation Dialog
   void _confirmClearChat() {
     showDialog(
       context: context,
@@ -183,7 +249,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     );
   }
 
-  // Requirement 7: Individual Message Action Options (Delete / Edit & Resend)
+  // Requirement 10: Message Edit & Resend / Delete Options Modal
   void _showMessageOptionsModal(int index, String text, bool isBot) {
     showModalBottomSheet(
       context: context,
@@ -204,6 +270,17 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
               ),
               const SizedBox(height: 10),
+              if (isBot) ...[
+                ListTile(
+                  leading: const Icon(Icons.volume_up_rounded, color: AppColors.tealLight),
+                  title: const Text('Read Aloud (TTS)', style: TextStyle(color: Colors.white)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _playTtsForMessage(index, text);
+                  },
+                ),
+                const Divider(color: Colors.white12),
+              ],
               if (!isBot) ...[
                 ListTile(
                   leading: const Icon(Icons.edit_rounded, color: AppColors.tealLight),
@@ -292,7 +369,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Requirement 5 & 9: Top App Bar with "Restart" & Three-Dot Menu (⋯)
+            // Top App Bar with "Restart" & Three-Dot Menu (⋯)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
               child: Row(
@@ -312,14 +389,12 @@ class _AiChatScreenState extends State<AiChatScreen> {
                     ),
                   ),
 
-                  // Requirement 5: Replace "End" with "Restart"
                   TextButton.icon(
                     onPressed: _confirmRestartChat,
                     icon: const Icon(Icons.restart_alt_rounded, color: AppColors.tealLight, size: 18),
                     label: const Text('Restart', style: TextStyle(color: AppColors.tealLight, fontWeight: FontWeight.w700)),
                   ),
 
-                  // Requirement 9: Three-Dot Menu (⋯)
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
                     color: const Color(0xFF192238),
@@ -406,7 +481,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
             ),
             const SizedBox(height: 10),
 
-            // Messages List with Long Press / Tap Action Menu (Requirement 7)
+            // Messages List with Speaker Icon 🔊 for TTS (Requirements 15, 16, 17)
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
@@ -414,6 +489,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 itemCount: messages.length,
                 itemBuilder: (context, i) {
                   final m = messages[i];
+                  final isPlayingThis = _playingMessageIndex == i;
+
                   return GestureDetector(
                     onLongPress: () => _showMessageOptionsModal(i, m.text, m.isBot),
                     child: Align(
@@ -421,24 +498,74 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 14),
                         padding: const EdgeInsets.all(14),
-                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
+                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.82),
                         decoration: BoxDecoration(
                           color: m.isBot ? const Color(0xFF1D2740) : AppColors.teal,
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Row(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            if (m.isBot)
-                              const Padding(
-                                padding: EdgeInsets.only(right: 8, top: 2),
-                                child: CircleAvatar(
-                                    radius: 10, backgroundColor: AppColors.teal, child: Icon(Icons.podcasts, size: 12, color: Colors.white)),
-                              ),
-                            Flexible(
-                              child: Text(m.text, style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.4)),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (m.isBot)
+                                  const Padding(
+                                    padding: EdgeInsets.only(right: 8, top: 2),
+                                    child: CircleAvatar(
+                                      radius: 10,
+                                      backgroundColor: AppColors.teal,
+                                      child: Icon(Icons.podcasts, size: 12, color: Colors.white),
+                                    ),
+                                  ),
+                                Flexible(
+                                  child: Text(m.text, style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.4)),
+                                ),
+                              ],
                             ),
+
+                            // Requirements 16 & 17: Speaker Icon 🔊 for AI Message Text-To-Speech
+                            if (m.isBot) ...[
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  InkWell(
+                                    onTap: () => _playTtsForMessage(i, m.text),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: isPlayingThis ? AppColors.teal : Colors.white10,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (isPlayingThis && _isSynthesizingTts)
+                                            const SizedBox(
+                                              width: 12,
+                                              height: 12,
+                                              child: CircularProgressIndicator(strokeWidth: 1.5, color: Colors.white),
+                                            )
+                                          else
+                                            Icon(
+                                              isPlayingThis ? Icons.pause_circle_filled_rounded : Icons.volume_up_rounded,
+                                              color: Colors.white,
+                                              size: 16,
+                                            ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            isPlayingThis ? 'Playing…' : 'Read Aloud 🔊',
+                                            style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ],
                         ),
                       ),

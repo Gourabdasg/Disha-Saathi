@@ -16,7 +16,7 @@ class AppLanguage {
     AppLanguage('en', 'English', 'English', 'EN'),
     AppLanguage('gu', 'ગુજરાતી', 'Gujarati', 'GU'),
     AppLanguage('hi', 'हिंदी', 'Hindi', 'HI'),
-    AppLanguage('kn', 'ಕನ್ನಡ', 'Kannada', 'KN'),
+    AppLanguage('kn', '<ctrl42>ಕನ್ನಡ', 'Kannada', 'KN'),
     AppLanguage('ks', 'कॉशुर', 'Kashmiri', 'KS'),
     AppLanguage('kok', 'कोंकणी', 'Konkani', 'KO'),
     AppLanguage('mai', 'मैथिली', 'Maithili', 'MA'),
@@ -35,8 +35,7 @@ class AppLanguage {
   ];
 }
 
-
-/// Beneficiary profile collected across the 4-step registration flow.
+/// Beneficiary profile collected across the registration and profile completion flows.
 class UserProfile {
   String mobile;
   String email;
@@ -45,21 +44,28 @@ class UserProfile {
   String motherName;
   String aadhaar;
   String annualIncome;
-  String category; // SC / ST / OBC / General
-  String scCategoryNo; // SC Certificate / Category Number
+  String category; // Always 'Scheduled Caste (SC)'
+  String scCategoryNo; // SC Certificate Number
+  String scCertificateUrl; // Uploaded SC Certificate File URL
+  String scCertificateFilename; // Uploaded file display name
   String district;
   String state;
   String location; // Full location string (e.g. Barasat, West Bengal)
 
   String highestQualification;
   String stream;
+  String yearOfQualification;
   int yearsOfStudy;
+
+  String experienceName;
+  String experienceDuration;
   int workExperienceYears;
 
-  String livelihood; // Agriculture, Daily Wage, Self-employed, etc.
+  String livelihood; // Current Livelihood / Occupation
 
   List<String> existingSkills;
   List<String> careerInterests;
+  String preferredLanguage;
 
   int profileCompletionPercent;
   int journeyPercent;
@@ -74,23 +80,79 @@ class UserProfile {
     this.annualIncome = '',
     this.category = 'Scheduled Caste (SC)',
     this.scCategoryNo = '',
+    this.scCertificateUrl = '',
+    this.scCertificateFilename = '',
     this.district = 'Murshidabad',
     this.state = 'West Bengal',
     this.location = 'Barasat, West Bengal',
-    this.highestQualification = '10th Pass',
+    this.highestQualification = '',
     this.stream = '',
+    this.yearOfQualification = '',
     this.yearsOfStudy = 10,
+    this.experienceName = '',
+    this.experienceDuration = '',
     this.workExperienceYears = 0,
-    this.livelihood = 'Agriculture',
+    this.livelihood = '',
     List<String>? existingSkills,
     List<String>? careerInterests,
-    this.profileCompletionPercent = 65,
-    this.journeyPercent = 26,
-  })  : existingSkills = existingSkills ?? ['Basic Mobile', 'Agriculture', 'Physical Labour', 'Tool Handling', 'Communication'],
-        careerInterests = careerInterests ?? ['Digital Work', 'Government Jobs', 'IT & Technology'];
+    this.preferredLanguage = 'en',
+    int? profileCompletionPercent,
+    int? journeyPercent,
+  })  : existingSkills = existingSkills ?? [],
+        careerInterests = careerInterests ?? [],
+        profileCompletionPercent = profileCompletionPercent ?? 0,
+        journeyPercent = journeyPercent ?? 0 {
+    this.profileCompletionPercent = calculateCompletionPercent();
+    this.journeyPercent = calculateProgressPercent();
+  }
+
+  /// Dynamic Profile Completion % calculation based on filled required fields (Requirement 6)
+  int calculateCompletionPercent() {
+    int filled = 0;
+    const totalFields = 12;
+
+    if (name.trim().isNotEmpty) filled++;
+    if (mobile.trim().isNotEmpty || email.trim().isNotEmpty) filled++;
+    if (location.trim().isNotEmpty || district.trim().isNotEmpty) filled++;
+    if (scCategoryNo.trim().isNotEmpty) filled++;
+    if (scCertificateUrl.trim().isNotEmpty || scCertificateFilename.trim().isNotEmpty) filled++;
+    if (highestQualification.trim().isNotEmpty) filled++;
+    if (stream.trim().isNotEmpty) filled++;
+    if (yearOfQualification.trim().isNotEmpty) filled++;
+    if (experienceName.trim().isNotEmpty || workExperienceYears > 0) filled++;
+    if (livelihood.trim().isNotEmpty) filled++;
+    if (existingSkills.isNotEmpty) filled++;
+    if (careerInterests.isNotEmpty) filled++;
+
+    final percent = ((filled / totalFields) * 100).round();
+    return percent < 25 ? 25 : (percent > 100 ? 100 : percent);
+  }
+
+  /// Dynamic My Progress % calculation based on actual completed activities (Requirement 7)
+  int calculateProgressPercent() {
+    int progress = 26; // Initial baseline progress
+    if (calculateCompletionPercent() > 50) progress += 20;
+    if (calculateCompletionPercent() >= 80) progress += 25;
+    if (existingSkills.isNotEmpty) progress += 15;
+    if (careerInterests.isNotEmpty) progress += 14;
+    return progress > 100 ? 100 : progress;
+  }
+
+  /// Returns list of missing required profile field names for Dashboard display (Requirement 8)
+  List<String> get missingFields {
+    final missing = <String>[];
+    if (highestQualification.trim().isEmpty) missing.add('Highest Qualification');
+    if (stream.trim().isEmpty) missing.add('Stream');
+    if (yearOfQualification.trim().isEmpty) missing.add('Year of Qualification');
+    if (experienceName.trim().isEmpty) missing.add('Work Experience');
+    if (livelihood.trim().isEmpty) missing.add('Current Occupation');
+    if (existingSkills.isEmpty) missing.add('Skills');
+    if (careerInterests.isEmpty) missing.add('Career Interests');
+    return missing;
+  }
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
-    return UserProfile(
+    final profile = UserProfile(
       mobile: json['mobile'] ?? '',
       email: json['email'] ?? '',
       name: (json['name'] as String?)?.isNotEmpty == true ? json['name'] : 'Rahul Kumar',
@@ -98,21 +160,29 @@ class UserProfile {
       motherName: json['motherName'] ?? '',
       aadhaar: json['aadhaar'] ?? '',
       annualIncome: json['annualIncome'] ?? '',
-      category: json['category'] ?? 'Scheduled Caste (SC)',
+      category: 'Scheduled Caste (SC)', // Enforced
       scCategoryNo: json['scCategoryNo'] ?? '',
+      scCertificateUrl: json['scCertificateUrl'] ?? '',
+      scCertificateFilename: json['scCertificateFilename'] ?? '',
       district: json['district'] ?? '',
       state: json['state'] ?? '',
       location: json['location'] ?? '',
       highestQualification: json['highestQualification'] ?? '',
       stream: json['stream'] ?? '',
+      yearOfQualification: json['yearOfQualification'] ?? '',
       yearsOfStudy: (json['yearsOfStudy'] as num?)?.toInt() ?? 0,
+      experienceName: json['experienceName'] ?? '',
+      experienceDuration: json['experienceDuration'] ?? '',
       workExperienceYears: (json['workExperienceYears'] as num?)?.toInt() ?? 0,
       livelihood: json['livelihood'] ?? '',
       existingSkills: (json['existingSkills'] as List?)?.map((e) => e.toString()).toList() ?? [],
       careerInterests: (json['careerInterests'] as List?)?.map((e) => e.toString()).toList() ?? [],
-      profileCompletionPercent: (json['profileCompletionPercent'] as num?)?.toInt() ?? 65,
-      journeyPercent: (json['journeyPercent'] as num?)?.toInt() ?? 26,
+      preferredLanguage: json['preferredLanguage'] ?? 'en',
     );
+
+    profile.profileCompletionPercent = profile.calculateCompletionPercent();
+    profile.journeyPercent = profile.calculateProgressPercent();
+    return profile;
   }
 
   Map<String, dynamic> toJson() => {
@@ -123,20 +193,26 @@ class UserProfile {
     'motherName': motherName,
     'aadhaar': aadhaar,
     'annualIncome': annualIncome,
-    'category': category,
+    'category': 'Scheduled Caste (SC)',
     'scCategoryNo': scCategoryNo,
+    'scCertificateUrl': scCertificateUrl,
+    'scCertificateFilename': scCertificateFilename,
     'district': district,
     'state': state,
     'location': location,
     'highestQualification': highestQualification,
     'stream': stream,
+    'yearOfQualification': yearOfQualification,
     'yearsOfStudy': yearsOfStudy,
+    'experienceName': experienceName,
+    'experienceDuration': experienceDuration,
     'workExperienceYears': workExperienceYears,
     'livelihood': livelihood,
     'existingSkills': existingSkills,
     'careerInterests': careerInterests,
-    'profileCompletionPercent': profileCompletionPercent,
-    'journeyPercent': journeyPercent,
+    'preferredLanguage': preferredLanguage,
+    'profileCompletionPercent': calculateCompletionPercent(),
+    'journeyPercent': calculateProgressPercent(),
   };
 }
 
@@ -173,7 +249,7 @@ class SkillRecommendation {
       nsqfLevel: 3,
       duration: '3 months',
       icon: 'computer',
-      insight: 'Your 10th pass education and interest in digital skills make this a perfect fit.',
+      insight: 'Your education and interest in digital skills make this a perfect fit.',
       pathway: ['Basic Computer', 'Office Software', 'Data Entry', 'Job Ready'],
       skillsToLearn: ['Computer Operation', 'MS Office', 'Data Entry', 'Internet Use'],
       expectedSalary: '₹12,000–18,000/month',
@@ -202,18 +278,6 @@ class SkillRecommendation {
       skillsToLearn: ['Customer Service', 'Cash Handling', 'Inventory', 'Communication'],
       expectedSalary: '₹9,000–14,000/month',
       colorKey: 'teal',
-    ),
-    const SkillRecommendation(
-      title: 'Customer Service Associate',
-      matchPercent: 76,
-      nsqfLevel: 3,
-      duration: '3 months',
-      icon: 'call',
-      insight: 'Language skills and willingness to learn make you suitable for call center roles.',
-      pathway: ['Communication', 'CRM Tools', 'Mock Calls', 'Certified'],
-      skillsToLearn: ['Hindi/Bengali', 'Active Listening', 'Problem Solving', 'Computer Basics'],
-      expectedSalary: '₹11,000–16,000/month',
-      colorKey: 'orange',
     ),
   ];
 }
@@ -256,7 +320,7 @@ class TrainingCourse {
       freeGiaFunded: true,
       mode: 'Classroom',
       schedule: 'Mon–Sat, 9am–12pm',
-      eligibility: '10th Pass, Age 18–35',
+      eligibility: 'Pass 10th/12th, Age 18–35',
       icon: 'computer',
     ),
     TrainingCourse(
@@ -269,20 +333,8 @@ class TrainingCourse {
       seatsLeft: 3,
       mode: 'Hybrid',
       schedule: 'Mon–Fri, 2pm–5pm',
-      eligibility: '8th Pass, Age 18–40',
+      eligibility: 'Pass 8th/10th, Age 18–40',
       icon: 'assignment',
-    ),
-    TrainingCourse(
-      title: 'Retail Sales Associate',
-      provider: 'SSDM West Bengal',
-      distanceKm: 11.3,
-      duration: '6 Weeks',
-      nsqfLevel: 2,
-      freeGiaFunded: true,
-      mode: 'Classroom',
-      schedule: 'Mon–Sat, 10am–1pm',
-      eligibility: '7th Pass, Age 18–45',
-      icon: 'cart',
     ),
   ];
 }
@@ -310,9 +362,6 @@ class AppNotification {
   static List<AppNotification> mock = const [
     AppNotification('New Match Found!', 'Digital Office Assistant — 92% match to your profile', '2 min ago', 'star', true),
     AppNotification('Training Starting Soon', 'Data Entry Operator course begins Sep 1 at Berhampore center', '1 hour ago', 'school', true),
-    AppNotification('Application Confirmed', 'Your enquiry for Retail Sales course has been received', 'Yesterday', 'check', false),
-    AppNotification('Complete Your Profile', 'Add your Aadhaar number to unlock government scheme benefits', '2 days ago', 'alarm', false),
-    AppNotification('Skill Journey Update', "You're 65% through your skill journey. Great progress!", '3 days ago', 'medal', false),
   ];
 }
 
@@ -320,5 +369,6 @@ class AppNotification {
 class ChatMessage {
   final String text;
   final bool isBot;
-  const ChatMessage(this.text, this.isBot);
+  final String? audioBase64;
+  const ChatMessage(this.text, this.isBot, {this.audioBase64});
 }

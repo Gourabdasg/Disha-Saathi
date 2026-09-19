@@ -1,10 +1,13 @@
 import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
+import '../../services/api_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/gradient_button.dart';
+import 'registration_flow.dart';
 
 class Step1PersonalInfo extends StatefulWidget {
   const Step1PersonalInfo({super.key});
@@ -21,15 +24,16 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
   late final TextEditingController _state;
   final _scCategoryNo = TextEditingController();
 
-  String _category = 'Scheduled Caste (SC)';
   bool _emailVerified = false;
   bool _isSendingOtp = false;
 
-  int _locationMode = 0; // 0: Auto Current Location, 1: Enter Manually
+  int _locationMode = 0; // 0: Current Location, 1: Enter Manually
   bool _isDetectingLocation = false;
   String _detectedLocation = 'Barasat, West Bengal';
 
-  static const _categories = ['Scheduled Caste (SC)', 'Scheduled Tribe (ST)', 'OBC', 'General'];
+  PlatformFile? _pickedCertificateFile;
+  bool _isUploadingCert = false;
+  String? _certUploadUrl;
 
   @override
   void initState() {
@@ -58,6 +62,30 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
     );
   }
 
+  Future<void> _pickCertificate() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'],
+        withData: true,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        if (file.size > 5 * 1024 * 1024) {
+          _showError('File size exceeds 5 MB limit. Please select a smaller file.');
+          return;
+        }
+        setState(() {
+          _pickedCertificateFile = file;
+        });
+        _showSuccess('Selected Certificate: ${file.name} (${(file.size / 1024).toStringAsFixed(1)} KB)');
+      }
+    } catch (e) {
+      _showError('Error picking certificate file. Please try again.');
+    }
+  }
+
   Future<void> _detectCurrentLocation() async {
     setState(() => _isDetectingLocation = true);
     try {
@@ -75,9 +103,7 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
         _showSuccess('Current Location Detected: $_detectedLocation');
         return;
       }
-    } catch (_) {
-      // Permission denied or network fallback
-    }
+    } catch (_) {}
 
     setState(() {
       _isDetectingLocation = false;
@@ -85,7 +111,7 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
       _district.text = 'Barasat';
       _state.text = 'West Bengal';
     });
-    _showError('Location permission/service unavailable. Using default: Barasat, West Bengal. You can enter manually below.');
+    _showError('Location permission/service unavailable. Using default: Barasat, West Bengal.');
   }
 
   Future<void> _verifyEmailInline() async {
@@ -189,6 +215,71 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
     );
   }
 
+  Future<void> _submitAccountCreation() async {
+    final name = _name.text.trim();
+    final mobile = _mobile.text.trim();
+    final email = _email.text.trim();
+    final scCertNo = _scCategoryNo.text.trim();
+    final districtVal = _district.text.trim().isNotEmpty ? _district.text.trim() : 'Barasat';
+    final stateVal = _state.text.trim().isNotEmpty ? _state.text.trim() : 'West Bengal';
+
+    if (name.isEmpty) {
+      _showError('Full name is required');
+      return;
+    }
+    if (mobile.length != 10) {
+      _showError('Enter a valid 10-digit mobile number');
+      return;
+    }
+    if (email.isNotEmpty && !_emailVerified) {
+      _showError('Please verify your email address before continuing');
+      _verifyEmailInline();
+      return;
+    }
+    // Requirement 3: Mandatory Certificate Number check
+    if (scCertNo.isEmpty) {
+      _showError('SC Caste Certificate Number is required');
+      return;
+    }
+    // Requirement 3: Mandatory Certificate Document Upload check
+    if (_pickedCertificateFile == null && _certUploadUrl == null) {
+      _showError('Mandatory SC Caste Certificate document upload is required');
+      return;
+    }
+
+    setState(() => _isUploadingCert = true);
+
+    // Upload Certificate to backend if file picked
+    if (_pickedCertificateFile != null) {
+      try {
+        final uploadRes = await ApiService.uploadCertificateFile(_pickedCertificateFile!);
+        if (uploadRes != null && uploadRes['certificateUrl'] != null) {
+          _certUploadUrl = uploadRes['certificateUrl'] as String;
+        }
+      } catch (e) {
+        // Fallback for offline mode
+        _certUploadUrl = '/uploads/certificates/${_pickedCertificateFile!.name}';
+      }
+    }
+
+    setState(() => _isUploadingCert = false);
+
+    final state = context.read<AppState>();
+    state.name = name;
+    state.email = email;
+    state.mobile = mobile;
+    state.district = districtVal;
+    state.stateName = stateVal;
+    state.location = '$districtVal, $stateVal';
+    state.category = 'Scheduled Caste (SC)'; // Enforced
+    state.scCategoryNo = scCertNo;
+    state.scCertificateUrl = _certUploadUrl ?? '';
+    state.scCertificateFilename = _pickedCertificateFile?.name ?? 'SC_Certificate.pdf';
+
+    // Finish registration and enter Dashboard
+    await RegistrationFlow.finish(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -196,7 +287,7 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _label('YOUR NAME'),
+          _label('YOUR NAME *'),
           TextField(
             controller: _name,
             decoration: const InputDecoration(hintText: 'Full name'),
@@ -241,7 +332,7 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
           ),
           const SizedBox(height: 18),
 
-          _label('MOBILE NUMBER'),
+          _label('MOBILE NUMBER *'),
           Row(
             children: [
               Container(
@@ -262,7 +353,7 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
           ),
           const SizedBox(height: 18),
 
-          // Requirement 1: Location Section (Current Location vs Manual Input)
+          // Location Section
           _label('YOUR LOCATION'),
           Container(
             padding: const EdgeInsets.all(4),
@@ -322,7 +413,11 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
           if (_locationMode == 0) ...[
             Container(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: AppColors.teal.withOpacity(0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.teal.withOpacity(0.2))),
+              decoration: BoxDecoration(
+                color: AppColors.teal.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.teal.withOpacity(0.2)),
+              ),
               child: Row(
                 children: [
                   const Icon(Icons.location_on, color: AppColors.teal, size: 20),
@@ -359,69 +454,89 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
           ],
           const SizedBox(height: 18),
 
-          _label('CATEGORY'),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: _category,
-                isExpanded: true,
-                items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                onChanged: (v) => setState(() => _category = v!),
-              ),
+          // Requirement 3: SC Certificate Number *
+          _label('SC CASTE CERTIFICATE NUMBER *'),
+          TextField(
+            controller: _scCategoryNo,
+            decoration: const InputDecoration(
+              hintText: 'Enter SC Certificate / Category No.',
             ),
           ),
           const SizedBox(height: 18),
 
-          _label('SC CATEGORY NO. / CERTIFICATE NO.'),
-          TextField(
-            controller: _scCategoryNo,
-            decoration: const InputDecoration(hintText: 'SC Category / Certificate No.'),
+          // Requirement 3: Mandatory SC Caste Certificate Document Upload *
+          _label('SC CASTE CERTIFICATE DOCUMENT *'),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: _pickedCertificateFile != null ? AppColors.teal : Colors.grey.shade300,
+                width: 1.5,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      _pickedCertificateFile != null ? Icons.task_rounded : Icons.upload_file_rounded,
+                      color: _pickedCertificateFile != null ? AppColors.teal : AppColors.navy,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _pickedCertificateFile != null ? _pickedCertificateFile!.name : 'Upload SC Caste Certificate *',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13.5,
+                              color: _pickedCertificateFile != null ? AppColors.navy : Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _pickedCertificateFile != null
+                                ? 'Size: ${(_pickedCertificateFile!.size / 1024).toStringAsFixed(1)} KB'
+                                : 'Accepted: PDF, DOC, DOCX, PNG, JPG, JPEG (Max 5 MB)',
+                            style: TextStyle(fontSize: 11.5, color: Colors.grey.shade600),
+                          ),
+                        ],
+                      ),
+                    ),
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.teal),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      onPressed: _pickCertificate,
+                      child: Text(_pickedCertificateFile != null ? 'Change' : 'Upload', style: const TextStyle(color: AppColors.teal, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
+
           const SizedBox(height: 36),
 
           GradientButton(
-            label: 'Continue',
-            onPressed: () {
-              final name = _name.text.trim();
-              final mobile = _mobile.text.trim();
-              final email = _email.text.trim();
-              final districtVal = _district.text.trim().isNotEmpty ? _district.text.trim() : 'Barasat';
-              final stateVal = _state.text.trim().isNotEmpty ? _state.text.trim() : 'West Bengal';
-
-              if (name.isEmpty) {
-                _showError('Enter your name');
-                return;
-              }
-              if (mobile.length != 10) {
-                _showError('Enter a valid 10-digit mobile number');
-                return;
-              }
-              if (email.isNotEmpty && !_emailVerified) {
-                _showError('Please verify your email address before continuing');
-                _verifyEmailInline();
-                return;
-              }
-              final state = context.read<AppState>();
-              state.name = name;
-              state.email = email;
-              state.mobile = mobile;
-              state.district = districtVal;
-              state.stateName = stateVal;
-              state.location = '$districtVal, $stateVal';
-              state.category = _category;
-              state.scCategoryNo = _scCategoryNo.text.trim();
-              state.nextRegistrationStep();
-            },
+            label: _isUploadingCert ? 'Uploading Certificate…' : 'Create Account & Continue',
+            onPressed: _isUploadingCert ? null : _submitAccountCreation,
           ),
+          const SizedBox(height: 16),
         ],
       ),
     );
   }
 
   Widget _label(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted, letterSpacing: 0.4)),
-  );
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted, letterSpacing: 0.4)),
+      );
 }

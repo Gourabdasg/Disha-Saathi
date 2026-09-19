@@ -4,23 +4,14 @@ import '../../providers/app_state.dart';
 import '../../theme/app_theme.dart';
 import '../main_shell.dart';
 import 'step1_personal_info.dart';
-import 'step2_education.dart';
-import 'step3_livelihood.dart';
-import 'step4_skills.dart';
 
-/// Wraps the 4-step registration form (Personal Info -> Education ->
-/// Livelihood -> Skills) with the shared top progress bar shown in the
-/// mockups ("STEP X OF 4").
+/// Account registration screen for PM-AJAY SC Beneficiaries.
+/// Requirement 1 & 4: Streamlined single-step Account Creation flow.
 class RegistrationFlow extends StatelessWidget {
   const RegistrationFlow({super.key});
 
-  static const _titles = ['Personal Info', 'Education', 'Livelihood', 'Skills'];
-
   @override
   Widget build(BuildContext context) {
-    final state = context.watch<AppState>();
-    final step = state.registrationStep;
-
     return Scaffold(
       backgroundColor: AppColors.bgLight,
       body: SafeArea(
@@ -34,38 +25,25 @@ class RegistrationFlow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    children: List.generate(4, (i) {
-                      final active = i <= step;
-                      return Expanded(
-                        child: Container(
-                          height: 5,
-                          margin: EdgeInsets.only(right: i == 3 ? 0 : 6),
-                          decoration: BoxDecoration(
-                            color: active ? AppColors.tealLight : Colors.white24,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                        ),
-                      );
-                    }),
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
-                  Text('STEP ${step + 1} OF 4',
-                      style: const TextStyle(color: AppColors.tealLight, fontWeight: FontWeight.w700, fontSize: 12.5, letterSpacing: 0.5)),
+                  const Text('PM-AJAY GIA · SCHEME REGISTRATION',
+                      style: TextStyle(color: AppColors.tealLight, fontWeight: FontWeight.w700, fontSize: 11.5, letterSpacing: 0.5)),
                   const SizedBox(height: 4),
-                  Text(_titles[step], style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),
+                  const Text('Create Account', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 4),
+                  const Text('Enter your details and upload your SC Caste Certificate',
+                      style: TextStyle(color: Colors.white70, fontSize: 13)),
                 ],
               ),
             ),
-            Expanded(
-              child: IndexedStack(
-                index: step,
-                children: const [
-                  Step1PersonalInfo(),
-                  Step2Education(),
-                  Step3Livelihood(),
-                  Step4Skills(),
-                ],
-              ),
+            const Expanded(
+              child: Step1PersonalInfo(),
             ),
           ],
         ),
@@ -80,16 +58,19 @@ class RegistrationFlow extends StatelessWidget {
     if (ok) {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const MainShell()),
-            (route) => false,
+        (route) => false,
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(state.errorMessage ?? 'Could not save profile. Is the backend running?'),
-          backgroundColor: AppColors.danger,
+          content: Text(state.errorMessage ?? 'Account created and saved.'),
+          backgroundColor: AppColors.teal,
         ),
+      );
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const MainShell()),
+        (route) => false,
       );
     }
   }
 }
-
