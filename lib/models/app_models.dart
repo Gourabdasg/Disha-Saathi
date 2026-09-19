@@ -49,6 +49,7 @@ class UserProfile {
   String scCategoryNo; // SC Certificate / Category Number
   String district;
   String state;
+  String location; // Full location string (e.g. Barasat, West Bengal)
 
   String highestQualification;
   String stream;
@@ -75,6 +76,7 @@ class UserProfile {
     this.scCategoryNo = '',
     this.district = 'Murshidabad',
     this.state = 'West Bengal',
+    this.location = 'Barasat, West Bengal',
     this.highestQualification = '10th Pass',
     this.stream = '',
     this.yearsOfStudy = 10,
@@ -82,8 +84,8 @@ class UserProfile {
     this.livelihood = 'Agriculture',
     List<String>? existingSkills,
     List<String>? careerInterests,
-    this.profileCompletionPercent = 72,
-    this.journeyPercent = 65,
+    this.profileCompletionPercent = 65,
+    this.journeyPercent = 26,
   })  : existingSkills = existingSkills ?? ['Basic Mobile', 'Agriculture', 'Physical Labour', 'Tool Handling', 'Communication'],
         careerInterests = careerInterests ?? ['Digital Work', 'Government Jobs', 'IT & Technology'];
 
@@ -100,6 +102,7 @@ class UserProfile {
       scCategoryNo: json['scCategoryNo'] ?? '',
       district: json['district'] ?? '',
       state: json['state'] ?? '',
+      location: json['location'] ?? '',
       highestQualification: json['highestQualification'] ?? '',
       stream: json['stream'] ?? '',
       yearsOfStudy: (json['yearsOfStudy'] as num?)?.toInt() ?? 0,
@@ -107,8 +110,8 @@ class UserProfile {
       livelihood: json['livelihood'] ?? '',
       existingSkills: (json['existingSkills'] as List?)?.map((e) => e.toString()).toList() ?? [],
       careerInterests: (json['careerInterests'] as List?)?.map((e) => e.toString()).toList() ?? [],
-      profileCompletionPercent: (json['profileCompletionPercent'] as num?)?.toInt() ?? 0,
-      journeyPercent: (json['journeyPercent'] as num?)?.toInt() ?? 0,
+      profileCompletionPercent: (json['profileCompletionPercent'] as num?)?.toInt() ?? 65,
+      journeyPercent: (json['journeyPercent'] as num?)?.toInt() ?? 26,
     );
   }
 
@@ -124,6 +127,7 @@ class UserProfile {
     'scCategoryNo': scCategoryNo,
     'district': district,
     'state': state,
+    'location': location,
     'highestQualification': highestQualification,
     'stream': stream,
     'yearsOfStudy': yearsOfStudy,
@@ -131,6 +135,8 @@ class UserProfile {
     'livelihood': livelihood,
     'existingSkills': existingSkills,
     'careerInterests': careerInterests,
+    'profileCompletionPercent': profileCompletionPercent,
+    'journeyPercent': journeyPercent,
   };
 }
 

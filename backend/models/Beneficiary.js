@@ -12,6 +12,7 @@ const beneficiarySchema = new mongoose.Schema(
     scCategoryNo: { type: String, default: '' },
     district: { type: String, default: '' },
     state: { type: String, default: '' },
+    location: { type: String, default: '' },
 
     // Step 2 — Education
     highestQualification: { type: String, default: '' },
@@ -27,8 +28,8 @@ const beneficiarySchema = new mongoose.Schema(
     careerInterests: { type: [String], default: [] },
 
     // Derived / tracked separately
-    profileCompletionPercent: { type: Number, default: 0 },
-    journeyPercent: { type: Number, default: 0 },
+    profileCompletionPercent: { type: Number, default: 65 },
+    journeyPercent: { type: Number, default: 26 },
   },
   { timestamps: true }
 );
