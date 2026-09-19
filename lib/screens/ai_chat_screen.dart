@@ -87,7 +87,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
       return;
     }
 
-    // Try initializing or re-initializing speech engine
     _speechEnabled = await _speech.initialize(
       onStatus: (status) {
         if (status == 'done' || status == 'notListening') {
@@ -109,10 +108,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
       setState(() {
         _isListening = true;
-        _textController.text = 'Listening... Speak now';
-        _textController.selection = TextSelection.fromPosition(
-          TextPosition(offset: _textController.text.length),
-        );
       });
 
       await _speech.listen(
@@ -165,7 +160,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       setState(() => _isListening = false);
     }
     final text = _textController.text;
-    if (text.trim().isEmpty || text == 'Listening... Speak now') return;
+    if (text.trim().isEmpty) return;
     _textController.clear();
     if (!mounted) return;
     await context.read<AppState>().sendChatMessage(text);
