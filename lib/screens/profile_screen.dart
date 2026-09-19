@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
+import 'pm_ajay_details_screen.dart';
 import 'profile_completion_screen.dart';
 import 'settings_screen.dart';
 import 'splash_screen.dart';
@@ -176,7 +177,11 @@ class ProfileScreen extends StatelessWidget {
             const Text('SCHEME', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMuted, letterSpacing: 0.5)),
             const SizedBox(height: 10),
             _listCard([
-              _tile(Icons.description_rounded, 'PM-AJAY GIA Details', () {}),
+              _tile(Icons.description_rounded, 'PM-AJAY GIA Details', () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PmAjayGiaDetailsScreen()),
+                );
+              }),
             ]),
             const SizedBox(height: 24),
 
