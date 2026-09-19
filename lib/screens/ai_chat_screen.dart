@@ -79,7 +79,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
     }
   }
 
-  /// Toggles live microphone listening to transcribe spoken words.
+  /// Toggles live microphone listening to transcribe spoken words into the text box.
   Future<void> _toggleListening() async {
     if (_isListening) {
       await _speech.stop();
@@ -87,21 +87,48 @@ class _AiChatScreenState extends State<AiChatScreen> {
       return;
     }
 
-    if (!_speechEnabled) {
-      _speechEnabled = await _speech.initialize();
-    }
+    // Try initializing or re-initializing speech engine
+    _speechEnabled = await _speech.initialize(
+      onStatus: (status) {
+        if (status == 'done' || status == 'notListening') {
+          if (mounted) setState(() => _isListening = false);
+        }
+      },
+      onError: (_) {
+        if (mounted) setState(() => _isListening = false);
+      },
+    );
 
     if (_speechEnabled) {
-      setState(() => _isListening = true);
+      final langCode = context.read<AppState>().selectedLanguage.code;
+      String localeId = 'hi_IN';
+      if (langCode == 'en') localeId = 'en_US';
+      if (langCode == 'bn') localeId = 'bn_IN';
+      if (langCode == 'mr') localeId = 'mr_IN';
+      if (langCode == 'te') localeId = 'te_IN';
+
+      setState(() {
+        _isListening = true;
+        _textController.text = 'Listening... Speak now';
+        _textController.selection = TextSelection.fromPosition(
+          TextPosition(offset: _textController.text.length),
+        );
+      });
+
       await _speech.listen(
+        localeId: localeId,
         onResult: (result) {
-          setState(() {
-            _lastWords = result.recognizedWords;
-            _textController.text = _lastWords;
-            _textController.selection = TextSelection.fromPosition(
-              TextPosition(offset: _textController.text.length),
-            );
-          });
+          if (mounted) {
+            setState(() {
+              _lastWords = result.recognizedWords;
+              if (_lastWords.isNotEmpty) {
+                _textController.text = _lastWords;
+                _textController.selection = TextSelection.fromPosition(
+                  TextPosition(offset: _textController.text.length),
+                );
+              }
+            });
+          }
         },
         listenOptions: stt.SpeechListenOptions(
           listenMode: stt.ListenMode.dictation,
@@ -113,7 +140,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Live speech recognition unavailable. Loaded sample voice prompt.'),
+            content: Text('Live speech recognition unavailable on emulator. Loaded sample voice prompt.'),
             duration: Duration(seconds: 2),
           ),
         );
@@ -138,7 +165,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       setState(() => _isListening = false);
     }
     final text = _textController.text;
-    if (text.trim().isEmpty) return;
+    if (text.trim().isEmpty || text == 'Listening... Speak now') return;
     _textController.clear();
     if (!mounted) return;
     await context.read<AppState>().sendChatMessage(text);
@@ -647,7 +674,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   ),
                   const SizedBox(height: 10),
                   Text(
-                    _isListening ? 'Listening live... Speak now!' : 'Tap mic to speak · बोलने के लिए दबाएं',
+                    _isListening ? 'Listening live... Speak now!' : 'Tap mic to speak or select a voice prompt',
                     style: TextStyle(
                       color: _isListening ? AppColors.tealLight : Colors.white38,
                       fontSize: 12,
