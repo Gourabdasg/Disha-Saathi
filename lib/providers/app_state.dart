@@ -7,7 +7,7 @@ import '../services/api_service.dart';
 /// beneficiary profile persistence, and the AI Chat.
 class AppState extends ChangeNotifier {
   AppLanguage selectedLanguage =
-  AppLanguage.all.firstWhere((l) => l.code == 'en'); // English default
+      AppLanguage.all.firstWhere((l) => l.code == 'en'); // English default
   UserProfile profile = UserProfile();
   final List<ChatMessage> chatMessages = [
     const ChatMessage(
@@ -22,6 +22,7 @@ class AppState extends ChangeNotifier {
   // Set as soon as the person enters/confirms a mobile number or email
   String mobile = '';
   String email = '';
+  String latestDemoOtp = '';
 
   // UI feedback for in-flight network calls.
   bool isLoading = false;
@@ -34,6 +35,7 @@ class AppState extends ChangeNotifier {
   String aadhaar = '';
   String annualIncome = '';
   String category = 'Scheduled Caste (SC)';
+  String scCategoryNo = '';
 
   // Step 2: Education
   String highestQualification = '';
@@ -47,6 +49,8 @@ class AppState extends ChangeNotifier {
   // Step 4: Skills
   final Set<String> selectedSkills = {};
   final Set<String> selectedInterests = {};
+
+  bool _chatHistoryLoaded = false;
 
   void setLanguage(AppLanguage lang) {
     selectedLanguage = lang;
@@ -91,11 +95,95 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Completely clears the user's session, profile, form fields, and chat history.
+  void logout() {
+    isAuthenticated = false;
+    mobile = '';
+    email = '';
+    latestDemoOtp = '';
+    name = '';
+    fatherName = '';
+    motherName = '';
+    aadhaar = '';
+    annualIncome = '';
+    category = 'Scheduled Caste (SC)';
+    scCategoryNo = '';
+
+    highestQualification = '';
+    stream = '';
+    yearsOfStudy = '';
+    workExperience = '';
+
+    selectedLivelihood = '';
+    selectedSkills.clear();
+    selectedInterests.clear();
+
+    registrationStep = 0;
+    _chatHistoryLoaded = false;
+    isLoading = false;
+    errorMessage = null;
+
+    profile = UserProfile(
+      mobile: '',
+      email: '',
+      name: 'Beneficiary',
+      district: '',
+      state: '',
+    );
+
+    chatMessages
+      ..clear()
+      ..add(
+        const ChatMessage(
+          "Hello! I'm your AI Skill Assistant. Tell me about the work you currently do. आप वर्तमान में क्या काम करते हैं?",
+          true,
+        ),
+      );
+
+    notifyListeners();
+  }
+
+  /// Helper to wipe any previous session data before commencing a new login/signup flow.
+  void _prepareNewSession({String newMobile = '', String newEmail = '', String newName = ''}) {
+    _chatHistoryLoaded = false;
+    chatMessages
+      ..clear()
+      ..add(
+        const ChatMessage(
+          "Hello! I'm your AI Skill Assistant. Tell me about the work you currently do. आप वर्तमान में क्या काम करते हैं?",
+          true,
+        ),
+      );
+    mobile = newMobile;
+    email = newEmail;
+    name = newName;
+    fatherName = '';
+    motherName = '';
+    aadhaar = '';
+    annualIncome = '';
+    scCategoryNo = '';
+    highestQualification = '';
+    stream = '';
+    yearsOfStudy = '';
+    workExperience = '';
+    selectedLivelihood = '';
+    selectedSkills.clear();
+    selectedInterests.clear();
+    registrationStep = 0;
+
+    profile = UserProfile(
+      mobile: newMobile,
+      email: newEmail,
+      name: newName.isNotEmpty ? newName : 'Beneficiary',
+      district: '',
+      state: '',
+    );
+  }
+
   // --- Auth ---
 
   Future<bool> sendOtp(String mobile) async {
-    if (this.mobile != mobile) _chatHistoryLoaded = false;
-    this.mobile = mobile;
+    _prepareNewSession(newMobile: mobile);
     _setLoading(true);
     try {
       await ApiService.sendOtp(mobile);
@@ -118,6 +206,9 @@ class AppState extends ChangeNotifier {
       isLoading = false;
       if (existing != null) {
         profile = existing;
+        name = existing.name;
+        mobile = existing.mobile;
+        email = existing.email;
         isAuthenticated = true;
         notifyListeners();
         return 'existing';
@@ -134,20 +225,20 @@ class AppState extends ChangeNotifier {
 
   // --- Email OTP Auth ---
 
-  Future<bool> sendEmailOtp(String email) async {
-    if (this.email != email) _chatHistoryLoaded = false;
-    this.email = email;
+  Future<String?> sendEmailOtp(String email) async {
+    _prepareNewSession(newEmail: email);
     _setLoading(true);
     try {
-      await ApiService.sendEmailOtp(email);
+      final res = await ApiService.sendEmailOtp(email);
       isLoading = false;
+      latestDemoOtp = res['demoOtp'] as String? ?? '123456';
       notifyListeners();
-      return true;
+      return latestDemoOtp;
     } catch (e) {
       isLoading = false;
       errorMessage = e.toString();
       notifyListeners();
-      return false;
+      return null;
     }
   }
 
@@ -160,6 +251,9 @@ class AppState extends ChangeNotifier {
       isLoading = false;
       if (existing != null) {
         profile = existing;
+        name = existing.name;
+        mobile = existing.mobile;
+        email = existing.email;
         isAuthenticated = true;
         notifyListeners();
         return 'existing';
@@ -175,8 +269,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<String?> loginWithPassword(String mobile, String password) async {
-    if (this.mobile != mobile) _chatHistoryLoaded = false;
-    this.mobile = mobile;
+    _prepareNewSession(newMobile: mobile);
     _setLoading(true);
     try {
       await ApiService.loginWithPassword(mobile, password);
@@ -184,6 +277,9 @@ class AppState extends ChangeNotifier {
       isLoading = false;
       if (existing != null) {
         profile = existing;
+        name = existing.name;
+        mobile = existing.mobile;
+        email = existing.email;
         isAuthenticated = true;
         notifyListeners();
         return 'existing';
@@ -201,8 +297,7 @@ class AppState extends ChangeNotifier {
   // --- Google & Email Auth ---
 
   Future<String?> loginWithGoogle(String email, String name, String? googleId) async {
-    this.email = email;
-    if (this.name.isEmpty) this.name = name;
+    _prepareNewSession(newEmail: email, newName: name);
     _setLoading(true);
     try {
       await ApiService.loginWithGoogle(email: email, name: name, googleId: googleId);
@@ -211,6 +306,9 @@ class AppState extends ChangeNotifier {
       isLoading = false;
       if (existing != null) {
         profile = existing;
+        this.name = existing.name.isNotEmpty ? existing.name : name;
+        this.mobile = existing.mobile;
+        this.email = existing.email.isNotEmpty ? existing.email : email;
         isAuthenticated = true;
         notifyListeners();
         return 'existing';
@@ -226,9 +324,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<String?> signUpWithEmail(String email, String password, String name, String mobile) async {
-    this.email = email;
-    this.name = name;
-    if (mobile.isNotEmpty) this.mobile = mobile;
+    _prepareNewSession(newEmail: email, newMobile: mobile, newName: name);
     _setLoading(true);
     try {
       await ApiService.signUpWithEmail(email: email, password: password, name: name, mobile: mobile);
@@ -244,7 +340,7 @@ class AppState extends ChangeNotifier {
   }
 
   Future<String?> loginWithEmail(String email, String password) async {
-    this.email = email;
+    _prepareNewSession(newEmail: email);
     _setLoading(true);
     try {
       await ApiService.loginWithEmail(email: email, password: password);
@@ -253,6 +349,9 @@ class AppState extends ChangeNotifier {
       isLoading = false;
       if (existing != null) {
         profile = existing;
+        this.name = existing.name;
+        this.mobile = existing.mobile;
+        this.email = existing.email;
         isAuthenticated = true;
         notifyListeners();
         return 'existing';
@@ -271,9 +370,11 @@ class AppState extends ChangeNotifier {
 
   Future<bool> completeRegistration() async {
     profile.mobile = mobile.isNotEmpty ? mobile : email;
+    profile.email = email;
     profile.name = name.isNotEmpty ? name : profile.name;
     profile.annualIncome = annualIncome;
     profile.category = category;
+    profile.scCategoryNo = scCategoryNo;
     profile.highestQualification = highestQualification;
     profile.stream = stream;
     profile.yearsOfStudy = int.tryParse(yearsOfStudy) ?? profile.yearsOfStudy;
@@ -304,8 +405,6 @@ class AppState extends ChangeNotifier {
       return false;
     }
   }
-
-  bool _chatHistoryLoaded = false;
 
   Future<void> loadChatHistory() async {
     final lookupKey = mobile.isNotEmpty ? mobile : email;

@@ -40,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final result = await state.loginWithGoogle(
       googleEmail,
       googleName,
-      'google-id-1789665016385',
+      'google-id-1789665348799',
     );
 
     if (!mounted) return;
@@ -69,9 +69,10 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final ok = await state.sendEmailOtp(email);
+    final demoOtp = await state.sendEmailOtp(email);
     if (!mounted) return;
-    if (ok) {
+    if (demoOtp != null) {
+      _showSuccess('OTP Sent to $email! Code: $demoOtp');
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => OtpVerificationScreen(email: email, isEmail: true)),
       );
@@ -146,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Google Sign-In Button (Direct Sign-In without pop-up sheet)
+                    // Google Sign-In Button
                     OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),

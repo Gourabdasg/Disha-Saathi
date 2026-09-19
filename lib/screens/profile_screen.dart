@@ -98,6 +98,7 @@ class ProfileScreen extends StatelessWidget {
               height: 52,
               child: OutlinedButton(
                 onPressed: () {
+                  context.read<AppState>().logout();
                   Navigator.of(context).pushAndRemoveUntil(
                     MaterialPageRoute(builder: (_) => const SplashScreen()),
                     (route) => false,

@@ -77,8 +77,8 @@ class ApiService {
 
   // --- Email OTP Auth ---
 
-  static Future<void> sendEmailOtp(String email) async {
-    await _post('/api/auth/email/otp/send', {'email': email});
+  static Future<Map<String, dynamic>> sendEmailOtp(String email) async {
+    return await _post('/api/auth/email/otp/send', {'email': email});
   }
 
   static Future<String> verifyEmailOtp(String email, String otp) async {

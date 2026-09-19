@@ -39,12 +39,14 @@ class AppLanguage {
 /// Beneficiary profile collected across the 4-step registration flow.
 class UserProfile {
   String mobile;
+  String email;
   String name;
   String fatherName;
   String motherName;
   String aadhaar;
   String annualIncome;
   String category; // SC / ST / OBC / General
+  String scCategoryNo; // SC Certificate / Category Number
   String district;
   String state;
 
@@ -63,12 +65,14 @@ class UserProfile {
 
   UserProfile({
     this.mobile = '',
+    this.email = '',
     this.name = 'Rahul Kumar',
     this.fatherName = '',
     this.motherName = '',
     this.aadhaar = '',
     this.annualIncome = '',
     this.category = 'Scheduled Caste (SC)',
+    this.scCategoryNo = '',
     this.district = 'Murshidabad',
     this.state = 'West Bengal',
     this.highestQualification = '10th Pass',
@@ -83,17 +87,17 @@ class UserProfile {
   })  : existingSkills = existingSkills ?? ['Basic Mobile', 'Agriculture', 'Physical Labour', 'Tool Handling', 'Communication'],
         careerInterests = careerInterests ?? ['Digital Work', 'Government Jobs', 'IT & Technology'];
 
-  /// Field names below match `backend/models/Beneficiary.js` exactly, so
-  /// this maps directly onto whatever the Express API returns.
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
       mobile: json['mobile'] ?? '',
+      email: json['email'] ?? '',
       name: (json['name'] as String?)?.isNotEmpty == true ? json['name'] : 'Rahul Kumar',
       fatherName: json['fatherName'] ?? '',
       motherName: json['motherName'] ?? '',
       aadhaar: json['aadhaar'] ?? '',
       annualIncome: json['annualIncome'] ?? '',
       category: json['category'] ?? 'Scheduled Caste (SC)',
+      scCategoryNo: json['scCategoryNo'] ?? '',
       district: json['district'] ?? '',
       state: json['state'] ?? '',
       highestQualification: json['highestQualification'] ?? '',
@@ -110,12 +114,14 @@ class UserProfile {
 
   Map<String, dynamic> toJson() => {
     'mobile': mobile,
+    'email': email,
     'name': name,
     'fatherName': fatherName,
     'motherName': motherName,
     'aadhaar': aadhaar,
     'annualIncome': annualIncome,
     'category': category,
+    'scCategoryNo': scCategoryNo,
     'district': district,
     'state': state,
     'highestQualification': highestQualification,

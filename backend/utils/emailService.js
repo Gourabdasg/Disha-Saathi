@@ -1,18 +1,18 @@
 const nodemailer = require('nodemailer');
 
-// Optional SMTP configuration from backend/.env
+// Official Gmail SMTP configuration
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
 const SMTP_PORT = process.env.SMTP_PORT || 587;
-const SMTP_USER = process.env.SMTP_USER || '';
+const SMTP_USER = process.env.SMTP_USER || 'dishasaathi@gmail.com';
 const SMTP_PASS = process.env.SMTP_PASS || '';
 
 let transporter = null;
 
-if (SMTP_USER && SMTP_PASS) {
+if (SMTP_USER && SMTP_PASS && SMTP_PASS !== 'YOUR_16_DIGIT_GMAIL_APP_PASSWORD') {
   transporter = nodemailer.createTransport({
     host: SMTP_HOST,
     port: parseInt(SMTP_PORT, 10),
-    secure: SMTP_PORT == 465,
+    secure: false,
     auth: {
       user: SMTP_USER,
       pass: SMTP_PASS,
@@ -21,8 +21,7 @@ if (SMTP_USER && SMTP_PASS) {
 }
 
 /**
- * Sends a 6-digit OTP verification code to the target email address.
- * Returns true if sent via SMTP, or false if running in demo/offline mode.
+ * Sends a 6-digit OTP verification code from dishasaathi@gmail.com to the target email.
  */
 async function sendOtpEmail(toEmail, otpCode) {
   if (transporter) {
@@ -47,7 +46,7 @@ async function sendOtpEmail(toEmail, otpCode) {
           </div>
         `,
       });
-      console.log(`[SMTP] Email OTP ${otpCode} successfully sent to ${toEmail}`);
+      console.log(`[SMTP] Real Email OTP ${otpCode} sent from ${SMTP_USER} to ${toEmail}`);
       return true;
     } catch (err) {
       console.warn(`[SMTP Warning] Failed to send email to ${toEmail}:`, err.message);
