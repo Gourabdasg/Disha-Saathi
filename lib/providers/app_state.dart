@@ -196,19 +196,20 @@ class AppState extends ChangeNotifier {
 
   // --- Auth ---
 
-  Future<bool> sendOtp(String mobile) async {
+  Future<String?> sendOtp(String mobile) async {
     _prepareNewSession(newMobile: mobile);
     _setLoading(true);
     try {
-      await ApiService.sendOtp(mobile);
+      final res = await ApiService.sendOtp(mobile);
       isLoading = false;
+      latestDemoOtp = res['demoOtp'] as String? ?? '123456';
       notifyListeners();
-      return true;
+      return latestDemoOtp;
     } catch (e) {
       isLoading = false;
       errorMessage = e.toString();
       notifyListeners();
-      return false;
+      return null;
     }
   }
 

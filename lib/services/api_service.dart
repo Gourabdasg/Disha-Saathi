@@ -62,8 +62,8 @@ class ApiService {
 
   // --- Auth (backend/routes/auth.js) ---
 
-  static Future<void> sendOtp(String mobile) async {
-    await _post('/api/auth/otp/send', {'mobile': mobile});
+  static Future<Map<String, dynamic>> sendOtp(String mobile) async {
+    return await _post('/api/auth/otp/send', {'mobile': mobile});
   }
 
   static Future<String> verifyOtp(String mobile, String otp) async {

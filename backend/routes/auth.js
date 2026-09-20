@@ -54,19 +54,36 @@ async function saveOrUpdateBeneficiary({ mobile, email, name }) {
 
 router.post('/otp/send', (req, res) => {
   const { mobile } = req.body;
-  if (!mobile) return res.status(400).json({ error: 'mobile is required' });
-  const otp = '123456'; // demo fixed OTP
-  otpStore.set(mobile, otp);
-  res.json({ message: 'Mobile OTP sent', demoOtp: otp });
+  if (!mobile || mobile.trim().length < 10) {
+    return res.status(400).json({ error: 'Valid 10-digit mobile number is required' });
+  }
+
+  const cleanMobile = mobile.trim();
+  // Generate dynamic 6-digit OTP code
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  otpStore.set(cleanMobile, otp);
+
+  console.log(`[Mobile OTP] Generated OTP ${otp} for +91 ${cleanMobile}`);
+
+  res.json({
+    message: `Mobile OTP sent to +91 ${cleanMobile}`,
+    mobile: cleanMobile,
+    demoOtp: otp,
+  });
 });
 
 router.post('/otp/verify', async (req, res) => {
   const { mobile, otp } = req.body;
-  if (otpStore.get(mobile) === otp || otp === '123456') {
-    await saveOrUpdateBeneficiary({ mobile });
-    return res.json({ verified: true, token: 'demo-jwt-token', mobile });
+  if (!mobile) return res.status(400).json({ error: 'mobile is required' });
+
+  const cleanMobile = mobile.trim();
+  const storedOtp = otpStore.get(cleanMobile);
+
+  if (storedOtp === otp || otp === '123456') {
+    await saveOrUpdateBeneficiary({ mobile: cleanMobile });
+    return res.json({ verified: true, token: 'demo-jwt-token', mobile: cleanMobile });
   }
-  res.status(400).json({ verified: false, error: 'Invalid OTP' });
+  res.status(400).json({ verified: false, error: 'Invalid Mobile OTP code' });
 });
 
 router.post('/login', async (req, res) => {

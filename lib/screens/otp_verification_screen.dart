@@ -89,17 +89,20 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         MaterialPageRoute(builder: (_) => const RegistrationFlow()),
       );
     } else {
-      _showError(state.errorMessage ?? 'Invalid OTP. Demo backend OTP is 123456');
+      _showError(state.errorMessage ?? 'Invalid OTP code.');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
     final display = widget.isEmail
         ? widget.email
         : (widget.mobile.isEmpty ? '98765 43210' : widget.mobile);
 
-    final isLoading = context.watch<AppState>().isLoading;
+    final isLoading = state.isLoading;
+    final activeOtp = state.latestDemoOtp.isNotEmpty ? state.latestDemoOtp : '123456';
+
     return Scaffold(
       backgroundColor: AppColors.bgLight,
       body: SafeArea(
@@ -163,7 +166,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text('$_digitsEntered/6 digits entered', style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
-                        const Text('Demo backend OTP: 123456', style: TextStyle(color: AppColors.orange, fontSize: 11.5, fontWeight: FontWeight.w600)),
+                        Text('OTP Code: $activeOtp', style: const TextStyle(color: AppColors.orange, fontSize: 12, fontWeight: FontWeight.bold)),
                       ],
                     ),
                     const SizedBox(height: 30),

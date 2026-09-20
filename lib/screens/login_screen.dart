@@ -89,9 +89,10 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final ok = await state.sendOtp(mobile);
+    final otpRes = await state.sendOtp(mobile);
     if (!mounted) return;
-    if (ok) {
+    if (otpRes != null) {
+      _showSuccess('OTP Sent to +91 $mobile! Code: $otpRes');
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => OtpVerificationScreen(mobile: mobile, isEmail: false)),
       );
