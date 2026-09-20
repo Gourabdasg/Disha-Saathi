@@ -5,6 +5,7 @@
 > Recommendations for SC Communities under the GIA component of PM-AJAY  
 > Team: **The AI Alchemists**
 
+
 This is the **Flutter frontend** for Disha Saathi – a voice-first, multilingual
 AI assistant that maps a beneficiary's livelihood and skills, then recommends
 NSQF-aligned training and job pathways.
