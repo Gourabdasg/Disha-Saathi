@@ -5,7 +5,7 @@ const Beneficiary = require('../models/Beneficiary');
 const UserProfile = require('../models/UserProfile');
 const { sendOtpEmail } = require('../utils/emailService');
 
-// In-memory authentication stores (demo & fallback for offline DB)
+// In-memory authentication stores
 const otpStore = new Map();
 const emailOtpStore = new Map();
 const emailUsers = new Map();
@@ -59,9 +59,12 @@ router.post('/otp/send', (req, res) => {
   }
 
   const cleanMobile = mobile.trim();
-  // Generate dynamic 6-digit OTP code
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  otpStore.set(cleanMobile, otp);
+
+  otpStore.set(cleanMobile, {
+    otp,
+    expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes expiry
+  });
 
   console.log(`[Mobile OTP] Generated OTP ${otp} for +91 ${cleanMobile}`);
 
@@ -77,13 +80,25 @@ router.post('/otp/verify', async (req, res) => {
   if (!mobile) return res.status(400).json({ error: 'mobile is required' });
 
   const cleanMobile = mobile.trim();
-  const storedOtp = otpStore.get(cleanMobile);
+  const storedData = otpStore.get(cleanMobile);
+
+  if (!storedData) {
+    return res.status(400).json({ verified: false, error: 'OTP expired or not requested. Please request a new OTP.' });
+  }
+
+  const { otp: storedOtp, expiresAt } = typeof storedData === 'object' ? storedData : { otp: storedData, expiresAt: Date.now() + 600000 };
+
+  if (Date.now() > expiresAt) {
+    otpStore.delete(cleanMobile);
+    return res.status(400).json({ verified: false, error: 'OTP has expired. Please request a new OTP.' });
+  }
 
   if (storedOtp === otp || otp === '123456') {
+    otpStore.delete(cleanMobile); // Single-use OTP
     await saveOrUpdateBeneficiary({ mobile: cleanMobile });
     return res.json({ verified: true, token: 'demo-jwt-token', mobile: cleanMobile });
   }
-  res.status(400).json({ verified: false, error: 'Invalid Mobile OTP code' });
+  res.status(400).json({ verified: false, error: 'Invalid Mobile OTP code. Please try again.' });
 });
 
 router.post('/login', async (req, res) => {
@@ -96,38 +111,61 @@ router.post('/login', async (req, res) => {
 // --- Email OTP Authentication ---
 
 router.post('/email/otp/send', async (req, res) => {
-  const { email } = req.body;
-  if (!email || !email.includes('@')) {
-    return res.status(400).json({ error: 'Valid email address is required' });
+  try {
+    const { email } = req.body;
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Valid email address is required' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store single-use OTP with 10-minute expiry
+    emailOtpStore.set(cleanEmail, {
+      otp,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
+
+    // Send real email via SMTP (fast & non-blocking)
+    sendOtpEmail(cleanEmail, otp).catch((err) => {
+      console.warn('[SMTP Error]:', err.message);
+    });
+
+    return res.json({
+      message: `OTP sent successfully to ${cleanEmail}`,
+      email: cleanEmail,
+      demoOtp: otp,
+    });
+  } catch (err) {
+    console.error('Email OTP send route error:', err);
+    return res.status(500).json({ error: 'Unable to send OTP. Please try again.' });
   }
-
-  const cleanEmail = email.toLowerCase().trim();
-  // Generate dynamic 6-digit OTP code
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  emailOtpStore.set(cleanEmail, otp);
-
-  // Send real email via SMTP if configured in .env
-  const sentViaSmtp = await sendOtpEmail(cleanEmail, otp);
-
-  res.json({
-    message: sentViaSmtp ? `Email OTP sent to ${cleanEmail}` : `Email OTP generated for ${cleanEmail}`,
-    email: cleanEmail,
-    demoOtp: otp,
-  });
 });
 
 router.post('/email/otp/verify', async (req, res) => {
   const { email, otp } = req.body;
-  if (!email) return res.status(400).json({ error: 'email is required' });
+  if (!email) return res.status(400).json({ error: 'Email address is required' });
 
   const cleanEmail = email.toLowerCase().trim();
-  const storedOtp = emailOtpStore.get(cleanEmail);
+  const storedData = emailOtpStore.get(cleanEmail);
+
+  if (!storedData) {
+    return res.status(400).json({ verified: false, error: 'OTP expired or not requested. Please request a new OTP.' });
+  }
+
+  const { otp: storedOtp, expiresAt } = typeof storedData === 'object' ? storedData : { otp: storedData, expiresAt: Date.now() + 600000 };
+
+  if (Date.now() > expiresAt) {
+    emailOtpStore.delete(cleanEmail);
+    return res.status(400).json({ verified: false, error: 'OTP code has expired. Please request a new OTP.' });
+  }
 
   if (storedOtp === otp || otp === '123456') {
+    emailOtpStore.delete(cleanEmail); // Single-use OTP
     await saveOrUpdateBeneficiary({ email: cleanEmail });
     return res.json({ verified: true, token: 'demo-email-otp-token', email: cleanEmail });
   }
-  res.status(400).json({ verified: false, error: 'Invalid Email OTP code' });
+  res.status(400).json({ verified: false, error: 'Invalid Email OTP code. Please try again.' });
 });
 
 // --- Google Sign-In Authentication ---

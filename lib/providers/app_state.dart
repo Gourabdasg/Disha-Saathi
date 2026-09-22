@@ -100,6 +100,14 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  String _cleanError(dynamic e) {
+    final str = e.toString();
+    if (str.contains('TimeoutException') || str.contains('Future not completed') || str.contains('SocketException')) {
+      return 'Unable to send OTP. Please check your internet connection and try again.';
+    }
+    return str.replaceFirst('Exception: ', '');
+  }
+
   /// Completely clears the user's session, profile, form fields, and chat history.
   void logout() {
     isAuthenticated = false;
@@ -207,7 +215,7 @@ class AppState extends ChangeNotifier {
       return latestDemoOtp;
     } catch (e) {
       isLoading = false;
-      errorMessage = e.toString();
+      errorMessage = _cleanError(e);
       notifyListeners();
       return null;
     }
@@ -232,7 +240,7 @@ class AppState extends ChangeNotifier {
       return 'new';
     } catch (e) {
       isLoading = false;
-      errorMessage = e.toString();
+      errorMessage = _cleanError(e);
       notifyListeners();
       return null;
     }
@@ -251,7 +259,7 @@ class AppState extends ChangeNotifier {
       return latestDemoOtp;
     } catch (e) {
       isLoading = false;
-      errorMessage = e.toString();
+      errorMessage = _cleanError(e);
       notifyListeners();
       return null;
     }
@@ -277,7 +285,7 @@ class AppState extends ChangeNotifier {
       return 'new';
     } catch (e) {
       isLoading = false;
-      errorMessage = e.toString();
+      errorMessage = _cleanError(e);
       notifyListeners();
       return null;
     }
@@ -303,7 +311,7 @@ class AppState extends ChangeNotifier {
       return 'new';
     } catch (e) {
       isLoading = false;
-      errorMessage = e.toString();
+      errorMessage = _cleanError(e);
       notifyListeners();
       return null;
     }
@@ -332,7 +340,7 @@ class AppState extends ChangeNotifier {
       return 'new';
     } catch (e) {
       isLoading = false;
-      errorMessage = e.toString();
+      errorMessage = _cleanError(e);
       notifyListeners();
       return null;
     }
@@ -348,7 +356,7 @@ class AppState extends ChangeNotifier {
       return 'new';
     } catch (e) {
       isLoading = false;
-      errorMessage = e.toString();
+      errorMessage = _cleanError(e);
       notifyListeners();
       return null;
     }
@@ -375,7 +383,7 @@ class AppState extends ChangeNotifier {
       return 'new';
     } catch (e) {
       isLoading = false;
-      errorMessage = e.toString();
+      errorMessage = _cleanError(e);
       notifyListeners();
       return null;
     }

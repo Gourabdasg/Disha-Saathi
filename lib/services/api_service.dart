@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
@@ -19,27 +20,54 @@ class ApiException implements Exception {
 /// Thin wrapper around the Node.js/Express backend's REST endpoints.
 /// See backend/routes/*.js for the corresponding server-side code.
 class ApiService {
-  static const _timeout = Duration(seconds: 10);
+  static const _timeout = Duration(seconds: 15);
   static const _headers = {'Content-Type': 'application/json'};
 
   static Future<Map<String, dynamic>> _post(String path, Map<String, dynamic> body) async {
-    final res = await http
-        .post(ApiConfig.uri(path), headers: _headers, body: jsonEncode(body))
-        .timeout(_timeout);
-    return _decodeMap(res);
+    try {
+      final res = await http
+          .post(ApiConfig.uri(path), headers: _headers, body: jsonEncode(body))
+          .timeout(_timeout);
+      return _decodeMap(res);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw ApiException(
+        504,
+        'Unable to send OTP. Please check your internet connection and try again.',
+      );
+    }
   }
 
   static Future<Map<String, dynamic>> _get(String path) async {
-    final res = await http.get(ApiConfig.uri(path)).timeout(_timeout);
-    return _decodeMap(res);
+    try {
+      final res = await http.get(ApiConfig.uri(path)).timeout(_timeout);
+      return _decodeMap(res);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw ApiException(
+        504,
+        'Unable to reach server. Please check your internet connection and try again.',
+      );
+    }
   }
 
   static Future<List<dynamic>> _getList(String path) async {
-    final res = await http.get(ApiConfig.uri(path)).timeout(_timeout);
-    if (res.statusCode >= 200 && res.statusCode < 300) {
-      return res.body.isEmpty ? [] : jsonDecode(res.body) as List<dynamic>;
+    try {
+      final res = await http.get(ApiConfig.uri(path)).timeout(_timeout);
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        return res.body.isEmpty ? [] : jsonDecode(res.body) as List<dynamic>;
+      }
+      throw ApiException(res.statusCode, _errorMessageFrom(res));
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw ApiException(
+        504,
+        'Unable to reach server. Please check your internet connection and try again.',
+      );
     }
-    throw ApiException(res.statusCode, _errorMessageFrom(res));
   }
 
   static Map<String, dynamic> _decodeMap(http.Response res) {
