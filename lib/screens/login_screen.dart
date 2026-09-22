@@ -72,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final demoOtp = await state.sendEmailOtp(email);
     if (!mounted) return;
     if (demoOtp != null) {
-      _showSuccess('OTP Sent to $email! Code: $demoOtp');
+      _showSuccess('OTP Sent to $email!');
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => OtpVerificationScreen(email: email, isEmail: true)),
       );
@@ -92,7 +92,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final otpRes = await state.sendOtp(mobile);
     if (!mounted) return;
     if (otpRes != null) {
-      _showSuccess('OTP Sent to +91 $mobile! Code: $otpRes');
+      _showSuccess('OTP Sent to +91 $mobile!');
       Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => OtpVerificationScreen(mobile: mobile, isEmail: false)),
       );

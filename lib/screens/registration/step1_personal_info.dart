@@ -200,8 +200,6 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
                   hintStyle: TextStyle(letterSpacing: 6, color: Colors.black26),
                 ),
               ),
-              const SizedBox(height: 10),
-              Text('Demo Code: $demoOtp', style: const TextStyle(fontSize: 11.5, color: AppColors.orange, fontWeight: FontWeight.w600)),
             ],
           ),
           actions: [
