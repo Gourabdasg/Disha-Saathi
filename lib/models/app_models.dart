@@ -16,7 +16,7 @@ class AppLanguage {
     AppLanguage('en', 'English', 'English', 'EN'),
     AppLanguage('gu', 'ગુજરાતી', 'Gujarati', 'GU'),
     AppLanguage('hi', 'हिंदी', 'Hindi', 'HI'),
-    AppLanguage('kn', '<ctrl42>ಕನ್ನಡ', 'Kannada', 'KN'),
+    AppLanguage('kn', 'ಕನ್ನಡ', 'Kannada', 'KN'),
     AppLanguage('ks', 'कॉशुर', 'Kashmiri', 'KS'),
     AppLanguage('kok', 'कोंकणी', 'Konkani', 'KO'),
     AppLanguage('mai', 'मैथिली', 'Maithili', 'MA'),

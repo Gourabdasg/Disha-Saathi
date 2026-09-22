@@ -3,6 +3,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import '../models/app_models.dart';
 import '../providers/app_state.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
@@ -93,6 +94,12 @@ class _AiChatScreenState extends State<AiChatScreen> {
     if (langCode == 'bn') localeId = 'bn_IN';
     if (langCode == 'mr') localeId = 'mr_IN';
     if (langCode == 'te') localeId = 'te_IN';
+    if (langCode == 'ta') localeId = 'ta_IN';
+    if (langCode == 'gu') localeId = 'gu_IN';
+    if (langCode == 'kn') localeId = 'kn_IN';
+    if (langCode == 'ml') localeId = 'ml_IN';
+    if (langCode == 'pa') localeId = 'pa_IN';
+    if (langCode == 'ur') localeId = 'ur_IN';
 
     _speechEnabled = await _speech.initialize(
       onStatus: (status) {
@@ -271,6 +278,117 @@ class _AiChatScreenState extends State<AiChatScreen> {
     );
   }
 
+  /// PART 2, 3, 4: Compact Language Selector Modal overlaying the AI Chat screen
+  void _showLanguageSelectorModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        final appState = ctx.watch<AppState>();
+        final currentLangCode = appState.selectedLanguage.code;
+
+        return SafeArea(
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(ctx).size.height * 0.65,
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Top Handle Bar
+                Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Header Row with Title and Close Button
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: const [
+                        Icon(Icons.language_rounded, color: AppColors.navy, size: 22),
+                        SizedBox(width: 8),
+                        Text(
+                          'Choose Language',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textDark,
+                          ),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: AppColors.textMuted),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const Divider(height: 1),
+                const SizedBox(height: 8),
+
+                // Requirement Part 3: All 23 Languages (22 Scheduled Indian Languages + English)
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: AppLanguage.all.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1, indent: 12, endIndent: 12),
+                    itemBuilder: (context, i) {
+                      final lang = AppLanguage.all[i];
+                      final isSelected = lang.code == currentLangCode;
+
+                      return ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        tileColor: isSelected ? AppColors.navy.withOpacity(0.08) : Colors.transparent,
+                        title: Text(
+                          lang.nativeName,
+                          style: TextStyle(
+                            fontSize: 15.5,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                            color: isSelected ? AppColors.navy : AppColors.textDark,
+                          ),
+                        ),
+                        subtitle: Text(
+                          lang.englishName,
+                          style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        ),
+                        trailing: isSelected
+                            ? const Icon(Icons.check_circle_rounded, color: AppColors.navy, size: 22)
+                            : const Icon(Icons.radio_button_unchecked_rounded, color: Colors.black26, size: 20),
+                        onTap: () {
+                          appState.setLanguage(lang);
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Language set to ${lang.englishName} (${lang.nativeName})'),
+                              backgroundColor: AppColors.navy,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   // Requirement 10: Message Edit & Resend / Delete Options Modal
   void _showMessageOptionsModal(int index, String text, bool isBot) {
     showModalBottomSheet(
@@ -420,6 +538,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                         label: const Text('Restart', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
                       ),
 
+                      // Requirement PART 1: Three-Dot Menu with "Choose Language" directly BELOW Chat History
                       PopupMenuButton<String>(
                         icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
                         color: Colors.white,
@@ -429,10 +548,12 @@ class _AiChatScreenState extends State<AiChatScreen> {
                             state.startNewChat();
                           } else if (val == 'restart') {
                             _confirmRestartChat();
-                          } else if (val == 'clear') {
-                            _confirmClearChat();
                           } else if (val == 'history') {
                             state.loadChatHistory();
+                          } else if (val == 'language') {
+                            _showLanguageSelectorModal();
+                          } else if (val == 'clear') {
+                            _confirmClearChat();
                           }
                         },
                         itemBuilder: (ctx) => [
@@ -463,6 +584,17 @@ class _AiChatScreenState extends State<AiChatScreen> {
                                 Icon(Icons.history_rounded, color: AppColors.navy, size: 18),
                                 SizedBox(width: 10),
                                 Text('Chat History', style: TextStyle(color: AppColors.textDark, fontSize: 13.5)),
+                              ],
+                            ),
+                          ),
+                          // PART 1: "Choose Language" option directly BELOW "Chat History"
+                          const PopupMenuItem(
+                            value: 'language',
+                            child: Row(
+                              children: [
+                                Icon(Icons.language_rounded, color: AppColors.navy, size: 18),
+                                SizedBox(width: 10),
+                                Text('Choose Language', style: TextStyle(color: AppColors.textDark, fontSize: 13.5)),
                               ],
                             ),
                           ),
