@@ -87,6 +87,13 @@ class _AiChatScreenState extends State<AiChatScreen> {
       return;
     }
 
+    final langCode = context.read<AppState>().selectedLanguage.code;
+    String localeId = 'hi_IN';
+    if (langCode == 'en') localeId = 'en_US';
+    if (langCode == 'bn') localeId = 'bn_IN';
+    if (langCode == 'mr') localeId = 'mr_IN';
+    if (langCode == 'te') localeId = 'te_IN';
+
     _speechEnabled = await _speech.initialize(
       onStatus: (status) {
         if (status == 'done' || status == 'notListening') {
@@ -98,20 +105,18 @@ class _AiChatScreenState extends State<AiChatScreen> {
       },
     );
 
-    if (_speechEnabled) {
-      final langCode = context.read<AppState>().selectedLanguage.code;
-      String localeId = 'hi_IN';
-      if (langCode == 'en') localeId = 'en_US';
-      if (langCode == 'bn') localeId = 'bn_IN';
-      if (langCode == 'mr') localeId = 'mr_IN';
-      if (langCode == 'te') localeId = 'te_IN';
-
+    if (_speechEnabled && mounted) {
       setState(() {
         _isListening = true;
       });
 
       await _speech.listen(
-        localeId: localeId,
+        listenOptions: stt.SpeechListenOptions(
+          listenMode: stt.ListenMode.dictation,
+          partialResults: true,
+          cancelOnError: false,
+          localeId: localeId,
+        ),
         onResult: (result) {
           if (mounted) {
             setState(() {
@@ -125,11 +130,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
             });
           }
         },
-        listenOptions: stt.SpeechListenOptions(
-          listenMode: stt.ListenMode.dictation,
-          partialResults: true,
-          cancelOnError: false,
-        ),
       );
     } else {
       if (mounted) {
@@ -179,6 +179,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
 
   /// Requirements 15 & 16 & 17: NVIDIA Text-to-Speech playback via Backend Proxy
   Future<void> _playTtsForMessage(int index, String text) async {
+    final langCode = context.read<AppState>().selectedLanguage.code;
+
     if (_playingMessageIndex == index) {
       await _audioPlayer.stop();
       setState(() => _playingMessageIndex = null);
@@ -190,8 +192,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
       _playingMessageIndex = index;
       _isSynthesizingTts = true;
     });
-
-    final langCode = context.read<AppState>().selectedLanguage.code;
 
     try {
       final audioBase64 = await ApiService.textToSpeech(text, langCode);
@@ -234,7 +234,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
             child: const Text('Cancel', style: TextStyle(color: Colors.black54)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.teal),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.navy),
             onPressed: () {
               Navigator.pop(ctx);
               context.read<AppState>().restartChat();
@@ -275,7 +275,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
   void _showMessageOptionsModal(int index, String text, bool isBot) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF192238),
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -285,28 +285,28 @@ class _AiChatScreenState extends State<AiChatScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(2))),
+              Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
               const SizedBox(height: 14),
               Text(
                 isBot ? 'Bot Message Options' : 'User Message Options',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold, fontSize: 15),
               ),
               const SizedBox(height: 10),
               if (isBot) ...[
                 ListTile(
-                  leading: const Icon(Icons.volume_up_rounded, color: AppColors.tealLight),
-                  title: const Text('Read Aloud (TTS)', style: TextStyle(color: Colors.white)),
+                  leading: const Icon(Icons.volume_up_rounded, color: AppColors.navy),
+                  title: const Text('Read Aloud (TTS)', style: TextStyle(color: AppColors.textDark)),
                   onTap: () {
                     Navigator.pop(ctx);
                     _playTtsForMessage(index, text);
                   },
                 ),
-                const Divider(color: Colors.white12),
+                const Divider(height: 1),
               ],
               if (!isBot) ...[
                 ListTile(
-                  leading: const Icon(Icons.edit_rounded, color: AppColors.tealLight),
-                  title: const Text('Edit & Resend', style: TextStyle(color: Colors.white)),
+                  leading: const Icon(Icons.edit_rounded, color: AppColors.navy),
+                  title: const Text('Edit & Resend', style: TextStyle(color: AppColors.textDark)),
                   onTap: () {
                     Navigator.pop(ctx);
                     setState(() {
@@ -316,11 +316,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
                     context.read<AppState>().editAndResendMessage(index, text);
                   },
                 ),
-                const Divider(color: Colors.white12),
+                const Divider(height: 1),
               ],
               ListTile(
                 leading: const Icon(Icons.delete_outline_rounded, color: AppColors.danger),
-                title: const Text('Delete Message', style: TextStyle(color: Colors.white)),
+                title: const Text('Delete Message', style: TextStyle(color: AppColors.danger)),
                 onTap: () {
                   Navigator.pop(ctx);
                   context.read<AppState>().deleteChatMessage(index);
@@ -336,7 +336,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
   void _showVoiceOptionsModal() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF192238),
+      backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -352,22 +352,22 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 children: const [
                   Text(
                     'Voice Prompts Selector',
-                    style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: AppColors.textDark, fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                  Icon(Icons.record_voice_over_rounded, color: AppColors.tealLight),
+                  Icon(Icons.record_voice_over_rounded, color: AppColors.navy),
                 ],
               ),
               const SizedBox(height: 12),
               const Text(
                 'Select a voice sample to populate into your text box:',
-                style: TextStyle(color: Colors.white70, fontSize: 13),
+                style: TextStyle(color: AppColors.textMuted, fontSize: 13),
               ),
               const SizedBox(height: 16),
               ..._sampleVoicePrompts.map((p) => ListTile(
                     dense: true,
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.mic, color: AppColors.tealLight, size: 20),
-                    title: Text(p, style: const TextStyle(color: Colors.white, fontSize: 13.5)),
+                    leading: const Icon(Icons.mic, color: AppColors.navy, size: 20),
+                    title: Text(p, style: const TextStyle(color: AppColors.textDark, fontSize: 13.5)),
                     onTap: () {
                       Navigator.pop(ctx);
                       _useSampleVoicePrompt(p);
@@ -387,121 +387,126 @@ class _AiChatScreenState extends State<AiChatScreen> {
     final messages = state.chatMessages;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF10182B),
+      backgroundColor: AppColors.bgLight,
       body: SafeArea(
         child: Column(
           children: [
             // Top App Bar with "Restart" & Three-Dot Menu (⋯)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-              child: Row(
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+              decoration: const BoxDecoration(gradient: LinearGradient(colors: AppColors.primaryGradient)),
+              child: Column(
                 children: [
-                  IconButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.of(context).maybePop(),
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      ),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text('AI SKILL ASSISTANT',
+                                style: TextStyle(color: AppColors.tealLight, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
+                            Text('Livelihood Assessment', style: TextStyle(color: Colors.white, fontSize: 15.5, fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                      ),
+
+                      TextButton.icon(
+                        onPressed: _confirmRestartChat,
+                        icon: const Icon(Icons.restart_alt_rounded, color: Colors.white, size: 18),
+                        label: const Text('Restart', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                      ),
+
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+                        color: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        onSelected: (val) {
+                          if (val == 'new') {
+                            state.startNewChat();
+                          } else if (val == 'restart') {
+                            _confirmRestartChat();
+                          } else if (val == 'clear') {
+                            _confirmClearChat();
+                          } else if (val == 'history') {
+                            state.loadChatHistory();
+                          }
+                        },
+                        itemBuilder: (ctx) => [
+                          const PopupMenuItem(
+                            value: 'new',
+                            child: Row(
+                              children: [
+                                Icon(Icons.add_rounded, color: AppColors.navy, size: 18),
+                                SizedBox(width: 10),
+                                Text('New Chat', style: TextStyle(color: AppColors.textDark, fontSize: 13.5)),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'restart',
+                            child: Row(
+                              children: [
+                                Icon(Icons.restart_alt_rounded, color: AppColors.navy, size: 18),
+                                SizedBox(width: 10),
+                                Text('Restart Conversation', style: TextStyle(color: AppColors.textDark, fontSize: 13.5)),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'history',
+                            child: Row(
+                              children: [
+                                Icon(Icons.history_rounded, color: AppColors.navy, size: 18),
+                                SizedBox(width: 10),
+                                Text('Chat History', style: TextStyle(color: AppColors.textDark, fontSize: 13.5)),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuDivider(height: 1),
+                          const PopupMenuItem(
+                            value: 'clear',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_sweep_rounded, color: AppColors.danger, size: 18),
+                                SizedBox(width: 10),
+                                Text('Clear Chat', style: TextStyle(color: AppColors.danger, fontSize: 13.5)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
-                  const Expanded(
+                  const SizedBox(height: 8),
+
+                  // Progress Bar
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text('AI SKILL ASSISTANT',
-                            style: TextStyle(color: AppColors.tealLight, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
-                        Text('Livelihood Assessment', style: TextStyle(color: Colors.white, fontSize: 15.5, fontWeight: FontWeight.w700)),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: const [
+                            Text('Livelihood Assessment', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            Text('60% Complete', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: const LinearProgressIndicator(value: 0.6, minHeight: 6, backgroundColor: Colors.white24, color: AppColors.tealLight),
+                        ),
                       ],
                     ),
                   ),
-
-                  TextButton.icon(
-                    onPressed: _confirmRestartChat,
-                    icon: const Icon(Icons.restart_alt_rounded, color: AppColors.tealLight, size: 18),
-                    label: const Text('Restart', style: TextStyle(color: AppColors.tealLight, fontWeight: FontWeight.w700)),
-                  ),
-
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
-                    color: const Color(0xFF192238),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    onSelected: (val) {
-                      if (val == 'new') {
-                        state.startNewChat();
-                      } else if (val == 'restart') {
-                        _confirmRestartChat();
-                      } else if (val == 'clear') {
-                        _confirmClearChat();
-                      } else if (val == 'history') {
-                        state.loadChatHistory();
-                      }
-                    },
-                    itemBuilder: (ctx) => [
-                      const PopupMenuItem(
-                        value: 'new',
-                        child: Row(
-                          children: [
-                            Icon(Icons.add_rounded, color: AppColors.tealLight, size: 18),
-                            SizedBox(width: 10),
-                            Text('New Chat', style: TextStyle(color: Colors.white, fontSize: 13.5)),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'restart',
-                        child: Row(
-                          children: [
-                            Icon(Icons.restart_alt_rounded, color: AppColors.tealLight, size: 18),
-                            SizedBox(width: 10),
-                            Text('Restart Conversation', style: TextStyle(color: Colors.white, fontSize: 13.5)),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'history',
-                        child: Row(
-                          children: [
-                            Icon(Icons.history_rounded, color: AppColors.tealLight, size: 18),
-                            SizedBox(width: 10),
-                            Text('Chat History', style: TextStyle(color: Colors.white, fontSize: 13.5)),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuDivider(height: 1),
-                      const PopupMenuItem(
-                        value: 'clear',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete_sweep_rounded, color: AppColors.danger, size: 18),
-                            SizedBox(width: 10),
-                            Text('Clear Chat', style: TextStyle(color: AppColors.danger, fontSize: 13.5)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ),
-
-            // Progress Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
-                      Text('Livelihood Assessment', style: TextStyle(color: Colors.white60, fontSize: 12)),
-                      Text('60% Complete', style: TextStyle(color: AppColors.tealLight, fontSize: 12, fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(value: 0.6, minHeight: 6, backgroundColor: Colors.white12, color: AppColors.tealLight),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
 
             // Messages List with Speaker Icon 🔊 for TTS (Requirements 15, 16, 17)
             Expanded(
@@ -522,8 +527,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
                         padding: const EdgeInsets.all(14),
                         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.82),
                         decoration: BoxDecoration(
-                          color: m.isBot ? const Color(0xFF1D2740) : AppColors.teal,
+                          color: m.isBot ? const Color(0xFFE8F1FD) : AppColors.navy,
                           borderRadius: BorderRadius.circular(16),
+                          border: m.isBot ? Border.all(color: const Color(0xFFD0E1FD), width: 1) : null,
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -537,12 +543,19 @@ class _AiChatScreenState extends State<AiChatScreen> {
                                     padding: EdgeInsets.only(right: 8, top: 2),
                                     child: CircleAvatar(
                                       radius: 10,
-                                      backgroundColor: AppColors.teal,
+                                      backgroundColor: AppColors.navy,
                                       child: Icon(Icons.podcasts, size: 12, color: Colors.white),
                                     ),
                                   ),
                                 Flexible(
-                                  child: Text(m.text, style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.4)),
+                                  child: Text(
+                                    m.text,
+                                    style: TextStyle(
+                                      color: m.isBot ? AppColors.textDark : Colors.white,
+                                      fontSize: 14,
+                                      height: 1.4,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),
@@ -558,8 +571,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: isPlayingThis ? AppColors.teal : Colors.white10,
+                                        color: isPlayingThis ? AppColors.navy : Colors.white,
                                         borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: Colors.grey.shade300),
                                       ),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
@@ -568,18 +582,22 @@ class _AiChatScreenState extends State<AiChatScreen> {
                                             const SizedBox(
                                               width: 12,
                                               height: 12,
-                                              child: CircularProgressIndicator(strokeWidth: 1.5, color: Colors.white),
+                                              child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.navy),
                                             )
                                           else
                                             Icon(
                                               isPlayingThis ? Icons.pause_circle_filled_rounded : Icons.volume_up_rounded,
-                                              color: Colors.white,
+                                              color: isPlayingThis ? Colors.white : AppColors.navy,
                                               size: 16,
                                             ),
                                           const SizedBox(width: 4),
                                           Text(
                                             isPlayingThis ? 'Playing…' : 'Read Aloud 🔊',
-                                            style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                                            style: TextStyle(
+                                              color: isPlayingThis ? Colors.white : AppColors.navy,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -607,14 +625,20 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       Expanded(
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(color: const Color(0xFF1D2740), borderRadius: BorderRadius.circular(28)),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(28),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
                           child: TextField(
                             controller: _textController,
-                            style: const TextStyle(color: Colors.white),
+                            style: const TextStyle(color: AppColors.textDark),
                             decoration: const InputDecoration(
                               hintText: 'Type your response...',
-                              hintStyle: TextStyle(color: Colors.white38),
+                              hintStyle: TextStyle(color: AppColors.textMuted),
                               border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
                               filled: false,
                               contentPadding: EdgeInsets.symmetric(vertical: 14),
                             ),
@@ -628,7 +652,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                         child: Container(
                           width: 48,
                           height: 48,
-                          decoration: const BoxDecoration(color: AppColors.teal, shape: BoxShape.circle),
+                          decoration: const BoxDecoration(color: AppColors.navy, shape: BoxShape.circle),
                           child: const Icon(Icons.arrow_forward_rounded, color: Colors.white),
                         ),
                       ),
@@ -651,7 +675,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                             shape: BoxShape.circle,
                             gradient: const LinearGradient(colors: AppColors.buttonGradient),
                             boxShadow: _isListening
-                                ? [BoxShadow(color: AppColors.teal.withOpacity(0.9), blurRadius: 28, spreadRadius: 8)]
+                                ? [BoxShadow(color: AppColors.navy.withOpacity(0.5), blurRadius: 28, spreadRadius: 8)]
                                 : [],
                           ),
                           child: Icon(_isListening ? Icons.graphic_eq_rounded : Icons.mic_rounded, color: Colors.white, size: 28),
@@ -671,7 +695,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   Text(
                     _isListening ? 'Listening live... Speak now!' : 'Tap mic to speak or select a voice prompt',
                     style: TextStyle(
-                      color: _isListening ? AppColors.tealLight : Colors.white38,
+                      color: _isListening ? AppColors.navy : AppColors.textMuted,
                       fontSize: 12,
                       fontWeight: _isListening ? FontWeight.bold : FontWeight.normal,
                     ),
@@ -691,8 +715,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
       child: Container(
         width: 44,
         height: 44,
-        decoration: const BoxDecoration(color: Color(0xFF1D2740), shape: BoxShape.circle),
-        child: Icon(icon, color: Colors.white70, size: 20),
+        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade300)),
+        child: Icon(icon, color: AppColors.navy, size: 20),
       ),
     );
   }
