@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
+import 'our_services_screen.dart';
 import 'pm_ajay_details_screen.dart';
+import 'privacy_screen.dart';
 import 'profile_completion_screen.dart';
 import 'settings_screen.dart';
 import 'splash_screen.dart';
+import 'terms_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -180,6 +183,30 @@ class ProfileScreen extends StatelessWidget {
               _tile(Icons.description_rounded, 'PM-AJAY GIA Details', () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const PmAjayGiaDetailsScreen()),
+                );
+              }),
+            ]),
+            const SizedBox(height: 20),
+
+            // New Section: ABOUT & LEGAL (Our Services, Terms, Privacy Policy)
+            const Text('ABOUT & LEGAL', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMuted, letterSpacing: 0.5)),
+            const SizedBox(height: 10),
+            _listCard([
+              _tile(Icons.design_services_rounded, 'Our Services', () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const OurServicesScreen()),
+                );
+              }),
+              const Divider(height: 1),
+              _tile(Icons.gavel_rounded, 'Terms and Conditions', () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const TermsAndConditionsScreen()),
+                );
+              }),
+              const Divider(height: 1),
+              _tile(Icons.privacy_tip_rounded, 'Privacy Policy', () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
                 );
               }),
             ]),
