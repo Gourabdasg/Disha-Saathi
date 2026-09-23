@@ -2,8 +2,10 @@ const nodemailer = require('nodemailer');
 
 // Official Gmail SMTP configuration
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
+const SMTP_PORT = process.env.SMTP_PORT || 587;
 const SMTP_USER = process.env.SMTP_USER || 'dishasaathi@gmail.com';
 const SMTP_PASS = process.env.SMTP_PASS || 'bvwy cehy xumg exya';
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 
 function createTransporter(port, secure) {
   if (!SMTP_USER || !SMTP_PASS || SMTP_PASS === 'YOUR_16_DIGIT_GMAIL_APP_PASSWORD') {
@@ -31,9 +33,39 @@ const transporter465 = createTransporter(465, true);
 
 /**
  * Sends a 6-digit OTP verification code from dishasaathi@gmail.com to the target email address.
- * Uses Port 587 STARTTLS with Port 465 SSL fallback for cloud hosting & mobile devices.
+ * Uses Resend HTTPS REST API (if RESEND_API_KEY is configured), Port 587 STARTTLS, or Port 465 SSL.
  */
 async function sendOtpEmail(toEmail, otpCode) {
+  // Option 1: Fast Resend HTTPS REST API
+  if (RESEND_API_KEY && RESEND_API_KEY.startsWith('re_')) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: 'Disha Saathi AI <onboarding@resend.dev>',
+          to: [toEmail],
+          subject: 'Disha Saathi — Your 6-Digit Email Verification OTP',
+          html: `<p>Your Disha Saathi OTP verification code is: <strong>${otpCode}</strong>. Valid for 10 minutes.</p>`,
+        }),
+      });
+
+      if (response.ok) {
+        console.log(`[Resend API Success] Email OTP ${otpCode} sent to ${toEmail}`);
+        return true;
+      } else {
+        const errorData = await response.text();
+        console.warn(`[Resend API Error] ${toEmail}:`, errorData);
+      }
+    } catch (err) {
+      console.warn(`[Resend API Exception] ${toEmail}:`, err.message);
+    }
+  }
+
+  // Option 2: Nodemailer Gmail SMTP Port 587 (STARTTLS)
   const mailOptions = {
     from: `"Disha Saathi AI" <${SMTP_USER}>`,
     to: toEmail,
@@ -55,7 +87,6 @@ async function sendOtpEmail(toEmail, otpCode) {
     `,
   };
 
-  // 1. Try Port 587 STARTTLS
   if (transporter587) {
     try {
       const info = await transporter587.sendMail(mailOptions);
@@ -66,7 +97,7 @@ async function sendOtpEmail(toEmail, otpCode) {
     }
   }
 
-  // 2. Try Port 465 SSL Fallback for Cloud Hosting (Render/AWS)
+  // Option 3: Nodemailer Gmail SMTP Port 465 (SSL)
   if (transporter465) {
     try {
       const info = await transporter465.sendMail(mailOptions);
@@ -77,7 +108,7 @@ async function sendOtpEmail(toEmail, otpCode) {
     }
   }
 
-  console.warn(`[SMTP Error] Could not deliver email to ${toEmail} via Port 587 or 465.`);
+  console.error(`[SMTP Fatal Error] All email delivery methods failed for ${toEmail}`);
   return false;
 }
 

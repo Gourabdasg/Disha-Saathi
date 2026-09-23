@@ -156,13 +156,15 @@ router.post('/email/otp/send', async (req, res) => {
 
     const emailSent = await sendOtpEmail(cleanEmail, otp);
     if (!emailSent) {
-      console.warn(`[OTP Dispatch Warning] Could not deliver email directly to ${cleanEmail}`);
+      console.error(`[OTP Dispatch Error] Email delivery failed for ${cleanEmail}`);
+      return res.status(500).json({
+        error: `Unable to deliver OTP email to ${cleanEmail}. Please check your address and try again.`,
+      });
     }
 
     return res.json({
       message: `OTP sent successfully to ${cleanEmail}`,
       email: cleanEmail,
-      demoOtp: otp,
     });
   } catch (err) {
     console.error('Email OTP send route error:', err);
