@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import 'language_selection_screen.dart';
+import 'main_shell.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -29,6 +32,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     _opacityAnimation = Tween<double>(begin: 0.2, end: 0.6).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    // Auto-restore persistent authenticated session if app reopens
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final state = context.read<AppState>();
+      await state.checkAndRestoreSession();
+    });
   }
 
   @override
@@ -37,11 +46,21 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     super.dispose();
   }
 
-  void _startInteraction() {
+  Future<void> _startInteraction() async {
     _pulseController.stop();
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const LanguageSelectionScreen()),
-    );
+    final state = context.read<AppState>();
+    final hasActiveSession = await state.checkAndRestoreSession();
+
+    if (!mounted) return;
+    if (hasActiveSession && state.isAuthenticated) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const MainShell()),
+      );
+    } else {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const LanguageSelectionScreen()),
+      );
+    }
   }
 
   @override
@@ -166,7 +185,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 ),
                 const Spacer(flex: 5),
 
-                // Requirement 1: "Tap to Begin · शुरू करें" button completely removed!
                 const Text(
                   'Ministry of Social Justice & Empowerment, GoI',
                   style: TextStyle(color: Colors.white54, fontSize: 12),

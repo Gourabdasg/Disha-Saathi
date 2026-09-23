@@ -18,56 +18,90 @@ class ApiException implements Exception {
 }
 
 /// Thin wrapper around the Node.js/Express backend's REST endpoints.
-/// See backend/routes/*.js for the corresponding server-side code.
+/// Supports dynamic candidate fallback across Mobile Data (4G/5G) and Wi-Fi networks.
 class ApiService {
-  static const _timeout = Duration(seconds: 15);
+  static const _timeout = Duration(seconds: 12);
   static const _headers = {'Content-Type': 'application/json'};
 
   static Future<Map<String, dynamic>> _post(String path, Map<String, dynamic> body) async {
-    try {
-      final res = await http
-          .post(ApiConfig.uri(path), headers: _headers, body: jsonEncode(body))
-          .timeout(_timeout);
-      return _decodeMap(res);
-    } on ApiException {
-      rethrow;
-    } catch (_) {
-      throw ApiException(
-        504,
-        'Unable to send OTP. Please check your internet connection and try again.',
-      );
+    // Attempt request using activeBaseUrl first
+    final candidateList = [
+      ApiConfig.activeBaseUrl,
+      ...ApiConfig.candidateUrls.where((u) => u != ApiConfig.activeBaseUrl),
+    ];
+
+    for (final baseUrl in candidateList) {
+      try {
+        final uri = Uri.parse('$baseUrl$path');
+        final res = await http
+            .post(uri, headers: _headers, body: jsonEncode(body))
+            .timeout(_timeout);
+
+        if (res.statusCode >= 200 && res.statusCode < 500) {
+          ApiConfig.activeBaseUrl = baseUrl;
+          return _decodeMap(res);
+        }
+      } catch (_) {
+        continue; // Try next candidate URL
+      }
     }
+
+    throw ApiException(
+      504,
+      'Unable to connect to server. Please check your internet connection and try again.',
+    );
   }
 
   static Future<Map<String, dynamic>> _get(String path) async {
-    try {
-      final res = await http.get(ApiConfig.uri(path)).timeout(_timeout);
-      return _decodeMap(res);
-    } on ApiException {
-      rethrow;
-    } catch (_) {
-      throw ApiException(
-        504,
-        'Unable to reach server. Please check your internet connection and try again.',
-      );
+    final candidateList = [
+      ApiConfig.activeBaseUrl,
+      ...ApiConfig.candidateUrls.where((u) => u != ApiConfig.activeBaseUrl),
+    ];
+
+    for (final baseUrl in candidateList) {
+      try {
+        final uri = Uri.parse('$baseUrl$path');
+        final res = await http.get(uri).timeout(_timeout);
+
+        if (res.statusCode >= 200 && res.statusCode < 500) {
+          ApiConfig.activeBaseUrl = baseUrl;
+          return _decodeMap(res);
+        }
+      } catch (_) {
+        continue;
+      }
     }
+
+    throw ApiException(
+      504,
+      'Unable to reach server. Please check your internet connection and try again.',
+    );
   }
 
   static Future<List<dynamic>> _getList(String path) async {
-    try {
-      final res = await http.get(ApiConfig.uri(path)).timeout(_timeout);
-      if (res.statusCode >= 200 && res.statusCode < 300) {
-        return res.body.isEmpty ? [] : jsonDecode(res.body) as List<dynamic>;
+    final candidateList = [
+      ApiConfig.activeBaseUrl,
+      ...ApiConfig.candidateUrls.where((u) => u != ApiConfig.activeBaseUrl),
+    ];
+
+    for (final baseUrl in candidateList) {
+      try {
+        final uri = Uri.parse('$baseUrl$path');
+        final res = await http.get(uri).timeout(_timeout);
+
+        if (res.statusCode >= 200 && res.statusCode < 500) {
+          ApiConfig.activeBaseUrl = baseUrl;
+          return res.body.isEmpty ? [] : jsonDecode(res.body) as List<dynamic>;
+        }
+      } catch (_) {
+        continue;
       }
-      throw ApiException(res.statusCode, _errorMessageFrom(res));
-    } on ApiException {
-      rethrow;
-    } catch (_) {
-      throw ApiException(
-        504,
-        'Unable to reach server. Please check your internet connection and try again.',
-      );
     }
+
+    throw ApiException(
+      504,
+      'Unable to reach server. Please check your internet connection and try again.',
+    );
   }
 
   static Map<String, dynamic> _decodeMap(http.Response res) {

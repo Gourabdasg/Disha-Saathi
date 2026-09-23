@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/app_models.dart';
 import '../services/api_service.dart';
 
@@ -57,6 +58,60 @@ class AppState extends ChangeNotifier {
 
   bool _chatHistoryLoaded = false;
 
+  // --- Session Persistence Methods (shared_preferences) ---
+
+  Future<void> saveSessionToPrefs({String? token, String? mobile, String? email, String? name}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('is_authenticated', true);
+      if (token != null) await prefs.setString('auth_token', token);
+      if (mobile != null && mobile.isNotEmpty) await prefs.setString('user_mobile', mobile);
+      if (email != null && email.isNotEmpty) await prefs.setString('user_email', email);
+      if (name != null && name.isNotEmpty) await prefs.setString('user_name', name);
+    } catch (_) {}
+  }
+
+  Future<void> clearSessionPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('is_authenticated');
+      await prefs.remove('auth_token');
+      await prefs.remove('user_mobile');
+      await prefs.remove('user_email');
+      await prefs.remove('user_name');
+    } catch (_) {}
+  }
+
+  Future<bool> checkAndRestoreSession() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final isAuth = prefs.getBool('is_authenticated') ?? false;
+      final savedMobile = prefs.getString('user_mobile') ?? '';
+      final savedEmail = prefs.getString('user_email') ?? '';
+      final savedName = prefs.getString('user_name') ?? '';
+
+      if (isAuth && (savedMobile.isNotEmpty || savedEmail.isNotEmpty)) {
+        mobile = savedMobile;
+        email = savedEmail;
+        name = savedName;
+        isAuthenticated = true;
+
+        final lookupKey = mobile.isNotEmpty ? mobile : email;
+        try {
+          final existing = await ApiService.fetchProfile(lookupKey);
+          if (existing != null) {
+            profile = existing;
+            if (existing.name.isNotEmpty) name = existing.name;
+          }
+        } catch (_) {}
+
+        notifyListeners();
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
   void setLanguage(AppLanguage lang) {
     selectedLanguage = lang;
     notifyListeners();
@@ -103,13 +158,14 @@ class AppState extends ChangeNotifier {
   String _cleanError(dynamic e) {
     final str = e.toString();
     if (str.contains('TimeoutException') || str.contains('Future not completed') || str.contains('SocketException')) {
-      return 'Unable to send OTP. Please check your internet connection and try again.';
+      return 'Unable to connect to server. Please check your internet connection and try again.';
     }
     return str.replaceFirst('Exception: ', '');
   }
 
   /// Completely clears the user's session, profile, form fields, and chat history.
   void logout() {
+    clearSessionPrefs();
     isAuthenticated = false;
     mobile = '';
     email = '';
@@ -224,18 +280,20 @@ class AppState extends ChangeNotifier {
   Future<String?> verifyOtp(String otp) async {
     _setLoading(true);
     try {
-      await ApiService.verifyOtp(mobile, otp);
+      final token = await ApiService.verifyOtp(mobile, otp);
       final existing = await ApiService.fetchProfile(mobile);
       isLoading = false;
       if (existing != null) {
         profile = existing;
         name = existing.name;
-        this.mobile = existing.mobile;
+        mobile = existing.mobile;
         email = existing.email;
         isAuthenticated = true;
+        await saveSessionToPrefs(token: token, mobile: mobile, email: email, name: name);
         notifyListeners();
         return 'existing';
       }
+      await saveSessionToPrefs(token: token, mobile: mobile, email: email, name: name);
       notifyListeners();
       return 'new';
     } catch (e) {
@@ -268,7 +326,7 @@ class AppState extends ChangeNotifier {
   Future<String?> verifyEmailOtp(String otp) async {
     _setLoading(true);
     try {
-      await ApiService.verifyEmailOtp(email, otp);
+      final token = await ApiService.verifyEmailOtp(email, otp);
       final lookupKey = mobile.isNotEmpty ? mobile : email;
       final existing = await ApiService.fetchProfile(lookupKey);
       isLoading = false;
@@ -278,9 +336,11 @@ class AppState extends ChangeNotifier {
         mobile = existing.mobile;
         this.email = existing.email;
         isAuthenticated = true;
+        await saveSessionToPrefs(token: token, mobile: mobile, email: email, name: name);
         notifyListeners();
         return 'existing';
       }
+      await saveSessionToPrefs(token: token, mobile: mobile, email: email, name: name);
       notifyListeners();
       return 'new';
     } catch (e) {
@@ -295,18 +355,20 @@ class AppState extends ChangeNotifier {
     _prepareNewSession(newMobile: mobile);
     _setLoading(true);
     try {
-      await ApiService.loginWithPassword(mobile, password);
+      final token = await ApiService.loginWithPassword(mobile, password);
       final existing = await ApiService.fetchProfile(mobile);
       isLoading = false;
       if (existing != null) {
         profile = existing;
         name = existing.name;
-        this.mobile = existing.mobile;
+        mobile = existing.mobile;
         email = existing.email;
         isAuthenticated = true;
+        await saveSessionToPrefs(token: token, mobile: mobile, email: email, name: name);
         notifyListeners();
         return 'existing';
       }
+      await saveSessionToPrefs(token: token, mobile: mobile, email: email, name: name);
       notifyListeners();
       return 'new';
     } catch (e) {
@@ -323,7 +385,8 @@ class AppState extends ChangeNotifier {
     _prepareNewSession(newEmail: email, newName: name);
     _setLoading(true);
     try {
-      await ApiService.loginWithGoogle(email: email, name: name, googleId: googleId);
+      final res = await ApiService.loginWithGoogle(email: email, name: name, googleId: googleId);
+      final token = res['token'] as String? ?? 'demo-google-jwt';
       final lookupKey = mobile.isNotEmpty ? mobile : email;
       final existing = await ApiService.fetchProfile(lookupKey);
       isLoading = false;
@@ -333,9 +396,11 @@ class AppState extends ChangeNotifier {
         mobile = existing.mobile;
         this.email = existing.email.isNotEmpty ? existing.email : email;
         isAuthenticated = true;
+        await saveSessionToPrefs(token: token, mobile: mobile, email: this.email, name: this.name);
         notifyListeners();
         return 'existing';
       }
+      await saveSessionToPrefs(token: token, mobile: mobile, email: this.email, name: this.name);
       notifyListeners();
       return 'new';
     } catch (e) {
@@ -350,8 +415,10 @@ class AppState extends ChangeNotifier {
     _prepareNewSession(newEmail: email, newMobile: mobile, newName: name);
     _setLoading(true);
     try {
-      await ApiService.signUpWithEmail(email: email, password: password, name: name, mobile: mobile);
+      final res = await ApiService.signUpWithEmail(email: email, password: password, name: name, mobile: mobile);
+      final token = res['token'] as String? ?? 'demo-jwt';
       isLoading = false;
+      await saveSessionToPrefs(token: token, mobile: mobile, email: email, name: name);
       notifyListeners();
       return 'new';
     } catch (e) {
@@ -366,7 +433,8 @@ class AppState extends ChangeNotifier {
     _prepareNewSession(newEmail: email);
     _setLoading(true);
     try {
-      await ApiService.loginWithEmail(email: email, password: password);
+      final res = await ApiService.loginWithEmail(email: email, password: password);
+      final token = res['token'] as String? ?? 'demo-jwt';
       final lookupKey = mobile.isNotEmpty ? mobile : email;
       final existing = await ApiService.fetchProfile(lookupKey);
       isLoading = false;
@@ -376,9 +444,11 @@ class AppState extends ChangeNotifier {
         mobile = existing.mobile;
         this.email = existing.email;
         isAuthenticated = true;
+        await saveSessionToPrefs(token: token, mobile: mobile, email: this.email, name: name);
         notifyListeners();
         return 'existing';
       }
+      await saveSessionToPrefs(token: token, mobile: mobile, email: this.email, name: name);
       notifyListeners();
       return 'new';
     } catch (e) {
@@ -396,6 +466,7 @@ class AppState extends ChangeNotifier {
     try {
       profile = await ApiService.saveProfile(updatedProfile);
       isLoading = false;
+      await saveSessionToPrefs(mobile: profile.mobile, email: profile.email, name: profile.name);
       notifyListeners();
       return true;
     } catch (e) {
@@ -440,6 +511,7 @@ class AppState extends ChangeNotifier {
       profile = await ApiService.saveProfile(profile);
       isAuthenticated = true;
       isLoading = false;
+      await saveSessionToPrefs(mobile: profile.mobile, email: profile.email, name: profile.name);
       notifyListeners();
       return true;
     } catch (e) {
@@ -450,7 +522,7 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  // --- AI Chat Features (Requirements 5, 6, 7, 8, 9) ---
+  // --- AI Chat Features ---
 
   Future<void> loadChatHistory() async {
     final lookupKey = mobile.isNotEmpty ? mobile : email;
@@ -546,7 +618,6 @@ class AppState extends ChangeNotifier {
   /// Edits a previous user message, removes subsequent responses, and resends.
   Future<void> editAndResendMessage(int index, String newText) async {
     if (index >= 0 && index < chatMessages.length) {
-      // Remove this message and any messages after it
       chatMessages.removeRange(index, chatMessages.length);
       notifyListeners();
       await sendChatMessage(newText);
