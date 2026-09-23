@@ -1,8 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
-const Beneficiary = require('../models/Beneficiary');
-const UserProfile = require('../models/UserProfile');
+const { query } = require('../db');
 const { sendOtpEmail } = require('../utils/emailService');
 
 // In-memory authentication stores
@@ -12,41 +10,26 @@ const emailUsers = new Map();
 const googleUsers = new Map();
 
 /**
- * Upserts a beneficiary & userprofile record into MongoDB Atlas Cloud upon login / signup.
+ * Upserts a beneficiary record into PostgreSQL upon login / signup.
  */
 async function saveOrUpdateBeneficiary({ mobile, email, name }) {
-  if (mongoose.connection.readyState === 1) {
-    try {
-      const filterOr = [
-        ...(mobile ? [{ mobile }] : []),
-        ...(email ? [{ email }] : []),
-      ];
+  try {
+    const keyMobile = mobile || (email ? `e_${email}` : '');
+    const keyEmail = email || '';
+    const keyName = name || '';
 
-      if (filterOr.length > 0) {
-        const updateData = {};
-        if (mobile) updateData.mobile = mobile;
-        if (email) updateData.email = email;
-        if (name) updateData.name = name;
-
-        // Upsert in 'beneficiaries' collection
-        await Beneficiary.findOneAndUpdate(
-          { $or: filterOr },
-          { $set: updateData },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
-        );
-
-        // Upsert in 'userprofiles' collection
-        await UserProfile.findOneAndUpdate(
-          { $or: filterOr },
-          { $set: updateData },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
-        );
-
-        console.log(`[MongoDB Atlas] Saved to beneficiaries & userprofiles for ${mobile || email}`);
-      }
-    } catch (e) {
-      console.warn('[MongoDB Atlas Warning] Save error:', e.message);
-    }
+    const sql = `
+      INSERT INTO beneficiaries (mobile, email, name, updated_at)
+      VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
+      ON CONFLICT (mobile) DO UPDATE SET
+        email = CASE WHEN EXCLUDED.email <> '' THEN EXCLUDED.email ELSE beneficiaries.email END,
+        name = CASE WHEN EXCLUDED.name <> '' THEN EXCLUDED.name ELSE beneficiaries.name END,
+        updated_at = CURRENT_TIMESTAMP;
+    `;
+    await query(sql, [keyMobile, keyEmail, keyName]);
+    console.log(`[PostgreSQL] Beneficiary saved/updated for ${mobile || email}`);
+  } catch (e) {
+    console.warn('[PostgreSQL Warning] Beneficiary save error:', e.message);
   }
 }
 
@@ -63,7 +46,7 @@ router.post('/otp/send', (req, res) => {
 
   otpStore.set(cleanMobile, {
     otp,
-    expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes expiry
+    expiresAt: Date.now() + 10 * 60 * 1000,
   });
 
   console.log(`[Mobile OTP] Generated OTP ${otp} for +91 ${cleanMobile}`);
@@ -94,7 +77,7 @@ router.post('/otp/verify', async (req, res) => {
   }
 
   if (storedOtp === otp || otp === '123456') {
-    otpStore.delete(cleanMobile); // Single-use OTP
+    otpStore.delete(cleanMobile);
     await saveOrUpdateBeneficiary({ mobile: cleanMobile });
     return res.json({ verified: true, token: 'demo-jwt-token', mobile: cleanMobile });
   }
@@ -120,13 +103,11 @@ router.post('/email/otp/send', async (req, res) => {
     const cleanEmail = email.toLowerCase().trim();
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Store single-use OTP with 10-minute expiry
     emailOtpStore.set(cleanEmail, {
       otp,
       expiresAt: Date.now() + 10 * 60 * 1000,
     });
 
-    // Send real email via SMTP (fast & non-blocking)
     sendOtpEmail(cleanEmail, otp).catch((err) => {
       console.warn('[SMTP Error]:', err.message);
     });
@@ -161,7 +142,7 @@ router.post('/email/otp/verify', async (req, res) => {
   }
 
   if (storedOtp === otp || otp === '123456') {
-    emailOtpStore.delete(cleanEmail); // Single-use OTP
+    emailOtpStore.delete(cleanEmail);
     await saveOrUpdateBeneficiary({ email: cleanEmail });
     return res.json({ verified: true, token: 'demo-email-otp-token', email: cleanEmail });
   }

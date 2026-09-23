@@ -1,8 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
-
-const ChatMessage = require('../models/ChatMessage');
+const { query } = require('../db');
 const { handleOnboardingMessage, resetOnboarding } = require('../controllers/onboardingController');
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
@@ -19,24 +17,26 @@ async function saveMessage(mobile, sender, text) {
   }
   inMemoryMessages.get(key).push(msg);
 
-  if (mongoose.connection.readyState === 1) {
-    try {
-      await ChatMessage.create({ mobile: key, sender, text });
-    } catch (e) {
-      console.warn('ChatMessage DB save failed:', e.message);
-    }
+  try {
+    await query(
+      `INSERT INTO chat_messages (mobile, sender, text) VALUES ($1, $2, $3);`,
+      [key, sender, text]
+    );
+  } catch (e) {
+    console.warn('ChatMessage PostgreSQL save warning:', e.message);
   }
 }
 
 async function getHistory(mobile) {
   const key = mobile || 'anonymous';
-  if (mongoose.connection.readyState === 1) {
-    try {
-      const messages = await ChatMessage.find({ mobile: key }).sort({ createdAt: 1 });
-      if (messages && messages.length > 0) return messages;
-    } catch (e) {
-      console.warn('ChatMessage DB find failed:', e.message);
-    }
+  try {
+    const res = await query(
+      `SELECT mobile, sender, text, created_at AS "createdAt" FROM chat_messages WHERE mobile = $1 ORDER BY created_at ASC;`,
+      [key]
+    );
+    if (res.rows && res.rows.length > 0) return res.rows;
+  } catch (e) {
+    console.warn('ChatMessage PostgreSQL find warning:', e.message);
   }
   return inMemoryMessages.get(key) || [];
 }
@@ -44,12 +44,10 @@ async function getHistory(mobile) {
 async function clearHistory(mobile) {
   const key = mobile || 'anonymous';
   inMemoryMessages.delete(key);
-  if (mongoose.connection.readyState === 1) {
-    try {
-      await ChatMessage.deleteMany({ mobile: key });
-    } catch (e) {
-      console.warn('ChatMessage DB clear failed:', e.message);
-    }
+  try {
+    await query(`DELETE FROM chat_messages WHERE mobile = $1;`, [key]);
+  } catch (e) {
+    console.warn('ChatMessage PostgreSQL clear warning:', e.message);
   }
 }
 

@@ -1,5 +1,4 @@
-const UserProfile = require('../models/UserProfile');
-const mongoose = require('mongoose');
+const { query } = require('../db');
 const {
   FIELD_ORDER,
   detectGreeting,
@@ -13,35 +12,69 @@ const {
 const inMemoryProfiles = new Map();
 
 /**
- * Safely saves a profile doc without throwing if DB is offline/failing.
+ * Safely saves a profile doc to PostgreSQL user_profiles table.
  */
 async function safeSaveProfile(profile) {
   try {
-    if (profile && typeof profile.save === 'function') {
-      await profile.save();
-    }
+    const sql = `
+      INSERT INTO user_profiles (
+        mobile, name, age, state, district, location, education,
+        current_occupation, family_occupation, skills, experience,
+        interests, employment_preference, mobility_constraints, career_goal,
+        onboarding_complete, current_step, updated_at
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, CURRENT_TIMESTAMP
+      )
+      ON CONFLICT (mobile) DO UPDATE SET
+        name = CASE WHEN EXCLUDED.name <> '' THEN EXCLUDED.name ELSE user_profiles.name END,
+        age = COALESCE(EXCLUDED.age, user_profiles.age),
+        state = CASE WHEN EXCLUDED.state <> '' THEN EXCLUDED.state ELSE user_profiles.state END,
+        district = CASE WHEN EXCLUDED.district <> '' THEN EXCLUDED.district ELSE user_profiles.district END,
+        location = CASE WHEN EXCLUDED.location <> '' THEN EXCLUDED.location ELSE user_profiles.location END,
+        education = CASE WHEN EXCLUDED.education <> '' THEN EXCLUDED.education ELSE user_profiles.education END,
+        current_occupation = CASE WHEN EXCLUDED.current_occupation <> '' THEN EXCLUDED.current_occupation ELSE user_profiles.current_occupation END,
+        family_occupation = CASE WHEN EXCLUDED.family_occupation <> '' THEN EXCLUDED.family_occupation ELSE user_profiles.family_occupation END,
+        skills = CASE WHEN EXCLUDED.skills <> '' THEN EXCLUDED.skills ELSE user_profiles.skills END,
+        experience = CASE WHEN EXCLUDED.experience <> '' THEN EXCLUDED.experience ELSE user_profiles.experience END,
+        interests = CASE WHEN EXCLUDED.interests <> '' THEN EXCLUDED.interests ELSE user_profiles.interests END,
+        employment_preference = CASE WHEN EXCLUDED.employment_preference <> '' THEN EXCLUDED.employment_preference ELSE user_profiles.employment_preference END,
+        mobility_constraints = CASE WHEN EXCLUDED.mobility_constraints <> '' THEN EXCLUDED.mobility_constraints ELSE user_profiles.mobility_constraints END,
+        career_goal = CASE WHEN EXCLUDED.career_goal <> '' THEN EXCLUDED.career_goal ELSE user_profiles.career_goal END,
+        onboarding_complete = EXCLUDED.onboarding_complete,
+        current_step = EXCLUDED.current_step,
+        updated_at = CURRENT_TIMESTAMP;
+    `;
+
+    const values = [
+      profile.mobile, profile.name || '', profile.age || null, profile.state || '',
+      profile.district || '', profile.location || '', profile.education || '',
+      profile.currentOccupation || '', profile.familyOccupation || '', profile.skills || '',
+      profile.experience || '', profile.interests || '', profile.employmentPreference || '',
+      profile.mobilityConstraints || '', profile.careerGoal || '',
+      profile.onboardingComplete || false, profile.currentStep || 0,
+    ];
+
+    await query(sql, values);
   } catch (err) {
     console.warn('Profile save warning (handled):', err.message);
   }
 }
 
 /**
- * Resets the onboarding progress for a given mobile number or email.
+ * Resets the onboarding progress for a given mobile number or email in PostgreSQL.
  */
 async function resetOnboarding(mobile) {
   const key = mobile || 'anonymous';
   if (inMemoryProfiles.has(key)) {
     inMemoryProfiles.delete(key);
   }
-  if (mongoose.connection.readyState === 1) {
-    try {
-      await UserProfile.findOneAndUpdate(
-        { $or: [{ mobile: key }, { email: key }] },
-        { $set: { onboardingComplete: false, name: '', age: null, skills: '', careerGoal: '' } }
-      );
-    } catch (e) {
-      console.warn('DB onboarding reset warning:', e.message);
-    }
+  try {
+    await query(
+      `UPDATE user_profiles SET onboarding_complete = FALSE, name = '', age = NULL, skills = '', career_goal = '' WHERE mobile = $1;`,
+      [key]
+    );
+  } catch (e) {
+    console.warn('DB onboarding reset warning:', e.message);
   }
 }
 
@@ -49,18 +82,38 @@ async function resetOnboarding(mobile) {
  * Fetches (or creates) the UserProfile doc for a given mobile number.
  */
 async function getOrCreateProfile(mobile) {
-  if (mongoose.connection.readyState === 1) {
-    try {
-      let profile = await UserProfile.findOne({
-        $or: [{ mobile }, { email: mobile }],
-      });
-      if (!profile) {
-        profile = await UserProfile.create({ mobile });
-      }
-      return profile;
-    } catch (e) {
-      console.warn('DB profile fetch failed, falling back to in-memory:', e.message);
+  try {
+    const res = await query(`SELECT * FROM user_profiles WHERE mobile = $1 LIMIT 1;`, [mobile]);
+    if (res.rows && res.rows.length > 0) {
+      const row = res.rows[0];
+      return {
+        mobile: row.mobile,
+        name: row.name || '',
+        age: row.age,
+        state: row.state || '',
+        district: row.district || '',
+        location: row.location || '',
+        education: row.education || '',
+        currentOccupation: row.current_occupation || '',
+        familyOccupation: row.family_occupation || '',
+        skills: row.skills || '',
+        experience: row.experience || '',
+        interests: row.interests || '',
+        employmentPreference: row.employment_preference || '',
+        mobilityConstraints: row.mobility_constraints || '',
+        careerGoal: row.career_goal || '',
+        onboardingComplete: row.onboarding_complete || false,
+        currentStep: row.current_step || 0,
+        save: async function () {
+          return safeSaveProfile(this);
+        },
+      };
     }
+
+    // Create default profile in PostgreSQL
+    await query(`INSERT INTO user_profiles (mobile) VALUES ($1) ON CONFLICT (mobile) DO NOTHING;`, [mobile]);
+  } catch (e) {
+    console.warn('DB profile fetch failed, falling back to in-memory:', e.message);
   }
 
   // In-memory fallback profile for demo mode / offline DB
@@ -84,7 +137,7 @@ async function getOrCreateProfile(mobile) {
       onboardingComplete: false,
       currentStep: null,
       save: async function () {
-        return this;
+        return safeSaveProfile(this);
       },
     });
   }

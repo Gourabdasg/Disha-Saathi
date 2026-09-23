@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { matchNsqfSkills } = require('../utils/nlpEngine');
-const UserProfile = require('../models/UserProfile');
+const { query } = require('../db');
 
 /**
  * GET /api/recommendations/:beneficiaryId
@@ -12,11 +12,12 @@ router.get('/:beneficiaryId', async (req, res) => {
     let profileData = {};
     if (req.params.beneficiaryId) {
       try {
-        const found = await UserProfile.findOne({ mobile: req.params.beneficiaryId });
-        if (found) profileData = found;
-      } catch (_) {
-        // Fallback to query parameters / defaults
-      }
+        const result = await query(
+          `SELECT * FROM beneficiaries WHERE mobile = $1 OR email = $1 LIMIT 1;`,
+          [req.params.beneficiaryId]
+        );
+        if (result.rows && result.rows.length > 0) profileData = result.rows[0];
+      } catch (_) {}
     }
 
     const recommendations = matchNsqfSkills(profileData);
