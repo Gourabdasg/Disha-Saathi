@@ -4,37 +4,40 @@ const nodemailer = require('nodemailer');
 const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
 const SMTP_PORT = process.env.SMTP_PORT || 587;
 const SMTP_USER = process.env.SMTP_USER || 'dishasaathi@gmail.com';
-const SMTP_PASS = process.env.SMTP_PASS || '';
+const SMTP_PASS = process.env.SMTP_PASS || 'bvwy cehy xumg exya';
 
 let transporter = null;
 
 if (SMTP_USER && SMTP_PASS && SMTP_PASS !== 'YOUR_16_DIGIT_GMAIL_APP_PASSWORD') {
+  const isPort465 = parseInt(SMTP_PORT, 10) === 465;
   transporter = nodemailer.createTransport({
     host: SMTP_HOST,
     port: parseInt(SMTP_PORT, 10),
-    secure: false, // 587 STARTTLS
-    connectionTimeout: 4000,
-    greetingTimeout: 4000,
-    socketTimeout: 5000,
+    secure: isPort465, // true for 465, false for 587
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
     auth: {
       user: SMTP_USER,
       pass: SMTP_PASS,
+    },
+    tls: {
+      rejectUnauthorized: false,
     },
   });
 }
 
 /**
- * Sends a 6-digit OTP verification code from dishasaathi@gmail.com to the target email.
- * Non-blocking fast delivery so the HTTP API route responds under 500ms.
+ * Sends a 6-digit OTP verification code from dishasaathi@gmail.com to the target email address.
  */
 async function sendOtpEmail(toEmail, otpCode) {
   if (!transporter) {
-    console.log(`[Demo Mode] Email OTP ${otpCode} generated for ${toEmail}`);
+    console.log(`[Demo Mode] Email OTP ${otpCode} generated for ${toEmail} (no SMTP transporter configured)`);
     return false;
   }
 
   try {
-    const sendPromise = transporter.sendMail({
+    const info = await transporter.sendMail({
       from: `"Disha Saathi AI" <${SMTP_USER}>`,
       to: toEmail,
       subject: 'Disha Saathi — Your 6-Digit Email Verification OTP',
@@ -55,19 +58,7 @@ async function sendOtpEmail(toEmail, otpCode) {
       `,
     });
 
-    // Fast 3.5s race timeout so API responds immediately even if SMTP server is slow
-    const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve('TIMEOUT'), 3500));
-    const result = await Promise.race([sendPromise, timeoutPromise]);
-
-    if (result === 'TIMEOUT') {
-      console.log(`[SMTP Async] Email dispatch for ${toEmail} continues in background.`);
-      sendPromise
-        .then(() => console.log(`[SMTP Async Success] Sent OTP ${otpCode} to ${toEmail}`))
-        .catch((err) => console.warn(`[SMTP Async Error] ${toEmail}:`, err.message));
-      return true;
-    }
-
-    console.log(`[SMTP] Real Email OTP ${otpCode} sent from ${SMTP_USER} to ${toEmail}`);
+    console.log(`[SMTP Success] Email OTP ${otpCode} sent to ${toEmail} (messageId: ${info.messageId})`);
     return true;
   } catch (err) {
     console.warn(`[SMTP Warning] Failed to send email to ${toEmail}:`, err.message);
