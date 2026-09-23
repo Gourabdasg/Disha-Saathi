@@ -80,14 +80,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         : await state.verifyOtp(_otp);
 
     if (!mounted) return;
-    if (result == 'existing') {
+    if (result != null) {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const MainShell()),
         (route) => false,
-      );
-    } else if (result == 'new') {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const RegistrationFlow()),
       );
     } else {
       _showError(state.errorMessage ?? 'Invalid OTP code.');
