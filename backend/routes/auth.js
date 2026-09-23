@@ -154,9 +154,10 @@ router.post('/email/otp/send', async (req, res) => {
     emailOtpStore.set(cleanEmail, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
     await saveOtp(cleanEmail, otp);
 
-    sendOtpEmail(cleanEmail, otp).catch((err) => {
-      console.warn('[SMTP Error]:', err.message);
-    });
+    const emailSent = await sendOtpEmail(cleanEmail, otp);
+    if (!emailSent) {
+      console.warn(`[OTP Dispatch Warning] Could not deliver email directly to ${cleanEmail}`);
+    }
 
     return res.json({
       message: `OTP sent successfully to ${cleanEmail}`,
