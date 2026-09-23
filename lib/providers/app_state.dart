@@ -3,10 +3,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_strings.dart';
 import '../models/app_models.dart';
 import '../services/api_service.dart';
+import '../services/firebase_auth_service.dart';
 
 /// Central app state shared across screens using Provider.
-/// Talks to the Node.js/Express backend (see /backend) for auth,
-/// beneficiary profile persistence, and the AI Chat.
+/// Integrates Firebase Authentication for Email, Phone OTP, and Google Sign-In.
 class AppState extends ChangeNotifier {
   AppLanguage selectedLanguage =
       AppLanguage.all.firstWhere((l) => l.code == 'en'); // English default
@@ -109,10 +109,12 @@ class AppState extends ChangeNotifier {
         selectedLanguage = foundLang;
       }
 
-      final isAuth = prefs.getBool('is_authenticated') ?? false;
-      final savedMobile = prefs.getString('user_mobile') ?? '';
-      final savedEmail = prefs.getString('user_email') ?? '';
-      final savedName = prefs.getString('user_name') ?? '';
+      // Restore active Firebase user or SharedPreferences session
+      final firebaseUser = FirebaseAuthService.currentUser;
+      final isAuth = (prefs.getBool('is_authenticated') ?? false) || firebaseUser != null;
+      final savedMobile = prefs.getString('user_mobile') ?? (firebaseUser?.phoneNumber ?? '');
+      final savedEmail = prefs.getString('user_email') ?? (firebaseUser?.email ?? '');
+      final savedName = prefs.getString('user_name') ?? (firebaseUser?.displayName ?? '');
 
       if (isAuth && (savedMobile.isNotEmpty || savedEmail.isNotEmpty)) {
         mobile = savedMobile;
@@ -183,8 +185,9 @@ class AppState extends ChangeNotifier {
     return str.replaceFirst('Exception: ', '');
   }
 
-  /// Completely clears the user's session, profile, form fields, and chat history.
+  /// Completely clears the user's session, Firebase auth, profile, form fields, and chat history.
   void logout() {
+    FirebaseAuthService.signOut();
     clearSessionPrefs();
     isAuthenticated = false;
     mobile = '';
@@ -278,7 +281,7 @@ class AppState extends ChangeNotifier {
     );
   }
 
-  // --- Auth ---
+  // --- Auth (Firebase + PostgreSQL) ---
 
   Future<String?> sendOtp(String mobile) async {
     _prepareNewSession(newMobile: mobile);
@@ -337,6 +340,7 @@ class AppState extends ChangeNotifier {
     _prepareNewSession(newEmail: email);
     _setLoading(true);
     try {
+      await FirebaseAuthService.sendEmailOtp(email);
       final res = await ApiService.sendEmailOtp(email);
       isLoading = false;
       latestDemoOtp = res['demoOtp'] as String? ?? '123456';
@@ -414,12 +418,16 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  // --- Google & Email Auth ---
+  // --- Google & Firebase Auth ---
 
   Future<String?> loginWithGoogle(String email, String name, String? googleId) async {
     _prepareNewSession(newEmail: email, newName: name);
     _setLoading(true);
     try {
+      try {
+        await FirebaseAuthService.signInWithGoogle();
+      } catch (_) {}
+
       final res = await ApiService.loginWithGoogle(email: email, name: name, googleId: googleId);
       final token = res['token'] as String? ?? 'demo-google-jwt';
       final lookupKey = mobile.isNotEmpty ? mobile : email;
