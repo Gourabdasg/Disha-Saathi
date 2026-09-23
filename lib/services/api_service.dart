@@ -18,100 +18,70 @@ class ApiException implements Exception {
 }
 
 /// Thin wrapper around the Node.js/Express backend's REST endpoints.
-/// Supports dynamic candidate fallback across Mobile Data (4G/5G) and Wi-Fi networks.
+/// Uses global production HTTPS backend URL accessible over Mobile Data (4G/5G) & Wi-Fi.
 class ApiService {
+  static const _timeout = Duration(seconds: 15);
   static const _headers = {'Content-Type': 'application/json'};
 
+  /// Background warmup ping to wake up cloud backend container on app launch
+  static Future<void> warmupBackend() async {
+    try {
+      await http.get(ApiConfig.uri('/health')).timeout(const Duration(seconds: 4));
+    } catch (_) {}
+  }
+
   static Future<Map<String, dynamic>> _post(String path, Map<String, dynamic> body) async {
-    final candidateList = [
-      ApiConfig.activeBaseUrl,
-      ...ApiConfig.candidateUrls.where((u) => u != ApiConfig.activeBaseUrl),
-    ];
-
-    for (final baseUrl in candidateList) {
-      try {
-        final uri = Uri.parse('$baseUrl$path');
-        // Give 25s for Render.com cold starts, 4s for local LAN IPs
-        final timeoutSec = baseUrl.contains('onrender.com') ? 25 : 4;
-        final res = await http
-            .post(uri, headers: _headers, body: jsonEncode(body))
-            .timeout(Duration(seconds: timeoutSec));
-
-        if (res.statusCode >= 200 && res.statusCode < 500) {
-          ApiConfig.activeBaseUrl = baseUrl;
-          return _decodeMap(res);
-        }
-      } catch (_) {
-        continue; // Try next candidate URL
+    try {
+      final res = await http
+          .post(ApiConfig.uri(path), headers: _headers, body: jsonEncode(body))
+          .timeout(_timeout);
+      return _decodeMap(res);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      // Network/Offline fallback for OTP routes so user is never stuck
+      if (path.contains('/otp/send')) {
+        return {'message': 'OTP sent', 'demoOtp': '123456'};
       }
+      if (path.contains('/otp/verify')) {
+        return {'verified': true, 'token': 'demo-verified-token'};
+      }
+      throw ApiException(
+        504,
+        'Unable to connect to server. Please check your internet connection and try again.',
+      );
     }
-
-    // Offline / Network Fallback for OTP verification so user is never blocked
-    if (path.contains('/otp/verify')) {
-      return {'verified': true, 'token': 'demo-verified-token'};
-    }
-    if (path.contains('/otp/send')) {
-      return {'message': 'OTP sent', 'demoOtp': '123456'};
-    }
-
-    throw ApiException(
-      504,
-      'Unable to connect to server. Please check your internet connection and try again.',
-    );
   }
 
   static Future<Map<String, dynamic>> _get(String path) async {
-    final candidateList = [
-      ApiConfig.activeBaseUrl,
-      ...ApiConfig.candidateUrls.where((u) => u != ApiConfig.activeBaseUrl),
-    ];
-
-    for (final baseUrl in candidateList) {
-      try {
-        final uri = Uri.parse('$baseUrl$path');
-        final timeoutSec = baseUrl.contains('onrender.com') ? 25 : 4;
-        final res = await http.get(uri).timeout(Duration(seconds: timeoutSec));
-
-        if (res.statusCode >= 200 && res.statusCode < 500) {
-          ApiConfig.activeBaseUrl = baseUrl;
-          return _decodeMap(res);
-        }
-      } catch (_) {
-        continue;
-      }
+    try {
+      final res = await http.get(ApiConfig.uri(path)).timeout(_timeout);
+      return _decodeMap(res);
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw ApiException(
+        504,
+        'Unable to reach server. Please check your internet connection and try again.',
+      );
     }
-
-    throw ApiException(
-      504,
-      'Unable to reach server. Please check your internet connection and try again.',
-    );
   }
 
   static Future<List<dynamic>> _getList(String path) async {
-    final candidateList = [
-      ApiConfig.activeBaseUrl,
-      ...ApiConfig.candidateUrls.where((u) => u != ApiConfig.activeBaseUrl),
-    ];
-
-    for (final baseUrl in candidateList) {
-      try {
-        final uri = Uri.parse('$baseUrl$path');
-        final timeoutSec = baseUrl.contains('onrender.com') ? 25 : 4;
-        final res = await http.get(uri).timeout(Duration(seconds: timeoutSec));
-
-        if (res.statusCode >= 200 && res.statusCode < 500) {
-          ApiConfig.activeBaseUrl = baseUrl;
-          return res.body.isEmpty ? [] : jsonDecode(res.body) as List<dynamic>;
-        }
-      } catch (_) {
-        continue;
+    try {
+      final res = await http.get(ApiConfig.uri(path)).timeout(_timeout);
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        return res.body.isEmpty ? [] : jsonDecode(res.body) as List<dynamic>;
       }
+      throw ApiException(res.statusCode, _errorMessageFrom(res));
+    } on ApiException {
+      rethrow;
+    } catch (_) {
+      throw ApiException(
+        504,
+        'Unable to reach server. Please check your internet connection and try again.',
+      );
     }
-
-    throw ApiException(
-      504,
-      'Unable to reach server. Please check your internet connection and try again.',
-    );
   }
 
   static Map<String, dynamic> _decodeMap(http.Response res) {
