@@ -15,7 +15,8 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final profile = context.watch<AppState>().profile;
+    final state = context.watch<AppState>();
+    final profile = state.profile;
     final displayLocation = profile.location.isNotEmpty
         ? profile.location
         : (profile.district.isNotEmpty ? '${profile.district}, ${profile.state}' : 'Barasat, West Bengal');
@@ -164,14 +165,14 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            const Text('ACCOUNT', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMuted, letterSpacing: 0.5)),
+            Text(state.tr('account_section'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMuted, letterSpacing: 0.5)),
             const SizedBox(height: 10),
             _listCard([
-              _tile(Icons.edit_note_rounded, 'Complete / Edit Profile', () {
+              _tile(Icons.edit_note_rounded, state.tr('edit_profile'), () {
                 Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileCompletionScreen()));
               }),
               const Divider(height: 1),
-              _tile(Icons.settings_rounded, 'Settings', () {
+              _tile(Icons.settings_rounded, state.tr('settings'), () {
                 Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
               }),
             ]),
@@ -188,23 +189,22 @@ class ProfileScreen extends StatelessWidget {
             ]),
             const SizedBox(height: 20),
 
-            // New Section: ABOUT & LEGAL (Our Services, Terms, Privacy Policy)
-            const Text('ABOUT & LEGAL', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMuted, letterSpacing: 0.5)),
+            Text(state.tr('about_legal'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMuted, letterSpacing: 0.5)),
             const SizedBox(height: 10),
             _listCard([
-              _tile(Icons.design_services_rounded, 'Our Services', () {
+              _tile(Icons.design_services_rounded, state.tr('our_services'), () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const OurServicesScreen()),
                 );
               }),
               const Divider(height: 1),
-              _tile(Icons.gavel_rounded, 'Terms and Conditions', () {
+              _tile(Icons.gavel_rounded, state.tr('terms_conditions'), () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const TermsAndConditionsScreen()),
                 );
               }),
               const Divider(height: 1),
-              _tile(Icons.privacy_tip_rounded, 'Privacy Policy', () {
+              _tile(Icons.privacy_tip_rounded, state.tr('privacy_policy'), () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
                 );
@@ -227,7 +227,7 @@ class ProfileScreen extends StatelessWidget {
                   side: const BorderSide(color: AppColors.danger),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
-                child: const Text('Logout · लॉग आउट करें', style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.w700)),
+                child: Text(state.tr('logout'), style: const TextStyle(color: AppColors.danger, fontWeight: FontWeight.w700)),
               ),
             ),
           ],

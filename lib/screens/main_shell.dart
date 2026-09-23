@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import 'home_screen.dart';
+import 'package:provider/provider.dart';
+import '../providers/app_state.dart';
 import 'ai_chat_screen.dart';
-import 'recommendations_screen.dart';
-import 'progress_screen.dart';
+import 'home_screen.dart';
 import 'profile_screen.dart';
+import 'progress_screen.dart';
+import 'recommendations_screen.dart';
 
 /// Hosts the 5 primary tabs shown in the bottom navigation bar across the
-/// mockups: Home, AI Chat, Skills, Progress, Profile.
+/// mockups: Home, AI Chat, Skills, Progress, Profile with global localized labels.
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
@@ -27,17 +29,19 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+
     return Scaffold(
       body: IndexedStack(index: _index, children: _pages),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _index,
         onTap: (i) => setState(() => _index = i),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_rounded), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline_rounded), label: 'AI Chat'),
-          BottomNavigationBarItem(icon: Icon(Icons.star_border_rounded), label: 'Skills'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart_rounded), label: 'Progress'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline_rounded), label: 'Profile'),
+        items: [
+          BottomNavigationBarItem(icon: const Icon(Icons.home_rounded), label: state.tr('nav_home')),
+          BottomNavigationBarItem(icon: const Icon(Icons.chat_bubble_outline_rounded), label: state.tr('nav_chat')),
+          BottomNavigationBarItem(icon: const Icon(Icons.star_border_rounded), label: state.tr('nav_skills')),
+          BottomNavigationBarItem(icon: const Icon(Icons.bar_chart_rounded), label: state.tr('nav_progress')),
+          BottomNavigationBarItem(icon: const Icon(Icons.person_outline_rounded), label: state.tr('nav_profile')),
         ],
       ),
     );

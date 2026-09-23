@@ -24,11 +24,22 @@ class DishaSaathiApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => AppState(),
-      child: MaterialApp(
-        title: 'Disha Saathi',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.theme,
-        home: const SplashScreen(),
+      child: Consumer<AppState>(
+        builder: (context, state, child) {
+          final isRtl = state.selectedLanguage.code == 'ur' || state.selectedLanguage.code == 'sd';
+          return MaterialApp(
+            title: 'Disha Saathi',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.theme,
+            builder: (context, childWidget) {
+              return Directionality(
+                textDirection: isRtl ? TextDirection.rtl : TextDirection.ltr,
+                child: childWidget ?? const SizedBox(),
+              );
+            },
+            home: const SplashScreen(),
+          );
+        },
       ),
     );
   }

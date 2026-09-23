@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../l10n/app_strings.dart';
 import '../models/app_models.dart';
 import '../services/api_service.dart';
 
@@ -58,12 +59,25 @@ class AppState extends ChangeNotifier {
 
   bool _chatHistoryLoaded = false;
 
-  // --- Session Persistence Methods (shared_preferences) ---
+  // --- Session & Language Persistence Methods (shared_preferences) ---
+
+  void setLanguage(AppLanguage lang) {
+    selectedLanguage = lang;
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setString('selected_language_code', lang.code);
+    });
+    notifyListeners();
+  }
+
+  String tr(String key) {
+    return AppStrings.get(selectedLanguage.code, key);
+  }
 
   Future<void> saveSessionToPrefs({String? token, String? mobile, String? email, String? name}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('is_authenticated', true);
+      await prefs.setString('selected_language_code', selectedLanguage.code);
       if (token != null) await prefs.setString('auth_token', token);
       if (mobile != null && mobile.isNotEmpty) await prefs.setString('user_mobile', mobile);
       if (email != null && email.isNotEmpty) await prefs.setString('user_email', email);
@@ -85,6 +99,16 @@ class AppState extends ChangeNotifier {
   Future<bool> checkAndRestoreSession() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+
+      final savedLangCode = prefs.getString('selected_language_code');
+      if (savedLangCode != null && savedLangCode.isNotEmpty) {
+        final foundLang = AppLanguage.all.firstWhere(
+          (l) => l.code == savedLangCode,
+          orElse: () => AppLanguage.all.first,
+        );
+        selectedLanguage = foundLang;
+      }
+
       final isAuth = prefs.getBool('is_authenticated') ?? false;
       final savedMobile = prefs.getString('user_mobile') ?? '';
       final savedEmail = prefs.getString('user_email') ?? '';
@@ -109,12 +133,8 @@ class AppState extends ChangeNotifier {
         return true;
       }
     } catch (_) {}
-    return false;
-  }
-
-  void setLanguage(AppLanguage lang) {
-    selectedLanguage = lang;
     notifyListeners();
+    return false;
   }
 
   void nextRegistrationStep() {

@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
+import 'language_selection_screen.dart';
+import 'privacy_screen.dart';
+import 'terms_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -16,6 +21,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
+
     return Scaffold(
       backgroundColor: AppColors.bgLight,
       body: SafeArea(
@@ -35,7 +42,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
                     ),
                   ]),
-                  const Text('Settings', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),
+                  Text(state.tr('settings'), style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),
                   const Text('Customize your experience', style: TextStyle(color: Colors.white70, fontSize: 13)),
                 ],
               ),
@@ -46,7 +53,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   _sectionLabel('LANGUAGE & REGION'),
                   _card([
-                    _navTile('App Language', 'हिंदी', () {}),
+                    _navTile(
+                      'App Language',
+                      '${state.selectedLanguage.englishName} (${state.selectedLanguage.nativeName})',
+                      () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const LanguageSelectionScreen()),
+                        );
+                      },
+                    ),
                   ]),
                   const SizedBox(height: 20),
                   _sectionLabel('NOTIFICATIONS'),
@@ -65,9 +80,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 20),
                   _sectionLabel('PRIVACY & ABOUT'),
                   _card([
-                    _navTile('Privacy Policy', 'How we handle your data', () {}),
+                    _navTile('Privacy Policy', 'How we handle your data', () {
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()));
+                    }),
                     const Divider(height: 1),
-                    _navTile('Terms of Service', 'PM-AJAY GIA terms', () {}),
+                    _navTile('Terms of Service', 'PM-AJAY GIA terms', () {
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TermsAndConditionsScreen()));
+                    }),
                   ]),
                 ],
               ),

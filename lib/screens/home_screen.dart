@@ -47,8 +47,8 @@ class HomeScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('PM-AJAY · GIA SCHEME',
-                                  style: TextStyle(color: AppColors.tealLight, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                              Text(state.tr('scheme_subtitle'),
+                                  style: const TextStyle(color: AppColors.tealLight, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                               const SizedBox(height: 4),
                               Row(
                                 children: [
@@ -172,15 +172,15 @@ class HomeScreen extends StatelessWidget {
                               child: const Icon(Icons.mic_rounded, color: Colors.white, size: 26),
                             ),
                             const SizedBox(width: 16),
-                            const Expanded(
+                            Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('AI VOICE ASSISTANT', style: TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
-                                  SizedBox(height: 2),
-                                  Text('Start Talking', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
-                                  SizedBox(height: 2),
-                                  Text('Tell me about your work & skills', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                  Text(state.tr('ai_voice_assistant'), style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                                  const SizedBox(height: 2),
+                                  Text(state.tr('start_talking'), style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+                                  const SizedBox(height: 2),
+                                  const Text('Tell me about your work & skills', style: TextStyle(color: Colors.white70, fontSize: 12)),
                                 ],
                               ),
                             ),
@@ -210,7 +210,7 @@ class HomeScreen extends StatelessWidget {
                             child: _featureCard(
                               icon: Icons.agriculture_rounded,
                               iconColor: AppColors.success,
-                              title: 'Livelihood Profile',
+                              title: state.tr('livelihood_profile'),
                               subtitle: profile.livelihood.isNotEmpty ? profile.livelihood : 'Unemployed',
                               progress: 0.55,
                               progressColor: AppColors.navy,
@@ -226,9 +226,9 @@ class HomeScreen extends StatelessWidget {
                             child: _featureCard(
                               icon: Icons.star_rounded,
                               iconColor: AppColors.warning,
-                              title: 'Skill Recommendations',
+                              title: state.tr('skill_recommendations'),
                               subtitle: '4 new matches found',
-                              action: 'View →',
+                              action: state.tr('view_all'),
                               onTap: () {
                                 Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RecommendationsScreen()));
                               },
@@ -248,9 +248,9 @@ class HomeScreen extends StatelessWidget {
                             child: _featureCard(
                               icon: Icons.school_rounded,
                               iconColor: AppColors.navy,
-                              title: 'Training Near You',
+                              title: state.tr('training_near_you'),
                               subtitle: '12 courses available',
-                              action: 'View →',
+                              action: state.tr('view_all'),
                               onTap: () {
                                 Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TrainingScreen()));
                               },
@@ -263,8 +263,8 @@ class HomeScreen extends StatelessWidget {
                             child: _featureCard(
                               icon: Icons.show_chart_rounded,
                               iconColor: AppColors.orange,
-                              title: 'My Progress',
-                              subtitle: 'My Progress – $journeyPercent% Complete',
+                              title: state.tr('my_progress'),
+                              subtitle: '${state.tr('my_progress')} – $journeyPercent%',
                               progress: journeyPercent / 100.0,
                               progressColor: AppColors.orange,
                               onTap: () {
@@ -277,7 +277,7 @@ class HomeScreen extends StatelessWidget {
                     ),
 
                     const SizedBox(height: 22),
-                    const Text('Recent Activity', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textDark)),
+                    Text(state.tr('recent_activity'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textDark)),
                     const SizedBox(height: 12),
                     Container(
                       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
@@ -324,7 +324,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  /// Reusable 2x2 Feature Card Component matching exact design in screenshot
   Widget _featureCard({
     required IconData icon,
     required Color iconColor,
