@@ -1,26 +1,16 @@
 -- ============================================================================
 -- Disha Saathi — Complete PostgreSQL Database Schema
 -- SIH 2026 · PS 26097 · Team: The AI Alchemists
---
--- Instructions for pgAdmin 4 / PostgreSQL Query Tool:
--- 1. Create Database: CREATE DATABASE disha_saathi;
--- 2. Open pgAdmin 4 -> Connect to disha_saathi -> Open Query Tool (Alt + Shift + Q)
--- 3. Copy and Paste this entire SQL script
--- 4. Execute (F5)
 -- ============================================================================
 
--- Drop existing tables if re-initializing (Optional)
--- DROP TABLE IF EXISTS recommendations CASCADE;
--- DROP TABLE IF EXISTS chat_messages CASCADE;
--- DROP TABLE IF EXISTS user_profiles CASCADE;
--- DROP TABLE IF EXISTS beneficiaries CASCADE;
--- DROP TABLE IF EXISTS trainings CASCADE;
+-- Ensure public schema exists
+CREATE SCHEMA IF NOT EXISTS public;
+SET search_path TO public;
 
 -- ----------------------------------------------------------------------------
 -- Table 1: beneficiaries
--- Core user registration & profile data collected across the app
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS beneficiaries (
+CREATE TABLE IF NOT EXISTS public.beneficiaries (
     id SERIAL PRIMARY KEY,
     mobile VARCHAR(50) DEFAULT '',
     email VARCHAR(255) DEFAULT '',
@@ -52,9 +42,8 @@ CREATE TABLE IF NOT EXISTS beneficiaries (
 
 -- ----------------------------------------------------------------------------
 -- Table 2: user_profiles
--- Conversational AI onboarding state machine bookkeeping
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS user_profiles (
+CREATE TABLE IF NOT EXISTS public.user_profiles (
     id SERIAL PRIMARY KEY,
     mobile VARCHAR(255) NOT NULL UNIQUE,
     email VARCHAR(255) DEFAULT '',
@@ -80,9 +69,8 @@ CREATE TABLE IF NOT EXISTS user_profiles (
 
 -- ----------------------------------------------------------------------------
 -- Table 3: chat_messages
--- AI Chat conversation history per beneficiary
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS chat_messages (
+CREATE TABLE IF NOT EXISTS public.chat_messages (
     id SERIAL PRIMARY KEY,
     mobile VARCHAR(255) NOT NULL,
     sender VARCHAR(20) NOT NULL CHECK (sender IN ('user', 'bot')),
@@ -92,11 +80,10 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 
 -- ----------------------------------------------------------------------------
 -- Table 4: recommendations
--- NSQF-aligned skill training recommendations generated for beneficiaries
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS recommendations (
+CREATE TABLE IF NOT EXISTS public.recommendations (
     id SERIAL PRIMARY KEY,
-    beneficiary_id INTEGER REFERENCES beneficiaries(id) ON DELETE CASCADE,
+    beneficiary_id INTEGER REFERENCES public.beneficiaries(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
     match_percent INTEGER DEFAULT 80,
     nsqf_level INTEGER DEFAULT 3,
@@ -109,9 +96,8 @@ CREATE TABLE IF NOT EXISTS recommendations (
 
 -- ----------------------------------------------------------------------------
 -- Table 5: trainings
--- Nearby GIA-funded training opportunities
 -- ----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS trainings (
+CREATE TABLE IF NOT EXISTS public.trainings (
     id SERIAL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     provider VARCHAR(255) NOT NULL,
@@ -127,15 +113,15 @@ CREATE TABLE IF NOT EXISTS trainings (
 );
 
 -- ----------------------------------------------------------------------------
--- Performance Indexes & Constraints
+-- Indexes
 -- ----------------------------------------------------------------------------
-CREATE INDEX IF NOT EXISTS idx_beneficiaries_mobile ON beneficiaries(mobile);
-CREATE INDEX IF NOT EXISTS idx_beneficiaries_email ON beneficiaries(email);
-CREATE INDEX IF NOT EXISTS idx_chat_messages_mobile ON chat_messages(mobile);
-CREATE INDEX IF NOT EXISTS idx_user_profiles_mobile ON user_profiles(mobile);
+CREATE INDEX IF NOT EXISTS idx_beneficiaries_mobile ON public.beneficiaries(mobile);
+CREATE INDEX IF NOT EXISTS idx_beneficiaries_email ON public.beneficiaries(email);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_mobile ON public.chat_messages(mobile);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_mobile ON public.user_profiles(mobile);
 
--- Insert Initial Sample Data (Optional)
-INSERT INTO trainings (title, provider, distance_km, duration, nsqf_level, free_gia_funded, seats_left, mode, schedule, eligibility)
+-- Insert Sample Data
+INSERT INTO public.trainings (title, provider, distance_km, duration, nsqf_level, free_gia_funded, seats_left, mode, schedule, eligibility)
 VALUES
   ('Digital Office Assistant', 'NSDC Training Partner', 4.2, '3 Months', 3, TRUE, 15, 'Classroom', 'Mon–Sat, 9am–12pm', '10th Pass, Age 18–35'),
   ('Data Entry Operator', 'Pradhan Mantri Kaushal Kendra', 7.8, '2 Months', 2, TRUE, 3, 'Hybrid', 'Mon–Fri, 2pm–5pm', '8th Pass, Age 18–40')

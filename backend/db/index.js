@@ -24,12 +24,15 @@ pool.on('error', (err) => {
 });
 
 /**
- * Initializes database tables automatically on startup.
+ * Initializes database schema and tables automatically on startup.
  */
 async function initDb() {
   const client = await pool.connect();
   try {
     await client.query(`
+      CREATE SCHEMA IF NOT EXISTS public;
+      SET search_path TO public;
+
       -- Table 1: Beneficiaries
       CREATE TABLE IF NOT EXISTS beneficiaries (
         id SERIAL PRIMARY KEY,
