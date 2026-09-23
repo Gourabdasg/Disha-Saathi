@@ -128,11 +128,21 @@ async function initDb() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
 
+      -- Table 6: OTP Codes (Persistent Cross-Device / Cloud Multi-node Store)
+      CREATE TABLE IF NOT EXISTS otp_codes (
+        id SERIAL PRIMARY KEY,
+        identifier VARCHAR(255) NOT NULL UNIQUE,
+        otp VARCHAR(20) NOT NULL,
+        expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      );
+
       -- Indexes for performance
       CREATE INDEX IF NOT EXISTS idx_beneficiaries_mobile ON beneficiaries(mobile);
       CREATE INDEX IF NOT EXISTS idx_beneficiaries_email ON beneficiaries(email);
       CREATE INDEX IF NOT EXISTS idx_chat_messages_mobile ON chat_messages(mobile);
       CREATE INDEX IF NOT EXISTS idx_user_profiles_mobile ON user_profiles(mobile);
+      CREATE INDEX IF NOT EXISTS idx_otp_codes_identifier ON otp_codes(identifier);
     `);
     console.log('PostgreSQL database tables initialized successfully');
   } catch (err) {

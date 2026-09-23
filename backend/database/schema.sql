@@ -113,12 +113,24 @@ CREATE TABLE IF NOT EXISTS public.trainings (
 );
 
 -- ----------------------------------------------------------------------------
+-- Table 6: otp_codes
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.otp_codes (
+    id SERIAL PRIMARY KEY,
+    identifier VARCHAR(255) NOT NULL UNIQUE,
+    otp VARCHAR(20) NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ----------------------------------------------------------------------------
 -- Indexes
 -- ----------------------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_beneficiaries_mobile ON public.beneficiaries(mobile);
 CREATE INDEX IF NOT EXISTS idx_beneficiaries_email ON public.beneficiaries(email);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_mobile ON public.chat_messages(mobile);
 CREATE INDEX IF NOT EXISTS idx_user_profiles_mobile ON public.user_profiles(mobile);
+CREATE INDEX IF NOT EXISTS idx_otp_codes_identifier ON public.otp_codes(identifier);
 
 -- Insert Sample Data
 INSERT INTO public.trainings (title, provider, distance_km, duration, nsqf_level, free_gia_funded, seats_left, mode, schedule, eligibility)
