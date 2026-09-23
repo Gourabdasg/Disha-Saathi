@@ -1,7 +1,7 @@
-/// Multi-network API Configuration for Disha Saathi.
-/// Supports Wi-Fi, Mobile Data (4G/5G), Android Emulator, and Cloud Backend.
+/// Global Production API Configuration for Disha Saathi.
+/// Uses a public HTTPS production backend endpoint accessible from any network globally.
 class ApiConfig {
-  // Public production cloud URL reachable over Mobile Data & Wi-Fi
+  // Public production cloud URL reachable over Mobile Data (4G/5G) & Wi-Fi from anywhere
   static const String primaryProductionUrl = 'https://disha-saathi-backend.onrender.com';
 
   // Candidate URLs tried automatically depending on network interface
@@ -12,7 +12,7 @@ class ApiConfig {
     'http://localhost:4000',     // Localhost
   ];
 
-  static String activeBaseUrl = candidateUrls[0];
+  static String activeBaseUrl = primaryProductionUrl;
 
   static Uri uri(String path) => Uri.parse('$activeBaseUrl$path');
 }
