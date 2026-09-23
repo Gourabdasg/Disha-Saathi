@@ -21,28 +21,28 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyA_disha_saathi_web_key_stub',
-    appId: '1:109823487234:web:disha_saathi_app_id',
-    messagingSenderId: '109823487234',
+    apiKey: 'AIzaSyAytmixk6ZZ0dQgpn6-xw_C2K0gcyYQ3nI',
+    appId: '1:610010711984:web:disha_saathi_web_app_id',
+    messagingSenderId: '610010711984',
     projectId: 'disha-saathi',
     authDomain: 'disha-saathi.firebaseapp.com',
-    storageBucket: 'disha-saathi.appspot.com',
+    storageBucket: 'disha-saathi.firebasestorage.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyA_disha_saathi_android_key_stub',
-    appId: '1:109823487234:android:disha_saathi_app_id',
-    messagingSenderId: '109823487234',
+    apiKey: 'AIzaSyAytmixk6ZZ0dQgpn6-xw_C2K0gcyYQ3nI',
+    appId: '1:610010711984:android:744370baae01ccb6e43875',
+    messagingSenderId: '610010711984',
     projectId: 'disha-saathi',
-    storageBucket: 'disha-saathi.appspot.com',
+    storageBucket: 'disha-saathi.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyA_disha_saathi_ios_key_stub',
-    appId: '1:109823487234:ios:disha_saathi_app_id',
-    messagingSenderId: '109823487234',
+    apiKey: 'AIzaSyAytmixk6ZZ0dQgpn6-xw_C2K0gcyYQ3nI',
+    appId: '1:610010711984:ios:disha_saathi_ios_app_id',
+    messagingSenderId: '610010711984',
     projectId: 'disha-saathi',
-    storageBucket: 'disha-saathi.appspot.com',
+    storageBucket: 'disha-saathi.firebasestorage.app',
     iosBundleId: 'com.aialchemists.dishaSaathi',
   );
 }

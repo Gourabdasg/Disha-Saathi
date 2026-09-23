@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "610010711984",
+    "project_id": "disha-saathi",
+    "storage_bucket": "disha-saathi.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:610010711984:android:744370baae01ccb6e43875",
+        "android_client_info": {
+          "package_name": "com.aialchemists.disha_saathi"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "610010711984-h2uq5lps44h1g7v5qhgh7raf0e62ssol.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAytmixk6ZZ0dQgpn6-xw_C2K0gcyYQ3nI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "610010711984-h2uq5lps44h1g7v5qhgh7raf0e62ssol.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
