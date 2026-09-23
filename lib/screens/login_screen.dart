@@ -44,16 +44,11 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (!mounted) return;
-    if (result == 'existing') {
-      _showSuccess('Google Sign-In Successful! Welcome $googleName');
+    if (result != null) {
+      _showSuccess('Google Sign-In Successful! Welcome ${state.name.isNotEmpty ? state.name : googleName}');
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => const MainShell()),
         (route) => false,
-      );
-    } else if (result == 'new') {
-      _showSuccess('Google Sign-In Successful! Please set up your profile.');
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const RegistrationFlow()),
       );
     } else {
       _showError(state.errorMessage ?? 'Google Sign-In failed');
