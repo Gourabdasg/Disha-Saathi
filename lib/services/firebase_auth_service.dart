@@ -14,6 +14,53 @@ class FirebaseAuthService {
   /// Auth state changes stream for persistent session listening
   static Stream<User?> get authStateChanges => _auth.authStateChanges();
 
+  // --- Phone Number OTP Authentication ---
+
+  static Future<void> sendPhoneOtp({
+    required String phoneNumber,
+    required Function(String verificationId, int? resendToken) onCodeSent,
+    required Function(String errorMessage) onError,
+    required Function(PhoneAuthCredential credential) onAutoVerified,
+  }) async {
+    try {
+      final formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : '+91$phoneNumber';
+
+      await _auth.verifyPhoneNumber(
+        phoneNumber: formattedPhone,
+        timeout: const Duration(seconds: 60),
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          onAutoVerified(credential);
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          onError(_mapFirebaseError(e));
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          onCodeSent(verificationId, resendToken);
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {},
+      );
+    } catch (e) {
+      onError('Unable to send Phone OTP. Please check your internet connection.');
+    }
+  }
+
+  static Future<UserCredential?> verifyPhoneOtp({
+    required String verificationId,
+    required String smsCode,
+  }) async {
+    try {
+      final credential = PhoneAuthProvider.credential(
+        verificationId: verificationId,
+        smsCode: smsCode.trim(),
+      );
+      return await _auth.signInWithCredential(credential);
+    } on FirebaseAuthException catch (e) {
+      throw _mapFirebaseError(e);
+    } catch (e) {
+      throw 'Invalid OTP code. Please try again.';
+    }
+  }
+
   // --- Google Sign-In Authentication ---
 
   static Future<UserCredential?> signInWithGoogle() async {
@@ -48,6 +95,12 @@ class FirebaseAuthService {
 
   static String _mapFirebaseError(FirebaseAuthException e) {
     switch (e.code) {
+      case 'invalid-phone-number':
+        return 'Enter a valid 10-digit mobile number.';
+      case 'invalid-verification-code':
+        return 'Invalid OTP code. Please check and try again.';
+      case 'session-expired':
+        return 'OTP code has expired. Please request a new OTP.';
       case 'too-many-requests':
         return 'Too many requests. Please try again in a few minutes.';
       case 'network-request-failed':
