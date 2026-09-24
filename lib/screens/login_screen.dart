@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
+import '../services/firebase_auth_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/gradient_button.dart';
 import 'main_shell.dart';
@@ -34,24 +35,30 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleDirectGoogleSignIn() async {
     final state = context.read<AppState>();
-    const googleEmail = 'dasg69171@gmail.com';
-    const googleName = 'GOURAB DAS';
-
-    final result = await state.loginWithGoogle(
-      googleEmail,
-      googleName,
-      'google-id-1789665348799',
-    );
-
-    if (!mounted) return;
-    if (result != null) {
-      _showSuccess('Google Sign-In Successful! Welcome ${state.name.isNotEmpty ? state.name : googleName}');
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (_) => const MainShell()),
-        (route) => false,
+    try {
+      final userCredential = await FirebaseAuthService.signInWithGoogle();
+      if (userCredential == null || userCredential.user == null) {
+        _showError('Google Sign-In was cancelled.');
+        return;
+      }
+      final user = userCredential.user!;
+      final result = await state.loginWithGoogle(
+        user.email ?? '',
+        user.displayName ?? '',
+        user.uid,
       );
-    } else {
-      _showError(state.errorMessage ?? 'Google Sign-In failed');
+      if (!mounted) return;
+      if (result != null) {
+        _showSuccess('Google Sign-In Successful! Welcome ${state.name.isNotEmpty ? state.name : (user.displayName ?? '')}');
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const MainShell()),
+          (route) => false,
+        );
+      } else {
+        _showError(state.errorMessage ?? 'Google Sign-In failed');
+      }
+    } catch (e) {
+      _showError('Google Sign-In failed: $e');
     }
   }
 

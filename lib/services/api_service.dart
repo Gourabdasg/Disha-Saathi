@@ -23,10 +23,10 @@ class ApiService {
   static const _timeout = Duration(seconds: 15);
   static const _headers = {'Content-Type': 'application/json'};
 
-  /// Background warmup ping to wake up cloud backend container on app launch
+  /// Background warmup ping to wake up cloud backend container and resolve active base URL on app launch
   static Future<void> warmupBackend() async {
     try {
-      await http.get(ApiConfig.uri('/health')).timeout(const Duration(seconds: 4));
+      await ApiConfig.resolveActiveBaseUrl();
     } catch (_) {}
   }
 
@@ -39,13 +39,6 @@ class ApiService {
     } on ApiException {
       rethrow;
     } catch (_) {
-      // Network/Offline fallback for OTP routes so user is never stuck
-      if (path.contains('/otp/send')) {
-        return {'message': 'OTP sent', 'demoOtp': '123456'};
-      }
-      if (path.contains('/otp/verify')) {
-        return {'verified': true, 'token': 'demo-verified-token'};
-      }
       throw ApiException(
         504,
         'Unable to connect to server. Please check your internet connection and try again.',

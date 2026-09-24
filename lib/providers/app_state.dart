@@ -6,7 +6,7 @@ import '../services/api_service.dart';
 import '../services/firebase_auth_service.dart';
 
 /// Central app state shared across screens using Provider.
-/// Integrates Firebase Authentication for Email, Phone OTP, and Google Sign-In.
+/// Integrates Firebase Authentication for Google Sign-In and PostgreSQL for backend storage.
 class AppState extends ChangeNotifier {
   AppLanguage selectedLanguage =
       AppLanguage.all.firstWhere((l) => l.code == 'en'); // English default
@@ -281,7 +281,7 @@ class AppState extends ChangeNotifier {
     );
   }
 
-  // --- Auth (Firebase + PostgreSQL) ---
+  // --- Auth (PostgreSQL) ---
 
   Future<String?> sendOtp(String mobile) async {
     _prepareNewSession(newMobile: mobile);
@@ -289,14 +289,14 @@ class AppState extends ChangeNotifier {
     try {
       final res = await ApiService.sendOtp(mobile);
       isLoading = false;
-      latestDemoOtp = res['demoOtp'] as String? ?? '123456';
+      latestDemoOtp = res['demoOtp'] as String? ?? '';
       notifyListeners();
       return latestDemoOtp;
     } catch (e) {
       isLoading = false;
       errorMessage = _cleanError(e);
       notifyListeners();
-      return '123456';
+      return null;
     }
   }
 
@@ -324,13 +324,13 @@ class AppState extends ChangeNotifier {
 
       await saveSessionToPrefs(token: token, mobile: mobile, email: email, name: name);
       notifyListeners();
-      return 'existing';
+      return 'new';
     } catch (e) {
       isLoading = false;
-      isAuthenticated = true;
-      await saveSessionToPrefs(token: 'demo-token', mobile: mobile, email: email, name: name);
+      isAuthenticated = false;
+      errorMessage = _cleanError(e);
       notifyListeners();
-      return 'existing';
+      return null;
     }
   }
 
@@ -340,17 +340,16 @@ class AppState extends ChangeNotifier {
     _prepareNewSession(newEmail: email);
     _setLoading(true);
     try {
-      await FirebaseAuthService.sendEmailOtp(email);
       final res = await ApiService.sendEmailOtp(email);
       isLoading = false;
-      latestDemoOtp = res['demoOtp'] as String? ?? '123456';
+      latestDemoOtp = res['demoOtp'] as String? ?? '';
       notifyListeners();
       return latestDemoOtp;
     } catch (e) {
       isLoading = false;
       errorMessage = _cleanError(e);
       notifyListeners();
-      return '123456';
+      return null;
     }
   }
 
@@ -380,13 +379,13 @@ class AppState extends ChangeNotifier {
 
       await saveSessionToPrefs(token: token, mobile: mobile, email: this.email, name: name);
       notifyListeners();
-      return 'existing';
+      return 'new';
     } catch (e) {
       isLoading = false;
-      isAuthenticated = true;
-      await saveSessionToPrefs(token: 'demo-token', mobile: mobile, email: email, name: name);
+      isAuthenticated = false;
+      errorMessage = _cleanError(e);
       notifyListeners();
-      return 'existing';
+      return null;
     }
   }
 
@@ -424,10 +423,6 @@ class AppState extends ChangeNotifier {
     _prepareNewSession(newEmail: email, newName: name);
     _setLoading(true);
     try {
-      try {
-        await FirebaseAuthService.signInWithGoogle();
-      } catch (_) {}
-
       final res = await ApiService.loginWithGoogle(email: email, name: name, googleId: googleId);
       final token = res['token'] as String? ?? 'demo-google-jwt';
       final lookupKey = mobile.isNotEmpty ? mobile : email;
