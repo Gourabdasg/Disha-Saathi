@@ -5,13 +5,15 @@
 
 const { Pool } = require('pg');
 
-const DATABASE_URL =
-  process.env.DATABASE_URL ||
-  'postgresql://postgres:9749@localhost:5432/disha_saathi';
+const DATABASE_URL = process.env.DATABASE_URL;
+
+if (!DATABASE_URL) {
+  console.error('[PostgreSQL Error] DATABASE_URL environment variable is required in .env file.');
+}
 
 const pool = new Pool({
   connectionString: DATABASE_URL,
-  ssl: process.env.DATABASE_URL && process.env.DATABASE_URL.includes('render.com')
+  ssl: DATABASE_URL && DATABASE_URL.includes('render.com')
     ? { rejectUnauthorized: false }
     : false,
   max: 20,
@@ -27,6 +29,10 @@ pool.on('error', (err) => {
  * Initializes database schema and tables automatically on startup.
  */
 async function initDb() {
+  if (!DATABASE_URL) {
+    console.warn('PostgreSQL initialization skipped: DATABASE_URL environment variable is missing.');
+    return;
+  }
   const client = await pool.connect();
   try {
     await client.query(`
