@@ -64,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _submitEmailOtp() async {
     final state = context.read<AppState>();
-    final email = _emailController.text.trim();
+    final email = _emailController.text.trim().toLowerCase();
 
     if (!email.contains('@') || email.length < 5) {
       _showError('Enter a valid email address');
@@ -215,6 +215,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
+                        textCapitalization: TextCapitalization.none,
+                        autocorrect: false,
                         decoration: const InputDecoration(hintText: 'name@example.com'),
                       ),
                       const SizedBox(height: 20),

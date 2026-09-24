@@ -41,16 +41,19 @@ function mapPgRowToProfile(row) {
  */
 router.post('/profile', async (req, res) => {
   try {
-    const { mobile, email } = req.body;
-    const key = mobile || email;
+    const rawMobile = req.body.mobile ? req.body.mobile.trim() : '';
+    const rawEmail = req.body.email ? req.body.email.trim().toLowerCase() : '';
+    const key = rawMobile || rawEmail;
+
     if (!key) {
       return res.status(400).json({ error: 'mobile or email is required to save a profile' });
     }
 
     inMemoryProfiles.set(key, req.body);
+    if (rawEmail) inMemoryProfiles.set(rawEmail, req.body);
 
-    const mobileVal = mobile || (email ? `e_${email}` : '');
-    const emailVal = email || '';
+    const mobileVal = rawMobile || (rawEmail ? `e_${rawEmail}` : '');
+    const emailVal = rawEmail;
     const nameVal = req.body.name || '';
     const incomeVal = req.body.annualIncome || '';
     const categoryVal = req.body.category || 'Scheduled Caste (SC)';
@@ -125,7 +128,7 @@ router.post('/profile', async (req, res) => {
     res.json({ message: 'Profile saved', profile });
   } catch (err) {
     console.warn('Profile PostgreSQL save fallback (in-memory):', err.message);
-    const key = req.body.mobile || req.body.email || 'anonymous';
+    const key = req.body.mobile || (req.body.email ? req.body.email.trim().toLowerCase() : 'anonymous');
     inMemoryProfiles.set(key, req.body);
     res.json({ message: 'Profile saved', profile: req.body });
   }
@@ -133,14 +136,15 @@ router.post('/profile', async (req, res) => {
 
 /**
  * GET /api/beneficiary/profile/:identifier
- * Looks up a beneficiary by mobile or email.
+ * Looks up a beneficiary by mobile or email (case-insensitive for email).
  */
 router.get('/profile/:identifier', async (req, res) => {
   try {
-    const key = req.params.identifier;
+    const rawKey = req.params.identifier ? req.params.identifier.trim() : '';
+    const key = rawKey.includes('@') ? rawKey.toLowerCase() : rawKey;
 
     const result = await query(
-      `SELECT * FROM beneficiaries WHERE mobile = $1 OR email = $1 LIMIT 1;`,
+      `SELECT * FROM beneficiaries WHERE mobile = $1 OR LOWER(email) = LOWER($1) LIMIT 1;`,
       [key]
     );
 
@@ -154,7 +158,9 @@ router.get('/profile/:identifier', async (req, res) => {
 
     return res.status(404).json({ error: 'No profile found for that identifier' });
   } catch (err) {
-    const key = req.params.identifier;
+    const rawKey = req.params.identifier ? req.params.identifier.trim() : '';
+    const key = rawKey.includes('@') ? rawKey.toLowerCase() : rawKey;
+
     if (inMemoryProfiles.has(key)) {
       return res.json(inMemoryProfiles.get(key));
     }

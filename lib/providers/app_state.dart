@@ -80,7 +80,7 @@ class AppState extends ChangeNotifier {
       await prefs.setString('selected_language_code', selectedLanguage.code);
       if (token != null) await prefs.setString('auth_token', token);
       if (mobile != null && mobile.isNotEmpty) await prefs.setString('user_mobile', mobile);
-      if (email != null && email.isNotEmpty) await prefs.setString('user_email', email);
+      if (email != null && email.isNotEmpty) await prefs.setString('user_email', email.trim().toLowerCase());
       if (name != null && name.isNotEmpty) await prefs.setString('user_name', name);
     } catch (_) {}
   }
@@ -113,7 +113,7 @@ class AppState extends ChangeNotifier {
       final firebaseUser = FirebaseAuthService.currentUser;
       final isAuth = (prefs.getBool('is_authenticated') ?? false) || firebaseUser != null;
       final savedMobile = prefs.getString('user_mobile') ?? (firebaseUser?.phoneNumber ?? '');
-      final savedEmail = prefs.getString('user_email') ?? (firebaseUser?.email ?? '');
+      final savedEmail = (prefs.getString('user_email') ?? (firebaseUser?.email ?? '')).trim().toLowerCase();
       final savedName = prefs.getString('user_name') ?? (firebaseUser?.displayName ?? '');
 
       if (isAuth && (savedMobile.isNotEmpty || savedEmail.isNotEmpty)) {
@@ -128,6 +128,7 @@ class AppState extends ChangeNotifier {
           if (existing != null) {
             profile = existing;
             if (existing.name.isNotEmpty) name = existing.name;
+            if (existing.email.isNotEmpty) email = existing.email.trim().toLowerCase();
           }
         } catch (_) {}
 
@@ -253,7 +254,7 @@ class AppState extends ChangeNotifier {
         ),
       );
     mobile = newMobile;
-    email = newEmail;
+    email = newEmail.trim().toLowerCase();
     name = newName;
     fatherName = '';
     motherName = '';
@@ -273,7 +274,7 @@ class AppState extends ChangeNotifier {
 
     profile = UserProfile(
       mobile: newMobile,
-      email: newEmail,
+      email: email,
       name: newName.isNotEmpty ? newName : 'Beneficiary',
       district: district,
       state: stateName,
@@ -310,18 +311,19 @@ class AppState extends ChangeNotifier {
       } catch (_) {}
 
       isLoading = false;
-      isAuthenticated = true;
 
       if (existing != null) {
         profile = existing;
         if (existing.name.isNotEmpty) name = existing.name;
         if (existing.mobile.isNotEmpty) mobile = existing.mobile;
-        if (existing.email.isNotEmpty) email = existing.email;
+        if (existing.email.isNotEmpty) email = existing.email.trim().toLowerCase();
+        isAuthenticated = true;
         await saveSessionToPrefs(token: token, mobile: mobile, email: email, name: name);
         notifyListeners();
         return 'existing';
       }
 
+      isAuthenticated = true;
       await saveSessionToPrefs(token: token, mobile: mobile, email: email, name: name);
       notifyListeners();
       return 'new';
@@ -337,10 +339,11 @@ class AppState extends ChangeNotifier {
   // --- Email OTP Auth ---
 
   Future<String?> sendEmailOtp(String email) async {
-    _prepareNewSession(newEmail: email);
+    final normalizedEmail = email.trim().toLowerCase();
+    _prepareNewSession(newEmail: normalizedEmail);
     _setLoading(true);
     try {
-      final res = await ApiService.sendEmailOtp(email);
+      final res = await ApiService.sendEmailOtp(normalizedEmail);
       isLoading = false;
       latestDemoOtp = res['demoOtp'] as String? ?? '';
       notifyListeners();
@@ -356,8 +359,10 @@ class AppState extends ChangeNotifier {
   Future<String?> verifyEmailOtp(String otp) async {
     _setLoading(true);
     try {
-      final token = await ApiService.verifyEmailOtp(email, otp);
-      final lookupKey = mobile.isNotEmpty ? mobile : email;
+      final normalizedEmail = email.trim().toLowerCase();
+      this.email = normalizedEmail;
+      final token = await ApiService.verifyEmailOtp(normalizedEmail, otp);
+      final lookupKey = mobile.isNotEmpty ? mobile : normalizedEmail;
 
       UserProfile? existing;
       try {
@@ -365,18 +370,19 @@ class AppState extends ChangeNotifier {
       } catch (_) {}
 
       isLoading = false;
-      isAuthenticated = true;
 
       if (existing != null) {
         profile = existing;
         if (existing.name.isNotEmpty) name = existing.name;
         if (existing.mobile.isNotEmpty) mobile = existing.mobile;
-        if (existing.email.isNotEmpty) this.email = existing.email;
+        if (existing.email.isNotEmpty) this.email = existing.email.trim().toLowerCase();
+        isAuthenticated = true;
         await saveSessionToPrefs(token: token, mobile: mobile, email: this.email, name: name);
         notifyListeners();
         return 'existing';
       }
 
+      isAuthenticated = true;
       await saveSessionToPrefs(token: token, mobile: mobile, email: this.email, name: name);
       notifyListeners();
       return 'new';
@@ -400,7 +406,7 @@ class AppState extends ChangeNotifier {
         profile = existing;
         name = existing.name;
         mobile = existing.mobile;
-        email = existing.email;
+        email = existing.email.trim().toLowerCase();
         isAuthenticated = true;
         await saveSessionToPrefs(token: token, mobile: mobile, email: email, name: name);
         notifyListeners();
@@ -420,19 +426,20 @@ class AppState extends ChangeNotifier {
   // --- Google & Firebase Auth ---
 
   Future<String?> loginWithGoogle(String email, String name, String? googleId) async {
-    _prepareNewSession(newEmail: email, newName: name);
+    final normalizedEmail = email.trim().toLowerCase();
+    _prepareNewSession(newEmail: normalizedEmail, newName: name);
     _setLoading(true);
     try {
-      final res = await ApiService.loginWithGoogle(email: email, name: name, googleId: googleId);
+      final res = await ApiService.loginWithGoogle(email: normalizedEmail, name: name, googleId: googleId);
       final token = res['token'] as String? ?? 'demo-google-jwt';
-      final lookupKey = mobile.isNotEmpty ? mobile : email;
+      final lookupKey = mobile.isNotEmpty ? mobile : normalizedEmail;
       final existing = await ApiService.fetchProfile(lookupKey);
       isLoading = false;
       if (existing != null) {
         profile = existing;
         this.name = existing.name.isNotEmpty ? existing.name : name;
         mobile = existing.mobile;
-        this.email = existing.email.isNotEmpty ? existing.email : email;
+        this.email = existing.email.isNotEmpty ? existing.email.trim().toLowerCase() : normalizedEmail;
         isAuthenticated = true;
         await saveSessionToPrefs(token: token, mobile: mobile, email: this.email, name: this.name);
         notifyListeners();
@@ -450,13 +457,14 @@ class AppState extends ChangeNotifier {
   }
 
   Future<String?> signUpWithEmail(String email, String password, String name, String mobile) async {
-    _prepareNewSession(newEmail: email, newMobile: mobile, newName: name);
+    final normalizedEmail = email.trim().toLowerCase();
+    _prepareNewSession(newEmail: normalizedEmail, newMobile: mobile, newName: name);
     _setLoading(true);
     try {
-      final res = await ApiService.signUpWithEmail(email: email, password: password, name: name, mobile: mobile);
+      final res = await ApiService.signUpWithEmail(email: normalizedEmail, password: password, name: name, mobile: mobile);
       final token = res['token'] as String? ?? 'demo-jwt';
       isLoading = false;
-      await saveSessionToPrefs(token: token, mobile: mobile, email: email, name: name);
+      await saveSessionToPrefs(token: token, mobile: mobile, email: normalizedEmail, name: name);
       notifyListeners();
       return 'new';
     } catch (e) {
@@ -468,19 +476,20 @@ class AppState extends ChangeNotifier {
   }
 
   Future<String?> loginWithEmail(String email, String password) async {
-    _prepareNewSession(newEmail: email);
+    final normalizedEmail = email.trim().toLowerCase();
+    _prepareNewSession(newEmail: normalizedEmail);
     _setLoading(true);
     try {
-      final res = await ApiService.loginWithEmail(email: email, password: password);
+      final res = await ApiService.loginWithEmail(email: normalizedEmail, password: password);
       final token = res['token'] as String? ?? 'demo-jwt';
-      final lookupKey = mobile.isNotEmpty ? mobile : email;
+      final lookupKey = mobile.isNotEmpty ? mobile : normalizedEmail;
       final existing = await ApiService.fetchProfile(lookupKey);
       isLoading = false;
       if (existing != null) {
         profile = existing;
         name = existing.name;
         mobile = existing.mobile;
-        this.email = existing.email;
+        this.email = existing.email.trim().toLowerCase();
         isAuthenticated = true;
         await saveSessionToPrefs(token: token, mobile: mobile, email: this.email, name: name);
         notifyListeners();
@@ -502,6 +511,7 @@ class AppState extends ChangeNotifier {
   Future<bool> updateUserProfile(UserProfile updatedProfile) async {
     _setLoading(true);
     try {
+      updatedProfile.email = updatedProfile.email.trim().toLowerCase();
       profile = await ApiService.saveProfile(updatedProfile);
       isLoading = false;
       await saveSessionToPrefs(mobile: profile.mobile, email: profile.email, name: profile.name);
@@ -516,8 +526,8 @@ class AppState extends ChangeNotifier {
   }
 
   Future<bool> completeRegistration() async {
-    profile.mobile = mobile.isNotEmpty ? mobile : email;
-    profile.email = email;
+    profile.mobile = mobile.isNotEmpty ? mobile : email.trim().toLowerCase();
+    profile.email = email.trim().toLowerCase();
     profile.name = name.isNotEmpty ? name : profile.name;
     profile.annualIncome = annualIncome;
     profile.category = 'Scheduled Caste (SC)';
@@ -563,7 +573,7 @@ class AppState extends ChangeNotifier {
   // --- AI Chat Features ---
 
   Future<void> loadChatHistory() async {
-    final lookupKey = mobile.isNotEmpty ? mobile : email;
+    final lookupKey = mobile.isNotEmpty ? mobile : email.trim().toLowerCase();
     if (_chatHistoryLoaded || lookupKey.isEmpty) return;
     _chatHistoryLoaded = true;
     try {
@@ -583,7 +593,7 @@ class AppState extends ChangeNotifier {
     if (text.trim().isEmpty) return;
     chatMessages.add(ChatMessage(text, false));
     notifyListeners();
-    final lookupKey = mobile.isNotEmpty ? mobile : email;
+    final lookupKey = mobile.isNotEmpty ? mobile : email.trim().toLowerCase();
     try {
       final reply = await ApiService.sendChatMessage(lookupKey, text);
       chatMessages.add(ChatMessage(reply.isNotEmpty ? reply : "Sorry, I didn't get a response — please try again.", true));
@@ -598,7 +608,7 @@ class AppState extends ChangeNotifier {
 
   /// Permanently clears current conversation history on server & local state.
   Future<void> clearChat() async {
-    final lookupKey = mobile.isNotEmpty ? mobile : email;
+    final lookupKey = mobile.isNotEmpty ? mobile : email.trim().toLowerCase();
     if (lookupKey.isNotEmpty) {
       await ApiService.clearChatHistory(lookupKey);
     }
@@ -616,7 +626,7 @@ class AppState extends ChangeNotifier {
 
   /// Restarts current conversation flow and onboarding context.
   Future<void> restartChat() async {
-    final lookupKey = mobile.isNotEmpty ? mobile : email;
+    final lookupKey = mobile.isNotEmpty ? mobile : email.trim().toLowerCase();
     if (lookupKey.isNotEmpty) {
       await ApiService.restartChat(lookupKey);
     }

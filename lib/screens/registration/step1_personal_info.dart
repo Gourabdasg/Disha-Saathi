@@ -43,7 +43,7 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
     final appState = context.read<AppState>();
     _mobile = TextEditingController(text: appState.mobile);
     _name = TextEditingController(text: appState.name);
-    _email = TextEditingController(text: appState.email);
+    _email = TextEditingController(text: appState.email.trim().toLowerCase());
     _district = TextEditingController(text: appState.district.isNotEmpty ? appState.district : 'Barasat');
     _state = TextEditingController(text: appState.stateName.isNotEmpty ? appState.stateName : 'West Bengal');
 
@@ -75,11 +75,11 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
             _name.text = gUser.displayName!;
           }
           if (gUser.email != null && gUser.email!.isNotEmpty) {
-            _email.text = gUser.email!;
+            _email.text = gUser.email!.trim().toLowerCase();
             _emailVerified = true;
           }
         });
-        state.email = _email.text;
+        state.email = _email.text.trim().toLowerCase();
         state.name = _name.text;
         _showSuccess('Google Account linked: ${_email.text}');
       } else {
@@ -181,7 +181,7 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
   }
 
   Future<void> _verifyEmailInline() async {
-    final email = _email.text.trim();
+    final email = _email.text.trim().toLowerCase();
     if (!email.contains('@') || email.length < 5) {
       _showError('Enter a valid email address');
       return;
@@ -282,7 +282,7 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
   Future<void> _submitAccountCreation() async {
     final name = _name.text.trim();
     final mobile = _mobile.text.trim();
-    final email = _email.text.trim();
+    final email = _email.text.trim().toLowerCase();
     final scCertNo = _scCategoryNo.text.trim();
     final districtVal = _district.text.trim().isNotEmpty ? _district.text.trim() : 'Barasat';
     final stateVal = _state.text.trim().isNotEmpty ? _state.text.trim() : 'West Bengal';
@@ -406,6 +406,8 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
           TextField(
             controller: _email,
             keyboardType: TextInputType.emailAddress,
+            textCapitalization: TextCapitalization.none,
+            autocorrect: false,
             onChanged: (_) {
               if (_emailVerified) {
                 setState(() => _emailVerified = false);
@@ -465,7 +467,7 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
                       decoration: BoxDecoration(
                         color: _locationMode == 0 ? Colors.white : Colors.transparent,
                         borderRadius: BorderRadius.circular(10),
-                        boxShadow: _locationMode == 0 ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : null,
+                        boxShadow: _locationMode == 0 ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)] : null,
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -486,7 +488,7 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
                       decoration: BoxDecoration(
                         color: _locationMode == 1 ? Colors.white : Colors.transparent,
                         borderRadius: BorderRadius.circular(10),
-                        boxShadow: _locationMode == 1 ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4)] : null,
+                        boxShadow: _locationMode == 1 ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)] : null,
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
