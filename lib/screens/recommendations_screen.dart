@@ -117,7 +117,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                               duration: const Duration(milliseconds: 150),
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
-                                color: selected ? Colors.white : Colors.white.withOpacity(0.2),
+                                color: selected ? Colors.white : Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Row(
@@ -217,7 +217,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                                       Container(
                                         padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
-                                          color: AppColors.success.withOpacity(0.08),
+                                          color: AppColors.success.withValues(alpha: 0.08),
                                           borderRadius: BorderRadius.circular(10),
                                         ),
                                         child: Row(
@@ -281,13 +281,13 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
   Color _iconBg(String key) {
     switch (key) {
       case 'purple':
-        return AppColors.purple.withOpacity(0.12);
+        return AppColors.purple.withValues(alpha: 0.12);
       case 'orange':
-        return AppColors.orange.withOpacity(0.12);
+        return AppColors.orange.withValues(alpha: 0.12);
       case 'teal':
-        return AppColors.teal.withOpacity(0.12);
+        return AppColors.teal.withValues(alpha: 0.12);
       default:
-        return AppColors.navy.withOpacity(0.12);
+        return AppColors.navy.withValues(alpha: 0.12);
     }
   }
 
