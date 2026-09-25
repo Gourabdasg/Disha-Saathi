@@ -195,28 +195,41 @@ class _AiChatScreenState extends State<AiChatScreen> {
     });
   }
 
-  /// Requirements 15 & 16 & 17: NVIDIA Text-to-Speech playback via Backend Proxy
+  /// Requirements 15 & 16 & 17: Multilingual Text-to-Speech playback
   Future<void> _playTtsForMessage(int index, String text) async {
     if (_playingMessageIndex == index) {
       await _audioPlayer.stop();
-      setState(() => _playingMessageIndex = null);
+      if (mounted) {
+        setState(() {
+          _playingMessageIndex = null;
+          _isLoadingTts = false;
+        });
+      }
       return;
     }
+
+    final langCode = context.read<AppState>().selectedLanguage.code;
+
+    // Stop any previously playing audio before starting new playback
+    await _audioPlayer.stop();
+
+    if (!mounted) return;
 
     setState(() {
       _isLoadingTts = true;
       _playingMessageIndex = index;
     });
 
-    final langCode = context.read<AppState>().selectedLanguage.code;
-
     try {
       final audioBase64 = await ApiService.textToSpeech(text, langCode);
       if (audioBase64 != null && audioBase64.isNotEmpty) {
         final bytes = base64Decode(audioBase64);
-        await _audioPlayer.stop();
         await _audioPlayer.play(BytesSource(bytes));
-        if (mounted) setState(() => _isLoadingTts = false);
+        if (mounted) {
+          setState(() {
+            _isLoadingTts = false;
+          });
+        }
       } else {
         throw Exception('TTS Audio unavailable');
       }
@@ -228,7 +241,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Audio playback unavailable in offline mode.'),
+            content: Text('Unable to play audio. Please check your connection and try again.'),
             duration: Duration(seconds: 2),
           ),
         );
