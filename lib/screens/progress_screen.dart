@@ -32,9 +32,9 @@ class ProgressScreen extends StatelessWidget {
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
                     ),
-                  const Text('SKILL JOURNEY', style: TextStyle(color: AppColors.tealLight, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
+                  Text(state.tr('skill_journey'), style: const TextStyle(color: AppColors.tealLight, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
                   const SizedBox(height: 4),
-                  const Text('My Progress', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),
+                  Text(state.tr('my_progress'), style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 20),
                   Row(
                     children: [
@@ -62,14 +62,16 @@ class ProgressScreen extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(profile.name, style: const TextStyle(color: Colors.white, fontSize: 17, fontWeight: FontWeight.w700)),
-                            const Text('Journey in progress · Keep going!', style: TextStyle(color: Colors.white70, fontSize: 12.5)),
+                            Text(profile.name.isNotEmpty ? profile.name : 'Beneficiary',
+                                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+                            const SizedBox(height: 2),
+                            Text(state.tr('journey_in_progress'), style: const TextStyle(color: Colors.white70, fontSize: 12.5)),
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                TagBadge(label: '4/7 Steps', color: Colors.white.withOpacity(0.15)),
+                                PillTag('4/7 Steps', bg: Colors.white24, fg: Colors.white),
                                 const SizedBox(width: 8),
-                                const TagBadge(label: 'On Track', color: AppColors.tealLight),
+                                PillTag('On Track', bg: AppColors.tealLight, fg: Colors.white),
                               ],
                             ),
                           ],
@@ -83,42 +85,11 @@ class ProgressScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Your Skill Journey', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                        const SizedBox(height: 18),
-                        for (int i = 0; i < steps.length; i++) _journeyTile(steps[i], isLast: i == steps.length - 1),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text('Achievements', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      _achievement('⭐', 'Profile Completed', 'Aug 10'),
-                      const SizedBox(width: 12),
-                      _achievement('🗺️', 'Livelihood Mapped', 'Aug 11'),
-                      const SizedBox(width: 12),
-                      _achievement('🤖', 'AI Analyzed', 'Aug 12'),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      _stat('18', 'Days Active'),
-                      const SizedBox(width: 12),
-                      _stat('8', 'Skills Found'),
-                      const SizedBox(width: 12),
-                      _stat('3', 'Courses Saved'),
-                    ],
-                  ),
+                  Text(state.tr('your_skill_journey'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 16),
+                  ...List.generate(steps.length, (i) => _stepTile(steps[i], i == steps.length - 1)),
                 ],
               ),
             ),
@@ -128,23 +99,10 @@ class ProgressScreen extends StatelessWidget {
     );
   }
 
-  Widget _journeyTile(JourneyStep step, {required bool isLast}) {
-    Color circleColor;
-    Widget icon;
-    switch (step.state) {
-      case JourneyStepState.completed:
-        circleColor = AppColors.success;
-        icon = const Icon(Icons.check, color: Colors.white, size: 18);
-        break;
-      case JourneyStepState.active:
-        circleColor = AppColors.navy;
-        icon = Icon(iconFor(step.icon), color: Colors.white, size: 16);
-        break;
-      case JourneyStepState.locked:
-        circleColor = Colors.grey.shade300;
-        icon = Icon(iconFor(step.icon), color: Colors.grey.shade500, size: 16);
-        break;
-    }
+  Widget _stepTile(JourneyStep step, bool isLast) {
+    final isDone = step.state == JourneyStepState.completed;
+    final isActive = step.state == JourneyStepState.active;
+
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,30 +112,31 @@ class ProgressScreen extends StatelessWidget {
               Container(
                 width: 34,
                 height: 34,
-                decoration: BoxDecoration(color: circleColor, shape: BoxShape.circle),
-                child: Center(child: icon),
+                decoration: BoxDecoration(
+                  color: isDone ? AppColors.success : (isActive ? AppColors.navy : Colors.grey.shade300),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(_iconData(step.iconKey), size: 18, color: isDone || isActive ? Colors.white : Colors.grey.shade600),
               ),
-              if (!isLast) Expanded(child: Container(width: 2, color: step.state == JourneyStepState.locked ? Colors.grey.shade200 : AppColors.success.withOpacity(0.4))),
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    color: isDone ? AppColors.success : Colors.grey.shade300,
+                  ),
+                ),
             ],
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 22, top: 4),
+              padding: const EdgeInsets.only(bottom: 22),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(step.title,
-                      style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14.5,
-                          color: step.state == JourneyStepState.locked ? AppColors.textMuted : AppColors.textDark)),
+                  Text(step.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14.5, color: isActive ? AppColors.navy : AppColors.textDark)),
                   const SizedBox(height: 2),
-                  Text(step.subtitle,
-                      style: TextStyle(
-                          fontSize: 12.5,
-                          color: step.state == JourneyStepState.active ? AppColors.navy : AppColors.textMuted,
-                          fontWeight: step.state == JourneyStepState.active ? FontWeight.w600 : FontWeight.w400)),
+                  Text(step.subtitle, style: TextStyle(fontSize: 12, color: isActive ? AppColors.navy : AppColors.textMuted, fontWeight: isActive ? FontWeight.w600 : FontWeight.normal)),
                 ],
               ),
             ),
@@ -187,37 +146,18 @@ class ProgressScreen extends StatelessWidget {
     );
   }
 
-  Widget _achievement(String emoji, String title, String date) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
-        child: Column(
-          children: [
-            Text(emoji, style: const TextStyle(fontSize: 22)),
-            const SizedBox(height: 8),
-            Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 4),
-            Text(date, style: const TextStyle(fontSize: 10.5, color: AppColors.textMuted)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _stat(String value, String label) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
-        child: Column(
-          children: [
-            Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.navy)),
-            const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
-          ],
-        ),
-      ),
-    );
+  IconData _iconData(String key) {
+    switch (key) {
+      case 'check':
+        return Icons.check_rounded;
+      case 'school':
+        return Icons.school_rounded;
+      case 'medal':
+        return Icons.military_tech_rounded;
+      case 'certificate':
+        return Icons.verified_rounded;
+      default:
+        return Icons.radio_button_unchecked_rounded;
+    }
   }
 }

@@ -68,7 +68,7 @@ class ProfileScreen extends StatelessWidget {
               children: [
                 _statChip(
                   context,
-                  'Education',
+                  state.tr('education'),
                   profile.highestQualification.isNotEmpty ? profile.highestQualification : 'Add Education',
                   () {
                     Navigator.of(context).push(
@@ -79,7 +79,7 @@ class ProfileScreen extends StatelessWidget {
                 const SizedBox(width: 10),
                 _statChip(
                   context,
-                  'Livelihood',
+                  state.tr('livelihood'),
                   profile.livelihood.isNotEmpty ? profile.livelihood : 'Add Work',
                   () {
                     Navigator.of(context).push(
@@ -88,14 +88,14 @@ class ProfileScreen extends StatelessWidget {
                   },
                 ),
                 const SizedBox(width: 10),
-                _statChip(context, 'NSQF', 'Level 3', () {}),
+                _statChip(context, 'NSQF', state.tr('nsqf_level'), () {}),
               ],
             ),
             const SizedBox(height: 20),
 
-            // My Skills Section with Working Edit Button
+            // My Skills Section
             _sectionCard(
-              title: 'My Skills',
+              title: state.tr('my_skills'),
               onEdit: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const ProfileCompletionScreen()),
@@ -116,12 +116,12 @@ class ProfileScreen extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(color: AppColors.navy.withOpacity(0.08), borderRadius: BorderRadius.circular(20)),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.add_rounded, size: 16, color: AppColors.navy),
-                            SizedBox(width: 4),
-                            Text('Add Skills', style: TextStyle(color: AppColors.navy, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                            const Icon(Icons.add_rounded, size: 16, color: AppColors.navy),
+                            const SizedBox(width: 4),
+                            Text(state.tr('add_skills'), style: const TextStyle(color: AppColors.navy, fontSize: 12.5, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       ),
@@ -129,9 +129,9 @@ class ProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Career Interests Section with Working Edit Button
+            // Career Interests Section
             _sectionCard(
-              title: 'Career Interests',
+              title: state.tr('career_interests'),
               onEdit: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const ProfileCompletionScreen()),
@@ -152,12 +152,12 @@ class ProfileScreen extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(color: AppColors.teal.withOpacity(0.08), borderRadius: BorderRadius.circular(20)),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.add_rounded, size: 16, color: AppColors.teal),
-                            SizedBox(width: 4),
-                            Text('Add Career Interests', style: TextStyle(color: AppColors.teal, fontSize: 12.5, fontWeight: FontWeight.w600)),
+                            const Icon(Icons.add_rounded, size: 16, color: AppColors.teal),
+                            const SizedBox(width: 4),
+                            Text(state.tr('add_career_interests'), style: const TextStyle(color: AppColors.teal, fontSize: 12.5, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       ),
@@ -178,10 +178,10 @@ class ProfileScreen extends StatelessWidget {
             ]),
             const SizedBox(height: 20),
 
-            const Text('SCHEME', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMuted, letterSpacing: 0.5)),
+            Text(state.tr('scheme_section'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMuted, letterSpacing: 0.5)),
             const SizedBox(height: 10),
             _listCard([
-              _tile(Icons.description_rounded, 'PM-AJAY GIA Details', () {
+              _tile(Icons.description_rounded, state.tr('pm_ajay_details'), () {
                 Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const PmAjayGiaDetailsScreen()),
                 );

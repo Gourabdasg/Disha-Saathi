@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/app_models.dart';
+import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common.dart';
 import 'training_screen.dart';
@@ -16,7 +18,6 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
   int? _expanded = 0;
   String _filter = 'All';
 
-  // Requirement 1 & 3: Dynamic Category Options
   static const List<String> _categories = [
     'All',
     'Digital',
@@ -61,6 +62,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<AppState>();
     final items = _getFilteredItems();
 
     return Scaffold(
@@ -87,12 +89,12 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                     style: TextStyle(color: AppColors.tealLight, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 0.6),
                   ),
                   const SizedBox(height: 4),
-                  const Text('Recommended Skills For You', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
+                  Text(state.tr('rec_header'), style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),
-                  const Text('Based on your profile · NSQF-aligned pathways', style: TextStyle(color: Colors.white70, fontSize: 12.5)),
+                  Text(state.tr('rec_subtitle'), style: const TextStyle(color: Colors.white70, fontSize: 12.5)),
                   const SizedBox(height: 16),
 
-                  // Requirement 2: Horizontally Scrollable Category Filter Row
+                  // Category Filter Row
                   SizedBox(
                     height: 38,
                     child: ListView.builder(
@@ -109,7 +111,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                             onTap: () {
                               setState(() {
                                 _filter = cat;
-                                _expanded = 0; // Expand first item in filtered list
+                                _expanded = 0;
                               });
                             },
                             child: AnimatedContainer(
@@ -118,24 +120,17 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                               decoration: BoxDecoration(
                                 color: selected ? Colors.white : Colors.white.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: selected ? Colors.white : Colors.white.withOpacity(0.3),
-                                  width: 1,
-                                ),
                               ),
                               child: Row(
-                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  if (selected) ...[
-                                    const Icon(Icons.check_rounded, size: 15, color: AppColors.navy),
-                                    const SizedBox(width: 5),
-                                  ],
+                                  if (selected) const Icon(Icons.check, size: 14, color: AppColors.navy),
+                                  if (selected) const SizedBox(width: 4),
                                   Text(
                                     cat,
                                     style: TextStyle(
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
                                       color: selected ? AppColors.navy : Colors.white,
-                                      fontSize: 13,
-                                      fontWeight: selected ? FontWeight.bold : FontWeight.w600,
                                     ),
                                   ),
                                 ],
@@ -154,162 +149,100 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
             Expanded(
               child: items.isEmpty
                   ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.search_off_rounded, size: 48, color: AppColors.textMuted),
-                          const SizedBox(height: 12),
-                          Text('No courses match "$_filter"', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textDark)),
-                          const SizedBox(height: 6),
-                          const Text('Try selecting "All" to view all recommendations.', style: TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
-                        ],
-                      ),
+                      child: Text('No recommendations found for "$_filter"', style: const TextStyle(color: AppColors.textMuted)),
                     )
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(16),
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(20),
                       itemCount: items.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 14),
                       itemBuilder: (context, i) {
-                        final rec = items[i];
-                        final expanded = _expanded == i;
-                        final color = colorFor(rec.colorKey);
+                        final item = items[i];
+                        final isExpanded = _expanded == i;
 
                         return Container(
+                          margin: const EdgeInsets.only(bottom: 14),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFE5E7EB), width: 1.2),
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 3))],
+                            border: Border.all(
+                              color: isExpanded ? AppColors.navy : const Color(0xFFE5E7EB),
+                              width: isExpanded ? 1.5 : 1,
+                            ),
                           ),
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Container(
-                                height: 4,
-                                decoration: BoxDecoration(
-                                  color: color,
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                                ),
-                              ),
-                              InkWell(
-                                onTap: () => setState(() => _expanded = expanded ? null : i),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(16),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 46,
-                                        height: 46,
-                                        decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-                                        child: Icon(iconFor(rec.icon), color: color),
-                                      ),
-                                      const SizedBox(width: 14),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(rec.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                                            const SizedBox(height: 6),
-                                            Row(
-                                              children: [
-                                                TagBadge(label: '${rec.matchPercent}% Match', color: color),
-                                                const SizedBox(width: 8),
-                                                TagBadge(label: 'Level ${rec.nsqfLevel}', color: Colors.grey.shade200, textColor: AppColors.textDark),
-                                                const SizedBox(width: 8),
-                                                Text(rec.duration, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Icon(expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded, color: AppColors.textMuted),
-                                    ],
+                              ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                leading: Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: _iconBg(item.colorKey),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
+                                  child: Icon(_iconFor(item.colorKey), color: _iconColor(item.colorKey), size: 22),
                                 ),
+                                title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                subtitle: Row(
+                                  children: [
+                                    PillTag('${item.matchPercent}% Match', bg: AppColors.navy, fg: Colors.white),
+                                    const SizedBox(width: 6),
+                                    PillTag('Level ${item.nsqfLevel}', bg: AppColors.bgLight, fg: AppColors.textMuted),
+                                    const SizedBox(width: 6),
+                                    Text(item.duration, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                                  ],
+                                ),
+                                trailing: Icon(
+                                  isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                                  color: AppColors.textMuted,
+                                ),
+                                onTap: () => setState(() => _expanded = isExpanded ? null : i),
                               ),
-                              if (expanded)
+
+                              if (isExpanded)
                                 Padding(
                                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
                                     children: [
-                                      const Divider(),
-                                      Row(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          const Text('💡 ', style: TextStyle(fontSize: 14)),
-                                          Expanded(
-                                            child: Text(rec.insight, style: const TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.4)),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 16),
-                                      const Text('SKILL GAP PATHWAY', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.textMuted, letterSpacing: 0.4)),
-                                      const SizedBox(height: 10),
-                                      Wrap(
-                                        crossAxisAlignment: WrapCrossAlignment.center,
-                                        children: List.generate(rec.pathway.length * 2 - 1, (idx) {
-                                          if (idx.isOdd) {
-                                            return const Padding(
-                                              padding: EdgeInsets.symmetric(horizontal: 4),
-                                              child: Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.textMuted),
-                                            );
-                                          }
-                                          final stepIdx = idx ~/ 2;
-                                          final isLast = stepIdx == rec.pathway.length - 1;
-                                          return Container(
-                                            margin: const EdgeInsets.only(bottom: 8),
-                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                            decoration: BoxDecoration(
-                                              color: isLast ? color : color.withOpacity(0.1),
-                                              borderRadius: BorderRadius.circular(10),
-                                            ),
-                                            child: Text(rec.pathway[stepIdx],
-                                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: isLast ? Colors.white : color)),
-                                          );
-                                        }),
-                                      ),
+                                      const Divider(height: 1),
+                                      const SizedBox(height: 12),
+                                      Text(state.tr('skills_to_learn'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textMuted, letterSpacing: 0.5)),
                                       const SizedBox(height: 8),
-                                      const Text('SKILLS TO LEARN', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.textMuted, letterSpacing: 0.4)),
-                                      const SizedBox(height: 10),
                                       Wrap(
                                         spacing: 8,
                                         runSpacing: 8,
-                                        children: rec.skillsToLearn
-                                            .map((s) => Chip(
-                                                  label: Text(s, style: const TextStyle(fontSize: 12)),
-                                                  backgroundColor: AppColors.bgLight,
-                                                  side: BorderSide.none,
-                                                ))
-                                            .toList(),
+                                        children: item.skills.map((s) => _skillChip(s)).toList(),
                                       ),
                                       const SizedBox(height: 14),
                                       Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                        decoration: BoxDecoration(color: AppColors.success.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.success.withOpacity(0.08),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
                                         child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                           children: [
-                                            const Text('💰 ', style: TextStyle(fontSize: 14)),
-                                            const Text('Expected Salary', style: TextStyle(fontSize: 12.5, color: AppColors.textMuted)),
-                                            const Spacer(),
-                                            Text(rec.expectedSalary, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.success, fontSize: 13)),
+                                            Text('💰 ${state.tr('expected_salary')}', style: const TextStyle(fontSize: 12.5, color: AppColors.textDark)),
+                                            Text(item.expectedSalary, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.success)),
                                           ],
                                         ),
                                       ),
-                                      const SizedBox(height: 12),
+                                      const SizedBox(height: 14),
                                       SizedBox(
-                                        width: double.infinity,
+                                        height: 44,
                                         child: ElevatedButton(
                                           onPressed: () {
-                                            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TrainingScreen()));
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(builder: (_) => const TrainingScreen()),
+                                            );
                                           },
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: color,
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(vertical: 13),
+                                            backgroundColor: AppColors.navy,
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                           ),
-                                          child: const Text('Find Training', style: TextStyle(fontWeight: FontWeight.w600)),
+                                          child: Text(state.tr('find_training'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                                         ),
                                       ),
                                     ],
@@ -325,5 +258,55 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
         ),
       ),
     );
+  }
+
+  Widget _skillChip(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.bgLight,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(text, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.textDark)),
+    );
+  }
+
+  Color _iconBg(String key) {
+    switch (key) {
+      case 'purple':
+        return AppColors.purple.withOpacity(0.12);
+      case 'orange':
+        return AppColors.orange.withOpacity(0.12);
+      case 'teal':
+        return AppColors.teal.withOpacity(0.12);
+      default:
+        return AppColors.navy.withOpacity(0.12);
+    }
+  }
+
+  Color _iconColor(String key) {
+    switch (key) {
+      case 'purple':
+        return AppColors.purple;
+      case 'orange':
+        return AppColors.orange;
+      case 'teal':
+        return AppColors.teal;
+      default:
+        return AppColors.navy;
+    }
+  }
+
+  IconData _iconFor(String key) {
+    switch (key) {
+      case 'purple':
+        return Icons.computer_rounded;
+      case 'orange':
+        return Icons.people_outline_rounded;
+      case 'teal':
+        return Icons.shopping_bag_outlined;
+      default:
+        return Icons.data_usage_rounded;
+    }
   }
 }
