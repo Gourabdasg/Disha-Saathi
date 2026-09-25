@@ -500,7 +500,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                             (p) => Padding(
                               padding: const EdgeInsets.only(right: 8, bottom: 6),
                               child: ActionChip(
-                                labelText: Text(p, style: const TextStyle(fontSize: 11.5)),
+                                label: Text(p, style: const TextStyle(fontSize: 11.5)),
                                 backgroundColor: AppColors.bgLight,
                                 onPressed: () => _useSampleVoicePrompt(p),
                               ),
