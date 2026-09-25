@@ -156,8 +156,8 @@ async function handleChatPost(req, res) {
     // Save user message in specific session
     await saveMessage(userMobile, 'user', text, sid);
 
-    // Step 1: Onboarding flow
-    const onboarding = await handleOnboardingMessage(userMobile, text, null);
+    // Step 1: Onboarding flow in user's selected language
+    const onboarding = await handleOnboardingMessage(userMobile, text, langCode, null);
 
     if (onboarding.handled) {
       await saveMessage(userMobile, 'bot', onboarding.reply, sid);

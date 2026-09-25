@@ -146,18 +146,15 @@ async function getOrCreateProfile(mobile) {
 
 /**
  * Main entry point for conversational onboarding assessment.
- * Ensures questions are asked one by one according to FIELD_ORDER.
- * Training recommendations are NEVER triggered prematurely (e.g. after age).
+ * Ensures questions are asked one by one in the user's selected language.
  */
-async function handleOnboardingMessage(mobile, message, llmClient = null) {
+async function handleOnboardingMessage(mobile, message, languageCode = 'en', llmClient = null) {
   const profile = await getOrCreateProfile(mobile);
+  const lang = (languageCode || 'en').toLowerCase().trim();
 
   const trimmed = (message || '').trim();
   const lower = trimmed.toLowerCase();
 
-  // Training recommendations are ONLY triggered when:
-  // 1. Profile onboarding assessment is complete, OR
-  // 2. User explicitly asks for training/course recommendations with explicit keywords.
   const explicitCourseQuery =
     lower.includes('which course') ||
     lower.includes('which training') ||
@@ -172,14 +169,14 @@ async function handleOnboardingMessage(mobile, message, llmClient = null) {
     return { handled: false, reply: null, profileComplete: true, profile };
   }
 
-  // --- Case A: Onboarding hasn't started yet (no name captured) and user sent a greeting ---
+  // --- Case A: Greeting ---
   if (!profile.name && detectGreeting(trimmed)) {
     const firstField = FIELD_ORDER[0];
-    const reply = getQuestionFor(firstField, profile);
+    const reply = getQuestionFor(firstField, profile, lang);
     return { handled: true, reply, profileComplete: false, profile };
   }
 
-  // --- Case B: Onboarding hasn't started, message is the answer to Name ---
+  // --- Case B: Name response ---
   if (!profile.name && !detectGreeting(trimmed)) {
     const extracted = await extractFieldsFromMessage(trimmed, 'name', getMissingFields(profile), llmClient);
     Object.assign(profile, extracted);
@@ -187,22 +184,33 @@ async function handleOnboardingMessage(mobile, message, llmClient = null) {
 
     const next = getNextField(profile);
     if (next) {
-      const reply = `Hello! 👋 Welcome to Disha Saathi. ${getQuestionFor(next, profile)}`;
+      const reply = getQuestionFor(next, profile, lang);
       return { handled: true, reply, profileComplete: false, profile };
     }
   }
 
-  // --- Case C: Onboarding assessment is in progress ---
+  // --- Case C: Onboarding assessment in progress ---
   const currentField = getNextField(profile);
   if (currentField) {
     const missingBefore = getMissingFields(profile);
     const extracted = await extractFieldsFromMessage(trimmed, currentField.key, missingBefore, llmClient);
 
-    // Basic validation for age
+    // Age validation
     if (currentField.key === 'age' && (extracted.age === undefined || Number.isNaN(extracted.age))) {
+      const ageErrMsg = {
+        as: `ক্ষমা কৰিব — আপোনাৰ বয়স সংখ্যাত কওক (যেনে ২২)।`,
+        bn: `দুঃখিত — অনুগ্রহ করে আপনার বয়স সংখ্যায় লিখুন (যেমন ২২)।`,
+        hi: `क्षमा करें — कृपया अपनी उम्र संख्या में बताएं (जैसे 22)।`,
+        pa: `ਮਾਫ਼ ਕਰਨਾ — ਕਿਰਪਾ ਕਰਕੇ ਆਪਣੀ ਉਮਰ ਨੰਬਰ ਵਿੱਚ ਦੱਸੋ (ਜਿਵੇਂ 22)।`,
+        ta: `மன்னிக்கவும் — தயவுசெய்து உங்கள் வயதை எண்ணாக குறிப்பிடவும் (எ.கா. 22).`,
+        te: `క్షమించండి — దయచేసి మీ వయస్సును సంఖ్యగా చెప్పండి (ఉదా. 22).`,
+        mr: `क्षमस्व — कृपया तुमचे वय क्रमांकात सांगा (उदा. 22).`,
+        ur: `معذرت — براہ کرم اپنی عمر نمبر میں بتائیں (جیسے 22)۔`,
+        en: `Sorry, I didn't quite catch that — could you tell me your age as a number (e.g. 22)?`,
+      };
       return {
         handled: true,
-        reply: `Sorry, I didn't quite catch that — could you tell me your age as a number (e.g. 22)?`,
+        reply: ageErrMsg[lang] || ageErrMsg.en,
         profileComplete: false,
         profile,
       };
@@ -213,23 +221,23 @@ async function handleOnboardingMessage(mobile, message, llmClient = null) {
 
     const next = getNextField(profile);
     if (next) {
-      const reply = getQuestionFor(next, profile);
+      const reply = getQuestionFor(next, profile, lang);
       return { handled: true, reply, profileComplete: false, profile };
     }
 
-    // All 14 profile fields collected -> finalize onboarding & show profile summary + NSQF training recommendations.
+    // All 14 fields collected -> finalize & show summary + recommendations in user's active language
     profile.onboardingComplete = true;
     profile.currentStep = null;
     await safeSaveProfile(profile);
 
-    const summary = buildSummary(profile);
+    const summary = buildSummary(profile, lang);
     return { handled: true, reply: summary, profileComplete: true, profile };
   }
 
   // Fallback
   profile.onboardingComplete = true;
   await safeSaveProfile(profile);
-  return { handled: true, reply: buildSummary(profile), profileComplete: true, profile };
+  return { handled: true, reply: buildSummary(profile, lang), profileComplete: true, profile };
 }
 
 module.exports = {
