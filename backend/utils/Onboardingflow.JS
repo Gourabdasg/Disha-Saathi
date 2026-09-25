@@ -13,7 +13,7 @@ const FIELD_ORDER = [
   {
     key: 'name',
     label: 'Name',
-    question: () => `Hello! 👋 Welcome. May I know your name?`,
+    question: () => `Hello! 👋 Welcome to Disha Saathi. May I know your name?`,
   },
   {
     key: 'age',
@@ -56,7 +56,7 @@ const FIELD_ORDER = [
   {
     key: 'skills',
     label: 'Skills',
-    question: () => `What are your main work skills or interests?`,
+    question: () => `What are your main work skills?`,
   },
   {
     key: 'experience',
@@ -99,7 +99,7 @@ function detectGreeting(message) {
 }
 
 // ---------------------------------------------------------------------------
-// 3. Smart NLP Entity & Field Extractor
+// 3. Smart Field Extractor
 // ---------------------------------------------------------------------------
 
 function ruleBasedExtract(message, expectedKey) {
@@ -107,17 +107,7 @@ function ruleBasedExtract(message, expectedKey) {
   const text = (message || '').trim();
   if (!text) return result;
 
-  const nlp = parseNaturalLanguage(text);
-
-  // Volunteer Extraction across all fields
-  if (nlp.education) result.education = nlp.education;
-  if (nlp.location) result.location = nlp.location;
-  if (nlp.extractedSkills && nlp.extractedSkills.length > 0) {
-    result.skills = nlp.extractedSkills.join(', ');
-    result.currentOccupation = text;
-  }
-
-  // Strict handling for expected field
+  // Strict handling for expected field currently being asked
   if (expectedKey === 'name') {
     const explicitNameMatch = text.match(/\b(?:my name is|i am|mera naam|naam)\s+([a-zA-Z\u0900-\u097F. ]{2,25})\b/i);
     if (explicitNameMatch && explicitNameMatch[1]) {
@@ -130,10 +120,10 @@ function ruleBasedExtract(message, expectedKey) {
     }
   } else if (expectedKey === 'age') {
     const cleanTextForAge = text.replace(/\b(10th|12th|8th)\b/gi, '');
-    const ageMatch = cleanTextForAge.match(/\b(\d{2})\b/);
+    const ageMatch = cleanTextForAge.match(/\b(\d{1,2})\b/);
     if (ageMatch) {
       const num = parseInt(ageMatch[1], 10);
-      if (num >= 15 && num <= 80) {
+      if (num >= 12 && num <= 90) {
         result.age = num;
       }
     }
@@ -177,15 +167,15 @@ function getQuestionFor(field, profile) {
 // 5. NSQF Dataset Matcher & Final Summary
 // ---------------------------------------------------------------------------
 
-function searchNsqfRecommendations(profile, limit = 3) {
+function searchNsqfRecommendations(profile, limit = 4) {
   if (!Array.isArray(nsqfDataset) || nsqfDataset.length === 0) return [];
 
   const queryTerms = [
     profile.careerGoal,
     profile.skills,
+    profile.interests,
     profile.education,
     profile.currentOccupation,
-    profile.interests,
   ]
     .filter(Boolean)
     .join(' ')
@@ -212,9 +202,8 @@ function searchNsqfRecommendations(profile, limit = 3) {
 
   scored.sort((a, b) => b.score - a.score);
 
-  // If top items scored 0 (no specific term matched), pick 3 diverse popular Level 3/4 courses
   if (scored.length > 0 && scored[0].score === 0) {
-    return [nsqfDataset[0], nsqfDataset[1], nsqfDataset[4]];
+    return [nsqfDataset[0], nsqfDataset[4], nsqfDataset[10], nsqfDataset[15]].slice(0, limit);
   }
 
   return scored.slice(0, limit).map((s) => s.item);
@@ -226,23 +215,24 @@ function buildSummary(profile) {
 
   if (profile.education) parts.push(profile.education);
   if (profile.skills) parts.push(`skilled in ${profile.skills}`);
-  if (profile.currentOccupation) parts.push(`with experience in ${profile.currentOccupation}`);
+  if (profile.currentOccupation) parts.push(`working as ${profile.currentOccupation}`);
+  if (profile.careerGoal) parts.push(`aiming for ${profile.careerGoal}`);
 
   let descriptor = parts.length
     ? `You are ${parts.join(', ')}`
-    : `I've noted your profile information`;
+    : `I've recorded your profile information`;
 
-  let responseText = `Thanks, ${displayName}! I've captured your career profile. ${descriptor}.\n\n`;
+  let responseText = `Thank you, ${displayName}! 🎉 I have completed your profile assessment.\n${descriptor}.\n\n`;
 
-  const topNsqf = searchNsqfRecommendations(profile, 3);
+  const topNsqf = searchNsqfRecommendations(profile, 4);
   if (topNsqf && topNsqf.length > 0) {
-    responseText += `🎯 Recommended NSQF Skill Training Options for You:\n\n`;
+    responseText += `🎯 Recommended Official NSQF Training Courses For You:\n\n`;
     topNsqf.forEach((rec, idx) => {
-      responseText += `${idx + 1}. ${rec.Title} (${rec.Level || 'NSQF'})\n`;
-      responseText += `   • Sector: ${rec['Sector Name'] || 'Skill Development'}\n`;
-      responseText += `   • Duration: ${rec['Minimum Notational Hours'] || rec['Maximum Notational Hours'] || '300 Hours'}\n`;
+      responseText += `${idx + 1}. **${rec.Title}** (${rec.Level || 'NSQF Level 3'})\n`;
+      responseText += `   • **Sector**: ${rec['Sector Name'] || 'Skill Development'}\n`;
+      responseText += `   • **Duration**: ${rec['Minimum Notational Hours'] || rec['Maximum Notational Hours'] || '300 Hours'}\n`;
       if (rec['Proposed Occupation']) {
-        responseText += `   • Career: ${rec['Proposed Occupation']}\n`;
+        responseText += `   • **Career**: ${rec['Proposed Occupation']}\n`;
       }
       responseText += `\n`;
     });

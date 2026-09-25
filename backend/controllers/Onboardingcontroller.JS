@@ -70,7 +70,7 @@ async function resetOnboarding(mobile) {
   }
   try {
     await query(
-      `UPDATE user_profiles SET onboarding_complete = FALSE, name = '', age = NULL, skills = '', career_goal = '' WHERE mobile = $1;`,
+      `UPDATE user_profiles SET onboarding_complete = FALSE, name = '', age = NULL, state = '', district = '', location = '', education = '', current_occupation = '', family_occupation = '', skills = '', experience = '', interests = '', employment_preference = '', mobility_constraints = '', career_goal = '' WHERE mobile = $1;`,
       [key]
     );
   } catch (e) {
@@ -145,8 +145,9 @@ async function getOrCreateProfile(mobile) {
 }
 
 /**
- * Main entry point. Call this from your chat route BEFORE falling through
- * to general AI/voice-assistant handling.
+ * Main entry point for conversational onboarding assessment.
+ * Ensures questions are asked one by one according to FIELD_ORDER.
+ * Training recommendations are NEVER triggered prematurely (e.g. after age).
  */
 async function handleOnboardingMessage(mobile, message, llmClient = null) {
   const profile = await getOrCreateProfile(mobile);
@@ -154,41 +155,31 @@ async function handleOnboardingMessage(mobile, message, llmClient = null) {
   const trimmed = (message || '').trim();
   const lower = trimmed.toLowerCase();
 
-  // If the user asks a direct training/course/job question or profile is established, skip onboarding and let AI handle it directly.
-  const isTrainingQuestion =
-    lower.includes('train') ||
-    lower.includes('course') ||
-    lower.includes('learn') ||
-    lower.includes('skill') ||
-    lower.includes('job') ||
-    lower.includes('career') ||
-    lower.includes('nsqf') ||
-    lower.includes('कोर्स') ||
-    lower.includes('प्रशिक्षण') ||
-    lower.includes('कौशल') ||
-    lower.includes('कোর্স') ||
-    lower.includes('প্রশিক্ষণ') ||
-    lower.includes('দক্ষতা') ||
-    lower.includes('কাজ') ||
-    lower.includes('চাই') ||
-    lower.includes('பயிற்சி') ||
-    lower.includes('تربیت') ||
-    lower.includes('کورس') ||
-    (profile.name && profile.name.trim().length > 0);
+  // Training recommendations are ONLY triggered when:
+  // 1. Profile onboarding assessment is complete, OR
+  // 2. User explicitly asks for training/course recommendations with explicit keywords.
+  const explicitCourseQuery =
+    lower.includes('which course') ||
+    lower.includes('which training') ||
+    lower.includes('recommend training') ||
+    lower.includes('recommend course') ||
+    lower.includes('show nsqf') ||
+    lower.includes('कौन सा कोर्स') ||
+    lower.includes('कोर्स दिखाओ') ||
+    lower.includes('কোন কোর্স');
 
-  if (isTrainingQuestion || profile.onboardingComplete) {
+  if (profile.onboardingComplete || explicitCourseQuery) {
     return { handled: false, reply: null, profileComplete: true, profile };
   }
 
-  // --- Case A: onboarding hasn't started yet (no name captured) and the
-  //     user just sent a greeting -> kick off with the first question. ---
+  // --- Case A: Onboarding hasn't started yet (no name captured) and user sent a greeting ---
   if (!profile.name && detectGreeting(trimmed)) {
     const firstField = FIELD_ORDER[0];
     const reply = getQuestionFor(firstField, profile);
     return { handled: true, reply, profileComplete: false, profile };
   }
 
-  // --- Case B: onboarding hasn't started, and the message ISN'T a greeting either. ---
+  // --- Case B: Onboarding hasn't started, message is the answer to Name ---
   if (!profile.name && !detectGreeting(trimmed)) {
     const extracted = await extractFieldsFromMessage(trimmed, 'name', getMissingFields(profile), llmClient);
     Object.assign(profile, extracted);
@@ -201,7 +192,7 @@ async function handleOnboardingMessage(mobile, message, llmClient = null) {
     }
   }
 
-  // --- Case C: onboarding is in progress ---
+  // --- Case C: Onboarding assessment is in progress ---
   const currentField = getNextField(profile);
   if (currentField) {
     const missingBefore = getMissingFields(profile);
@@ -226,7 +217,7 @@ async function handleOnboardingMessage(mobile, message, llmClient = null) {
       return { handled: true, reply, profileComplete: false, profile };
     }
 
-    // All fields collected -> finalize.
+    // All 14 profile fields collected -> finalize onboarding & show profile summary + NSQF training recommendations.
     profile.onboardingComplete = true;
     profile.currentStep = null;
     await safeSaveProfile(profile);
