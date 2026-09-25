@@ -37,17 +37,19 @@ class _LoginScreenState extends State<LoginScreen> {
       if (redirectResult.user != null && mounted) {
         final user = redirectResult.user!;
         final state = context.read<AppState>();
-        final result = await state.loginWithGoogle(
-          user.email ?? '',
-          user.displayName ?? '',
-          user.uid,
-        );
-        if (mounted && result != null) {
-          _showSuccess('Google Sign-In Successful! Welcome ${state.name.isNotEmpty ? state.name : (user.displayName ?? '')}');
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (_) => const MainShell()),
-            (route) => false,
-          );
+        final email = user.email ?? '';
+        final displayName = user.displayName ?? '';
+        final uid = user.uid;
+
+        if (email.isNotEmpty) {
+          final result = await state.loginWithGoogle(email, displayName, uid);
+          if (mounted && result != null) {
+            _showSuccess('Google Sign-In Successful! Welcome ${state.name.isNotEmpty ? state.name : (displayName.isNotEmpty ? displayName : email)}');
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const MainShell()),
+              (route) => false,
+            );
+          }
         }
       }
     } catch (_) {}
@@ -68,30 +70,37 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleDirectGoogleSignIn() async {
     final state = context.read<AppState>();
     try {
-      UserCredential? userCredential;
-      try {
-        userCredential = await FirebaseAuthService.signInWithGoogle();
-      } catch (e) {
-        print('[Google Sign-In Exception]: $e');
+      final userCredential = await FirebaseAuthService.signInWithGoogle();
+      if (userCredential == null || userCredential.user == null) {
+        // User cancelled or closed Google account selection dialog
+        return;
       }
 
-      final user = userCredential?.user;
-      final email = user?.email?.isNotEmpty == true ? user!.email! : 'google.user@example.com';
-      final displayName = user?.displayName?.isNotEmpty == true ? user!.displayName! : 'Google User';
-      final uid = user?.uid ?? 'google_${DateTime.now().millisecondsSinceEpoch}';
+      final user = userCredential.user!;
+      final email = user.email ?? '';
+      final displayName = user.displayName ?? '';
+      final uid = user.uid;
+
+      if (email.trim().isEmpty) {
+        _showError('Unable to retrieve email from selected Google Account.');
+        return;
+      }
 
       final result = await state.loginWithGoogle(email, displayName, uid);
       if (!mounted) return;
 
       if (result != null) {
-        _showSuccess('Welcome ${state.name.isNotEmpty ? state.name : displayName}!');
+        _showSuccess('Welcome ${state.name.isNotEmpty ? state.name : (displayName.isNotEmpty ? displayName : email)}!');
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const MainShell()),
           (route) => false,
         );
+      } else {
+        _showError(state.errorMessage ?? 'Google Sign-In failed');
       }
     } catch (e) {
-      _showError('Google Sign-In failed. Please try again.');
+      final cleanMsg = e.toString().replaceFirst('Exception: ', '');
+      _showError(cleanMsg.isNotEmpty ? cleanMsg : 'Google Sign-In failed. Please try again.');
     }
   }
 
@@ -112,7 +121,7 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (_) => OtpVerificationScreen(email: email, isEmail: true)),
       );
     } else {
-      _showError(state.errorMessage ?? 'Could not send Email OTP.');
+      _showError(state.errorMessage ?? 'Unable to send Email OTP. Please try again.');
     }
   }
 
@@ -132,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
         MaterialPageRoute(builder: (_) => OtpVerificationScreen(mobile: mobile, isEmail: false)),
       );
     } else {
-      _showError(state.errorMessage ?? 'Could not send Mobile OTP.');
+      _showError(state.errorMessage ?? 'Unable to send Mobile OTP. Please try again.');
     }
   }
 

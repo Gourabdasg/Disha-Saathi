@@ -62,7 +62,7 @@ class FirebaseAuthService {
     }
   }
 
-  // --- Google Sign-In Authentication (Web Popup/Redirect & Native Mobile) ---
+  // --- Google Sign-In Authentication (Forces Google Account Selection) ---
 
   static Future<UserCredential?> signInWithGoogle() async {
     try {
@@ -83,6 +83,12 @@ class FirebaseAuthService {
           rethrow;
         }
       }
+
+      // Clear previous cached Google SignIn account to force account picker
+      try {
+        await _googleSignIn.signOut();
+        await _googleSignIn.disconnect();
+      } catch (_) {}
 
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
@@ -110,8 +116,11 @@ class FirebaseAuthService {
   static Future<void> signOut() async {
     try {
       await _googleSignIn.signOut();
+      await _googleSignIn.disconnect();
     } catch (_) {}
-    await _auth.signOut();
+    try {
+      await _auth.signOut();
+    } catch (_) {}
   }
 
   static String _mapFirebaseError(FirebaseAuthException e) {
