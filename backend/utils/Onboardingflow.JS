@@ -164,7 +164,7 @@ function getQuestionFor(field, profile) {
 }
 
 // ---------------------------------------------------------------------------
-// 5. Job Recommendation & NSQF Training Requirement Decision Logic
+// 5. Job Recommendation & NSQF Training Matching Decision Engine
 // ---------------------------------------------------------------------------
 
 function recommendJobRole(profile) {
@@ -212,29 +212,7 @@ function recommendJobRole(profile) {
   return { title: fallbackJob, sector: 'Skill Development' };
 }
 
-function checkTrainingRequirement(profile, jobRole) {
-  const expText = (profile.experience || '').toLowerCase();
-  const skillsText = (profile.skills || '').toLowerCase();
-  const occText = (profile.currentOccupation || '').toLowerCase();
-
-  const hasYearsExp = /\b([2-9]|\d{2})\s*(year|yr|سال|वर्ष|इयर्स|বছর)\b/i.test(expText) || /\b(3|4|5|6|7|8|9|10)\s*years?\b/i.test(expText);
-  const roleTitleLower = jobRole.title.toLowerCase();
-  const alreadyInSameRole = occText.length > 3 && roleTitleLower.includes(occText.toLowerCase());
-
-  if (hasYearsExp || (alreadyInSameRole && (skillsText.length > 5 || expText.includes('experience')))) {
-    return {
-      required: false,
-      reason: `You already possess ${profile.experience || 'relevant'} experience and matching skills for ${jobRole.title}. No additional NSQF training is required at this stage. You are qualified to apply directly for job opportunities!`,
-    };
-  }
-
-  return {
-    required: true,
-    reason: `Taking an official NSQF-aligned training course will help build certified skills, practical experience, and official accreditation required for this job role.`,
-  };
-}
-
-function searchNsqfRecommendations(profile, limit = 3) {
+function searchNsqfRecommendations(profile, limit = 4) {
   if (!Array.isArray(nsqfDataset) || nsqfDataset.length === 0) return [];
 
   const queryTerms = [
@@ -270,7 +248,7 @@ function searchNsqfRecommendations(profile, limit = 3) {
   scored.sort((a, b) => b.score - a.score);
 
   if (scored.length > 0 && scored[0].score === 0) {
-    return [nsqfDataset[0], nsqfDataset[4], nsqfDataset[10]].slice(0, limit);
+    return [nsqfDataset[0], nsqfDataset[4], nsqfDataset[10], nsqfDataset[15]].slice(0, limit);
   }
 
   return scored.slice(0, limit).map((s) => s.item);
@@ -279,32 +257,29 @@ function searchNsqfRecommendations(profile, limit = 3) {
 function buildSummary(profile) {
   const displayName = profile.name || 'Friend';
   const jobRole = recommendJobRole(profile);
-  const trainingCheck = checkTrainingRequirement(profile, jobRole);
 
   let responseText = `Thank you, ${displayName}! 🎉 I have completed your profile assessment.\n\n`;
 
-  responseText += `💼 **Recommended Suitable Job / Career Role:**\n`;
-  responseText += `🎯 **${jobRole.title}** (Sector: ${jobRole.sector})\n\n`;
+  responseText += `🎯 **Recommended Career Role:**\n`;
+  responseText += `**${jobRole.title}** (Sector: ${jobRole.sector})\n\n`;
 
-  if (!trainingCheck.required) {
-    responseText += `✅ **Training Requirement Assessment:**\n`;
-    responseText += `${trainingCheck.reason}\n`;
-  } else {
-    responseText += `🎓 **Recommended Official NSQF Training Courses:**\n`;
-    responseText += `*(Why: ${trainingCheck.reason})*\n\n`;
+  responseText += `📚 **Recommended Official NSQF Training Courses:**\n\n`;
 
-    const topNsqf = searchNsqfRecommendations(profile, 3);
-    topNsqf.forEach((rec, idx) => {
-      responseText += `${idx + 1}. **${rec.Title}** (${rec.Level || 'NSQF Level 3'})\n`;
-      responseText += `   • **Sector**: ${rec['Sector Name'] || 'Skill Development'}\n`;
-      responseText += `   • **Duration**: ${rec['Minimum Notational Hours'] || rec['Maximum Notational Hours'] || '300 Hours'}\n`;
-      responseText += `   • **Awarding Body**: ${rec['Awarding Body'] || 'NSDC'}\n`;
-      if (rec['Proposed Occupation']) {
-        responseText += `   • **Career Pathway**: ${rec['Proposed Occupation']}\n`;
-      }
-      responseText += `\n`;
-    });
-  }
+  const topNsqf = searchNsqfRecommendations(profile, 4);
+  topNsqf.forEach((rec, idx) => {
+    responseText += `${idx + 1}. **${rec.Title}** (${rec.Level || 'NSQF Level 3'})\n`;
+    responseText += `   • **Sector**: ${rec['Sector Name'] || 'Skill Development'}\n`;
+    responseText += `   • **Course Code**: ${rec.Code || 'NSQF-GOV-COURSE'}\n`;
+    responseText += `   • **Duration**: ${rec['Minimum Notational Hours'] || rec['Maximum Notational Hours'] || '300 Hours'}\n`;
+    responseText += `   • **Awarding Body**: ${rec['Awarding Body'] || 'NSDC'}\n`;
+    if (rec['Proposed Occupation']) {
+      responseText += `   • **Career Pathway**: ${rec['Proposed Occupation']}\n`;
+    }
+    responseText += `\n`;
+  });
+
+  responseText += `💡 **Reason for Recommendation:**\n`;
+  responseText += `Your education (${profile.education || '10th/12th'}), skills (${profile.skills || 'practical'}), interests (${profile.interests || 'vocational'}), and career goal (${profile.careerGoal || jobRole.title}) match the requirements of these official NSQF certified training courses.`;
 
   return responseText.trim();
 }
@@ -319,7 +294,6 @@ module.exports = {
   getNextField,
   getQuestionFor,
   recommendJobRole,
-  checkTrainingRequirement,
   buildSummary,
   searchNsqfRecommendations,
 };
