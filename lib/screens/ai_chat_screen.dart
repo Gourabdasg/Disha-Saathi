@@ -1,7 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../models/app_models.dart';
 import '../providers/app_state.dart';
@@ -16,24 +17,21 @@ class AiChatScreen extends StatefulWidget {
 }
 
 class _AiChatScreenState extends State<AiChatScreen> {
-  final _textController = TextEditingController();
   final _scrollController = ScrollController();
+  final _textController = TextEditingController();
   final stt.SpeechToText _speech = stt.SpeechToText();
   final AudioPlayer _audioPlayer = AudioPlayer();
 
-  bool _isListening = false;
   bool _speechEnabled = false;
+  bool _isListening = false;
   String _lastWords = '';
-
   int? _playingMessageIndex;
-  bool _isSynthesizingTts = false;
+  bool _isLoadingTts = false;
 
-  final List<String> _sampleVoicePrompts = const [
-    'मैं खेती का काम करता हूँ और सिलाई भी जानता हूँ।',
-    'I am 10th pass and know basic computer operations and typing.',
-    'मुझे बिजली की वायरिंग का काम आता है और जॉब चाहिए।',
-    'I want a full-time tailoring job in Kolkata.',
-    'मैं ड्राइविंग जानता हूँ और कमर्शियल ड्राइवर बनना चाहता हूँ।',
+  final List<String> _sampleVoicePrompts = [
+    'I want to learn tailoring and garment design in West Bengal.',
+    'Where can I apply for organic farming training near my district?',
+    'Show me computer and data entry courses with NSQF certification.',
   ];
 
   @override
@@ -170,400 +168,179 @@ class _AiChatScreenState extends State<AiChatScreen> {
     if (text.trim().isEmpty) return;
     _textController.clear();
     if (!mounted) return;
+    _scrollToBottom();
     await context.read<AppState>().sendChatMessage(text);
     if (mounted) _scrollToBottom();
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent + 200,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted && _scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent + 200,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOutCubic,
+        );
+      }
+    });
   }
 
   /// Requirements 15 & 16 & 17: NVIDIA Text-to-Speech playback via Backend Proxy
   Future<void> _playTtsForMessage(int index, String text) async {
-    final langCode = context.read<AppState>().selectedLanguage.code;
-
     if (_playingMessageIndex == index) {
       await _audioPlayer.stop();
       setState(() => _playingMessageIndex = null);
       return;
     }
 
-    await _audioPlayer.stop();
     setState(() {
+      _isLoadingTts = true;
       _playingMessageIndex = index;
-      _isSynthesizingTts = true;
     });
+
+    final langCode = context.read<AppState>().selectedLanguage.code;
 
     try {
       final audioBase64 = await ApiService.textToSpeech(text, langCode);
-      setState(() => _isSynthesizingTts = false);
-
       if (audioBase64 != null && audioBase64.isNotEmpty) {
         final bytes = base64Decode(audioBase64);
+        await _audioPlayer.stop();
         await _audioPlayer.play(BytesSource(bytes));
+        if (mounted) setState(() => _isLoadingTts = false);
       } else {
-        setState(() => _playingMessageIndex = null);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Reading message aloud...'), duration: Duration(seconds: 2)),
-          );
-        }
+        throw Exception('TTS Audio unavailable');
       }
-    } catch (e) {
-      setState(() {
-        _isSynthesizingTts = false;
-        _playingMessageIndex = null;
-      });
+    } catch (_) {
       if (mounted) {
+        setState(() {
+          _isLoadingTts = false;
+          _playingMessageIndex = null;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Audio speech playback error.'), duration: Duration(seconds: 2)),
+          const SnackBar(
+            content: Text('Audio playback unavailable in offline mode.'),
+            duration: Duration(seconds: 2),
+          ),
         );
       }
     }
-  }
-
-  void _confirmRestartChat() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Restart Conversation?'),
-        content: const Text('Are you sure you want to restart your current AI conversation flow?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.black54)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.navy),
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.read<AppState>().restartChat();
-            },
-            child: const Text('Restart', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmClearChat() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Clear Chat History?'),
-        content: const Text('Are you sure you want to permanently delete all messages in this conversation?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.black54)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.read<AppState>().clearChat();
-            },
-            child: const Text('Clear Chat', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// PART 2, 3, 4: Compact Language Selector Modal overlaying the AI Chat screen
-  void _showLanguageSelectorModal() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        final appState = ctx.watch<AppState>();
-        final currentLangCode = appState.selectedLanguage.code;
-
-        return SafeArea(
-          child: Container(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(ctx).size.height * 0.65,
-            ),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Top Handle Bar
-                Container(
-                  width: 38,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 12),
-
-                // Header Row with Title and Close Button
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: const [
-                        Icon(Icons.language_rounded, color: AppColors.navy, size: 22),
-                        SizedBox(width: 8),
-                        Text(
-                          'Choose Language',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textDark,
-                          ),
-                        ),
-                      ],
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, color: AppColors.textMuted),
-                      onPressed: () => Navigator.pop(ctx),
-                    ),
-                  ],
-                ),
-                const Divider(height: 1),
-                const SizedBox(height: 8),
-
-                // Requirement Part 3: All 23 Languages (22 Scheduled Indian Languages + English)
-                Expanded(
-                  child: ListView.separated(
-                    itemCount: AppLanguage.all.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1, indent: 12, endIndent: 12),
-                    itemBuilder: (context, i) {
-                      final lang = AppLanguage.all[i];
-                      final isSelected = lang.code == currentLangCode;
-
-                      return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        tileColor: isSelected ? AppColors.navy.withOpacity(0.08) : Colors.transparent,
-                        title: Text(
-                          lang.nativeName,
-                          style: TextStyle(
-                            fontSize: 15.5,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                            color: isSelected ? AppColors.navy : AppColors.textDark,
-                          ),
-                        ),
-                        subtitle: Text(
-                          lang.englishName,
-                          style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                        ),
-                        trailing: isSelected
-                            ? const Icon(Icons.check_circle_rounded, color: AppColors.navy, size: 22)
-                            : const Icon(Icons.radio_button_unchecked_rounded, color: Colors.black26, size: 20),
-                        onTap: () {
-                          appState.setLanguage(lang);
-                          Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Language set to ${lang.englishName} (${lang.nativeName})'),
-                              backgroundColor: AppColors.navy,
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // Requirement 10: Message Edit & Resend / Delete Options Modal
-  void _showMessageOptionsModal(int index, String text, bool isBot) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(width: 36, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2))),
-              const SizedBox(height: 14),
-              Text(
-                isBot ? 'Bot Message Options' : 'User Message Options',
-                style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.bold, fontSize: 15),
-              ),
-              const SizedBox(height: 10),
-              if (isBot) ...[
-                ListTile(
-                  leading: const Icon(Icons.volume_up_rounded, color: AppColors.navy),
-                  title: const Text('Read Aloud (TTS)', style: TextStyle(color: AppColors.textDark)),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _playTtsForMessage(index, text);
-                  },
-                ),
-                const Divider(height: 1),
-              ],
-              if (!isBot) ...[
-                ListTile(
-                  leading: const Icon(Icons.edit_rounded, color: AppColors.navy),
-                  title: const Text('Edit & Resend', style: TextStyle(color: AppColors.textDark)),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    setState(() {
-                      _textController.text = text;
-                      _textController.selection = TextSelection.fromPosition(TextPosition(offset: text.length));
-                    });
-                    context.read<AppState>().editAndResendMessage(index, text);
-                  },
-                ),
-                const Divider(height: 1),
-              ],
-              ListTile(
-                leading: const Icon(Icons.delete_outline_rounded, color: AppColors.danger),
-                title: const Text('Delete Message', style: TextStyle(color: AppColors.danger)),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  context.read<AppState>().deleteChatMessage(index);
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showVoiceOptionsModal() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: const [
-                  Text(
-                    'Voice Prompts Selector',
-                    style: TextStyle(color: AppColors.textDark, fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  Icon(Icons.record_voice_over_rounded, color: AppColors.navy),
-                ],
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Select a voice sample to populate into your text box:',
-                style: TextStyle(color: AppColors.textMuted, fontSize: 13),
-              ),
-              const SizedBox(height: 16),
-              ..._sampleVoicePrompts.map((p) => ListTile(
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.mic, color: AppColors.navy, size: 20),
-                    title: Text(p, style: const TextStyle(color: AppColors.textDark, fontSize: 13.5)),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      _useSampleVoicePrompt(p);
-                    },
-                  )),
-              const SizedBox(height: 10),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final messages = state.chatMessages;
+    final activeLang = state.selectedLanguage;
+    final profile = state.profile;
+
+    final completionPercent = profile.profileCompletionPercent;
+    final double completionValue = (completionPercent / 100.0).clamp(0.0, 1.0);
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
       body: SafeArea(
         child: Column(
           children: [
-            // Top App Bar with "Restart" & Three-Dot Menu (⋯)
+            // Top App Bar Header with Multilingual Indicator
             Container(
-              padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-              decoration: const BoxDecoration(gradient: LinearGradient(colors: AppColors.primaryGradient)),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(colors: AppColors.primaryGradient),
+              ),
               child: Column(
                 children: [
                   Row(
                     children: [
-                      IconButton(
-                        onPressed: () => Navigator.of(context).maybePop(),
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 22),
                       ),
-                      const Expanded(
+                      const SizedBox(width: 12),
+                      Expanded(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('AI SKILL ASSISTANT',
-                                style: TextStyle(color: AppColors.tealLight, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
-                            Text('Livelihood Assessment', style: TextStyle(color: Colors.white, fontSize: 15.5, fontWeight: FontWeight.w700)),
+                            Text(
+                              state.tr('ai_chat_title'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const Text(
+                              'Powered by NVIDIA AI · Multi-Language',
+                              style: TextStyle(color: Colors.white70, fontSize: 11),
+                            ),
                           ],
                         ),
                       ),
 
-                      TextButton.icon(
-                        onPressed: _confirmRestartChat,
-                        icon: const Icon(Icons.restart_alt_rounded, color: Colors.white, size: 18),
-                        label: const Text('Restart', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                      // Language Switcher Badge Button
+                      InkWell(
+                        onTap: () => _showLanguageSelector(context, state),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.white38),
+                          ),
+                          child: Row(
+                            children: [
+                              Text(
+                                activeLang.flagLabel,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                activeLang.nativeName,
+                                style: const TextStyle(color: Colors.white, fontSize: 12),
+                              ),
+                              const Icon(Icons.arrow_drop_down_rounded, color: Colors.white, size: 18),
+                            ],
+                          ),
+                        ),
                       ),
 
-                      // Requirement PART 1: Three-Dot Menu with "Choose Language" directly BELOW Chat History
+                      const SizedBox(width: 6),
+
+                      // Clear / Restart Conversation Button
                       PopupMenuButton<String>(
                         icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
-                        color: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         onSelected: (val) {
-                          if (val == 'new') {
-                            state.startNewChat();
+                          if (val == 'clear') {
+                            context.read<AppState>().clearChat();
                           } else if (val == 'restart') {
-                            _confirmRestartChat();
-                          } else if (val == 'history') {
-                            state.loadChatHistory();
-                          } else if (val == 'language') {
-                            _showLanguageSelectorModal();
-                          } else if (val == 'clear') {
-                            _confirmClearChat();
+                            context.read<AppState>().restartChat();
                           }
                         },
-                        itemBuilder: (ctx) => [
+                        itemBuilder: (_) => [
                           const PopupMenuItem(
-                            value: 'new',
+                            value: 'clear',
                             child: Row(
                               children: [
-                                Icon(Icons.add_rounded, color: AppColors.navy, size: 18),
-                                SizedBox(width: 10),
-                                Text('New Chat', style: TextStyle(color: AppColors.textDark, fontSize: 13.5)),
+                                Icon(Icons.cleaning_services_rounded, size: 18, color: AppColors.navy),
+                                SizedBox(width: 8),
+                                Text('Clear Messages'),
                               ],
                             ),
                           ),
@@ -571,41 +348,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
                             value: 'restart',
                             child: Row(
                               children: [
-                                Icon(Icons.restart_alt_rounded, color: AppColors.navy, size: 18),
-                                SizedBox(width: 10),
-                                Text('Restart Conversation', style: TextStyle(color: AppColors.textDark, fontSize: 13.5)),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuItem(
-                            value: 'history',
-                            child: Row(
-                              children: [
-                                Icon(Icons.history_rounded, color: AppColors.navy, size: 18),
-                                SizedBox(width: 10),
-                                Text('Chat History', style: TextStyle(color: AppColors.textDark, fontSize: 13.5)),
-                              ],
-                            ),
-                          ),
-                          // PART 1: "Choose Language" option directly BELOW "Chat History"
-                          const PopupMenuItem(
-                            value: 'language',
-                            child: Row(
-                              children: [
-                                Icon(Icons.language_rounded, color: AppColors.navy, size: 18),
-                                SizedBox(width: 10),
-                                Text('Choose Language', style: TextStyle(color: AppColors.textDark, fontSize: 13.5)),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuDivider(height: 1),
-                          const PopupMenuItem(
-                            value: 'clear',
-                            child: Row(
-                              children: [
-                                Icon(Icons.delete_sweep_rounded, color: AppColors.danger, size: 18),
-                                SizedBox(width: 10),
-                                Text('Clear Chat', style: TextStyle(color: AppColors.danger, fontSize: 13.5)),
+                                Icon(Icons.restart_alt_rounded, size: 18, color: AppColors.orange),
+                                SizedBox(width: 8),
+                                Text('Restart Assessment'),
                               ],
                             ),
                           ),
@@ -615,7 +360,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   ),
                   const SizedBox(height: 8),
 
-                  // Progress Bar
+                  // Dynamic Progress Bar (Requirement 6)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     child: Column(
@@ -623,15 +368,15 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: const [
-                            Text('Livelihood Assessment', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                            Text('60% Complete', style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                          children: [
+                            const Text('Livelihood Assessment', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                            Text('$completionPercent% Complete', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
                           ],
                         ),
                         const SizedBox(height: 6),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(4),
-                          child: const LinearProgressIndicator(value: 0.6, minHeight: 6, backgroundColor: Colors.white24, color: AppColors.tealLight),
+                          child: LinearProgressIndicator(value: completionValue, minHeight: 6, backgroundColor: Colors.white24, color: AppColors.tealLight),
                         ),
                       ],
                     ),
@@ -648,98 +393,82 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 itemCount: messages.length,
                 itemBuilder: (context, i) {
                   final m = messages[i];
-                  final isPlayingThis = _playingMessageIndex == i;
+                  final isBot = m.isBot;
+                  final isPlaying = _playingMessageIndex == i;
 
-                  return GestureDetector(
-                    onLongPress: () => _showMessageOptionsModal(i, m.text, m.isBot),
-                    child: Align(
-                      alignment: m.isBot ? Alignment.centerLeft : Alignment.centerRight,
-                      child: Container(
-                        margin: const EdgeInsets.only(bottom: 14),
-                        padding: const EdgeInsets.all(14),
-                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.82),
-                        decoration: BoxDecoration(
-                          color: m.isBot ? const Color(0xFFE8F1FD) : AppColors.navy,
-                          borderRadius: BorderRadius.circular(16),
-                          border: m.isBot ? Border.all(color: const Color(0xFFD0E1FD), width: 1) : null,
+                  return Align(
+                    alignment: isBot ? Alignment.centerLeft : Alignment.centerRight,
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.82,
+                      ),
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: isBot ? Colors.white : AppColors.navy,
+                        borderRadius: BorderRadius.only(
+                          topLeft: const Radius.circular(16),
+                          topRight: const Radius.circular(16),
+                          bottomLeft: Radius.circular(isBot ? 0 : 16),
+                          bottomRight: Radius.circular(isBot ? 16 : 0),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (m.isBot)
-                                  const Padding(
-                                    padding: EdgeInsets.only(right: 8, top: 2),
-                                    child: CircleAvatar(
-                                      radius: 10,
-                                      backgroundColor: AppColors.navy,
-                                      child: Icon(Icons.podcasts, size: 12, color: Colors.white),
-                                    ),
-                                  ),
-                                Flexible(
-                                  child: Text(
-                                    m.text,
-                                    style: TextStyle(
-                                      color: m.isBot ? AppColors.textDark : Colors.white,
-                                      fontSize: 14,
-                                      height: 1.4,
-                                    ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                isBot ? 'Disha Saathi Assistant' : 'You',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: isBot ? AppColors.teal : Colors.white70,
+                                ),
+                              ),
+
+                              // Read Aloud / Speaker Button for Bot Messages (Requirement 17)
+                              if (isBot)
+                                InkWell(
+                                  onTap: () => _playTtsForMessage(i, m.text),
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(2),
+                                    child: _isLoadingTts && isPlaying
+                                        ? const SizedBox(
+                                            width: 16,
+                                            height: 16,
+                                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.teal),
+                                          )
+                                        : Icon(
+                                            isPlaying ? Icons.stop_circle_rounded : Icons.volume_up_rounded,
+                                            size: 20,
+                                            color: isPlaying ? AppColors.orange : AppColors.teal,
+                                          ),
                                   ),
                                 ),
-                              ],
-                            ),
-
-                            // Requirements 16 & 17: Speaker Icon 🔊 for AI Message Text-To-Speech
-                            if (m.isBot) ...[
-                              const SizedBox(height: 6),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  InkWell(
-                                    onTap: () => _playTtsForMessage(i, m.text),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: isPlayingThis ? AppColors.navy : Colors.white,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(color: Colors.grey.shade300),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          if (isPlayingThis && _isSynthesizingTts)
-                                            const SizedBox(
-                                              width: 12,
-                                              height: 12,
-                                              child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.navy),
-                                            )
-                                          else
-                                            Icon(
-                                              isPlayingThis ? Icons.pause_circle_filled_rounded : Icons.volume_up_rounded,
-                                              color: isPlayingThis ? Colors.white : AppColors.navy,
-                                              size: 16,
-                                            ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            isPlayingThis ? 'Playing…' : 'Read Aloud 🔊',
-                                            style: TextStyle(
-                                              color: isPlayingThis ? Colors.white : AppColors.navy,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ],
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 6),
+
+                          // Message Text Content
+                          SelectableText(
+                            m.text,
+                            style: TextStyle(
+                              fontSize: 14,
+                              height: 1.4,
+                              color: isBot ? AppColors.navy : Colors.white,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   );
@@ -747,90 +476,98 @@ class _AiChatScreenState extends State<AiChatScreen> {
               ),
             ),
 
-            // Text Input & Voice Controls
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+            // Voice Speech Input & Text Controls
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, -2),
+                  ),
+                ],
+              ),
               child: Column(
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(28),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: TextField(
-                            controller: _textController,
-                            style: const TextStyle(color: AppColors.textDark),
-                            decoration: const InputDecoration(
-                              hintText: 'Type your response...',
-                              hintStyle: TextStyle(color: AppColors.textMuted),
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              filled: false,
-                              contentPadding: EdgeInsets.symmetric(vertical: 14),
+                  // Suggested Voice Prompts Chips
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _sampleVoicePrompts
+                          .map(
+                            (p) => Padding(
+                              padding: const EdgeInsets.only(right: 8, bottom: 6),
+                              child: ActionChip(
+                                labelText: Text(p, style: const TextStyle(fontSize: 11.5)),
+                                backgroundColor: AppColors.bgLight,
+                                onPressed: () => _useSampleVoicePrompt(p),
+                              ),
                             ),
-                            onSubmitted: (_) => _send(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      InkWell(
-                        onTap: _send,
-                        child: Container(
-                          width: 48,
-                          height: 48,
-                          decoration: const BoxDecoration(color: AppColors.navy, shape: BoxShape.circle),
-                          child: const Icon(Icons.arrow_forward_rounded, color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Voice Action Controls
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _roundIcon(Icons.list_alt_rounded, _showVoiceOptionsModal),
-                      const SizedBox(width: 22),
-                      InkWell(
-                        onTap: _toggleListening,
-                        child: Container(
-                          width: 64,
-                          height: 64,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: const LinearGradient(colors: AppColors.buttonGradient),
-                            boxShadow: _isListening
-                                ? [BoxShadow(color: AppColors.navy.withOpacity(0.5), blurRadius: 28, spreadRadius: 8)]
-                                : [],
-                          ),
-                          child: Icon(_isListening ? Icons.graphic_eq_rounded : Icons.mic_rounded, color: Colors.white, size: 28),
-                        ),
-                      ),
-                      const SizedBox(width: 22),
-                      _roundIcon(Icons.backspace_outlined, () {
-                        _textController.clear();
-                        if (_isListening) {
-                          _speech.stop();
-                          setState(() => _isListening = false);
-                        }
-                      }),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    _isListening ? 'Listening live... Speak now!' : 'Tap mic to speak or select a voice prompt',
-                    style: TextStyle(
-                      color: _isListening ? AppColors.navy : AppColors.textMuted,
-                      fontSize: 12,
-                      fontWeight: _isListening ? FontWeight.bold : FontWeight.normal,
+                          )
+                          .toList(),
                     ),
+                  ),
+
+                  Row(
+                    children: [
+                      // Voice Record Microphone Button
+                      GestureDetector(
+                        onTap: _toggleListening,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: _isListening ? AppColors.orange : AppColors.teal,
+                            shape: BoxShape.circle,
+                            boxShadow: _isListening
+                                ? [
+                                    BoxShadow(
+                                      color: AppColors.orange.withValues(alpha: 0.4),
+                                      blurRadius: 10,
+                                      spreadRadius: 2,
+                                    )
+                                  ]
+                                : null,
+                          ),
+                          child: Icon(
+                            _isListening ? Icons.mic_rounded : Icons.mic_none_rounded,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // Message Input Box
+                      Expanded(
+                        child: TextField(
+                          controller: _textController,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: InputDecoration(
+                            hintText: _isListening
+                                ? 'Listening... Speak now...'
+                                : 'Type or speak in ${activeLang.nativeName}...',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(24),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            fillColor: AppColors.bgLight,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                          onSubmitted: (_) => _send(),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // Send Button
+                      IconButton(
+                        onPressed: _send,
+                        icon: const Icon(Icons.send_rounded, color: AppColors.navy),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -841,15 +578,66 @@ class _AiChatScreenState extends State<AiChatScreen> {
     );
   }
 
-  Widget _roundIcon(IconData icon, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: Colors.grey.shade300)),
-        child: Icon(icon, color: AppColors.navy, size: 20),
+  void _showLanguageSelector(BuildContext context, AppState state) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          height: MediaQuery.of(context).size.height * 0.6,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    state.tr('select_language'),
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const Divider(),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: AppLanguage.all.length,
+                  itemBuilder: (context, idx) {
+                    final lang = AppLanguage.all[idx];
+                    final isSelected = state.selectedLanguage.code == lang.code;
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: isSelected ? AppColors.teal : AppColors.bgLight,
+                        child: Text(
+                          lang.flagLabel,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : AppColors.navy,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      title: Text(lang.nativeName, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                      subtitle: Text(lang.englishName, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                      trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: AppColors.teal) : null,
+                      onTap: () {
+                        state.setLanguage(lang);
+                        Navigator.pop(context);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

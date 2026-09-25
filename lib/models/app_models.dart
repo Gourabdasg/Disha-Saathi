@@ -40,6 +40,7 @@ class UserProfile {
   String mobile;
   String email;
   String name;
+  int? age;
   String fatherName;
   String motherName;
   String aadhaar;
@@ -62,6 +63,11 @@ class UserProfile {
   int workExperienceYears;
 
   String livelihood; // Current Livelihood / Occupation
+  String familyOccupation;
+  String employmentPreference;
+  String mobilityConstraints;
+  String careerGoal;
+  bool onboardingComplete;
 
   List<String> existingSkills;
   List<String> careerInterests;
@@ -74,6 +80,7 @@ class UserProfile {
     this.mobile = '',
     this.email = '',
     this.name = 'Rahul Kumar',
+    this.age,
     this.fatherName = '',
     this.motherName = '',
     this.aadhaar = '',
@@ -93,6 +100,11 @@ class UserProfile {
     this.experienceDuration = '',
     this.workExperienceYears = 0,
     this.livelihood = '',
+    this.familyOccupation = '',
+    this.employmentPreference = '',
+    this.mobilityConstraints = '',
+    this.careerGoal = '',
+    this.onboardingComplete = false,
     List<String>? existingSkills,
     List<String>? careerInterests,
     this.preferredLanguage = 'en',
@@ -106,29 +118,33 @@ class UserProfile {
     this.journeyPercent = calculateProgressPercent();
   }
 
-  /// Dynamic Profile Completion % calculation based on filled required fields (Requirement 6)
+  /// Dynamic Profile Completion % calculation based on filled 14 required fields
   int calculateCompletionPercent() {
+    if (onboardingComplete) return 100;
+
     int filled = 0;
-    const totalFields = 12;
+    const totalFields = 14;
 
     if (name.trim().isNotEmpty) filled++;
-    if (mobile.trim().isNotEmpty || email.trim().isNotEmpty) filled++;
-    if (location.trim().isNotEmpty || district.trim().isNotEmpty) filled++;
-    if (scCategoryNo.trim().isNotEmpty) filled++;
-    if (scCertificateUrl.trim().isNotEmpty || scCertificateFilename.trim().isNotEmpty) filled++;
+    if (age != null && age! > 0) filled++;
+    if (state.trim().isNotEmpty) filled++;
+    if (district.trim().isNotEmpty) filled++;
+    if (location.trim().isNotEmpty) filled++;
     if (highestQualification.trim().isNotEmpty) filled++;
-    if (stream.trim().isNotEmpty) filled++;
-    if (yearOfQualification.trim().isNotEmpty) filled++;
-    if (experienceName.trim().isNotEmpty || workExperienceYears > 0) filled++;
     if (livelihood.trim().isNotEmpty) filled++;
+    if (familyOccupation.trim().isNotEmpty) filled++;
     if (existingSkills.isNotEmpty) filled++;
+    if (experienceName.trim().isNotEmpty || workExperienceYears > 0) filled++;
     if (careerInterests.isNotEmpty) filled++;
+    if (employmentPreference.trim().isNotEmpty) filled++;
+    if (mobilityConstraints.trim().isNotEmpty) filled++;
+    if (careerGoal.trim().isNotEmpty) filled++;
 
     final percent = ((filled / totalFields) * 100).round();
-    return percent < 25 ? 25 : (percent > 100 ? 100 : percent);
+    return percent > 100 ? 100 : percent;
   }
 
-  /// Dynamic My Progress % calculation based on actual completed activities (Requirement 7)
+  /// Dynamic My Progress % calculation based on actual completed activities
   int calculateProgressPercent() {
     int progress = 26; // Initial baseline progress
     if (calculateCompletionPercent() > 50) progress += 20;
@@ -138,7 +154,7 @@ class UserProfile {
     return progress > 100 ? 100 : progress;
   }
 
-  /// Returns list of missing required profile field names for Dashboard display (Requirement 8)
+  /// Returns list of missing required profile field names for Dashboard display
   List<String> get missingFields {
     final missing = <String>[];
     if (highestQualification.trim().isEmpty) missing.add('Highest Qualification');
@@ -156,6 +172,7 @@ class UserProfile {
       mobile: json['mobile'] ?? '',
       email: json['email'] ?? '',
       name: (json['name'] as String?)?.isNotEmpty == true ? json['name'] : 'Rahul Kumar',
+      age: json['age'] != null ? parseInt(json['age']) : null,
       fatherName: json['fatherName'] ?? '',
       motherName: json['motherName'] ?? '',
       aadhaar: json['aadhaar'] ?? '',
@@ -167,28 +184,48 @@ class UserProfile {
       district: json['district'] ?? '',
       state: json['state'] ?? '',
       location: json['location'] ?? '',
-      highestQualification: json['highestQualification'] ?? '',
+      highestQualification: json['highestQualification'] ?? json['education'] ?? '',
       stream: json['stream'] ?? '',
       yearOfQualification: json['yearOfQualification'] ?? '',
       yearsOfStudy: (json['yearsOfStudy'] as num?)?.toInt() ?? 0,
-      experienceName: json['experienceName'] ?? '',
+      experienceName: json['experienceName'] ?? json['experience'] ?? '',
       experienceDuration: json['experienceDuration'] ?? '',
       workExperienceYears: (json['workExperienceYears'] as num?)?.toInt() ?? 0,
-      livelihood: json['livelihood'] ?? '',
-      existingSkills: (json['existingSkills'] as List?)?.map((e) => e.toString()).toList() ?? [],
-      careerInterests: (json['careerInterests'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      livelihood: json['livelihood'] ?? json['currentOccupation'] ?? '',
+      familyOccupation: json['familyOccupation'] ?? '',
+      employmentPreference: json['employmentPreference'] ?? '',
+      mobilityConstraints: json['mobilityConstraints'] ?? '',
+      careerGoal: json['careerGoal'] ?? '',
+      onboardingComplete: json['onboardingComplete'] == true,
+      existingSkills: (json['existingSkills'] as List?)?.map((e) => e.toString()).toList() ??
+          (json['skills'] is String && (json['skills'] as String).isNotEmpty
+              ? (json['skills'] as String).split(',').map((s) => s.trim()).toList()
+              : []),
+      careerInterests: (json['careerInterests'] as List?)?.map((e) => e.toString()).toList() ??
+          (json['interests'] is String && (json['interests'] as String).isNotEmpty
+              ? (json['interests'] as String).split(',').map((s) => s.trim()).toList()
+              : []),
       preferredLanguage: json['preferredLanguage'] ?? 'en',
     );
 
-    profile.profileCompletionPercent = profile.calculateCompletionPercent();
+    profile.profileCompletionPercent = json['profileCompletionPercent'] != null
+        ? (json['profileCompletionPercent'] as num).toInt()
+        : profile.calculateCompletionPercent();
     profile.journeyPercent = profile.calculateProgressPercent();
     return profile;
+  }
+
+  static int? parseInt(dynamic val) {
+    if (val is num) return val.toInt();
+    if (val is String) return int.tryParse(val);
+    return null;
   }
 
   Map<String, dynamic> toJson() => {
     'mobile': mobile,
     'email': email,
     'name': name,
+    'age': age,
     'fatherName': fatherName,
     'motherName': motherName,
     'aadhaar': aadhaar,
@@ -201,15 +238,25 @@ class UserProfile {
     'state': state,
     'location': location,
     'highestQualification': highestQualification,
+    'education': highestQualification,
     'stream': stream,
     'yearOfQualification': yearOfQualification,
     'yearsOfStudy': yearsOfStudy,
     'experienceName': experienceName,
+    'experience': experienceName,
     'experienceDuration': experienceDuration,
     'workExperienceYears': workExperienceYears,
     'livelihood': livelihood,
+    'currentOccupation': livelihood,
+    'familyOccupation': familyOccupation,
+    'employmentPreference': employmentPreference,
+    'mobilityConstraints': mobilityConstraints,
+    'careerGoal': careerGoal,
+    'onboardingComplete': onboardingComplete,
     'existingSkills': existingSkills,
+    'skills': existingSkills.join(', '),
     'careerInterests': careerInterests,
+    'interests': careerInterests.join(', '),
     'preferredLanguage': preferredLanguage,
     'profileCompletionPercent': calculateCompletionPercent(),
     'journeyPercent': calculateProgressPercent(),
