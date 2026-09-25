@@ -152,10 +152,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 42,
-                    height: 42,
+                    width: 44,
+                    height: 44,
+                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.lock_outline_rounded, color: Colors.white, size: 22),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.asset('assets/app_icon_512.png', fit: BoxFit.cover),
+                    ),
                   ),
                   const SizedBox(height: 14),
                   const Text('Welcome to Disha Saathi', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w700)),

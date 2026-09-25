@@ -298,12 +298,17 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        width: 38,
+                        height: 38,
+                        padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.smart_toy_rounded, color: Colors.white, size: 22),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(19),
+                          child: Image.asset('assets/app_icon_512.png', fit: BoxFit.cover),
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(

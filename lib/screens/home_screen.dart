@@ -168,8 +168,12 @@ class HomeScreen extends StatelessWidget {
                             Container(
                               width: 52,
                               height: 52,
-                              decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-                              child: const Icon(Icons.mic_rounded, color: Colors.white, size: 26),
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), shape: BoxShape.circle),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(26),
+                                child: Image.asset('assets/app_icon_512.png', fit: BoxFit.cover),
+                              ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
