@@ -4,6 +4,7 @@ import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/gradient_button.dart';
 
+/// ProfileCompletionScreen — PM-AJAY GIA Beneficiary Profile Completion & Edit Screen
 class ProfileCompletionScreen extends StatefulWidget {
   const ProfileCompletionScreen({super.key});
 
