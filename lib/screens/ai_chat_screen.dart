@@ -311,7 +311,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              state.tr('ai_chat_title'),
+                              state.tr('Disha Saathi-AI'),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
