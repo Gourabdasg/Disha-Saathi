@@ -39,6 +39,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
 
   // Requirement 2: Detect & Update Location dynamically
   Future<void> _detectLocation() async {
+    final state = context.read<AppState>();
     setState(() => _isDetectingLocation = true);
     try {
       final res = await http.get(Uri.parse('http://ip-api.com/json')).timeout(const Duration(seconds: 4));
@@ -46,14 +47,13 @@ class _TrainingScreenState extends State<TrainingScreen> {
         final data = jsonDecode(res.body);
         final city = data['city'] as String? ?? 'Kolkata';
         final region = data['regionName'] as String? ?? 'West Bengal';
-        final state = context.read<AppState>();
         state.district = city;
         state.stateName = region;
         state.location = '$city, $region';
         state.profile.district = city;
         state.profile.state = region;
         state.profile.location = '$city, $region';
-        state.notifyListeners();
+        await state.updateUserProfile(state.profile);
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -144,9 +144,9 @@ class _TrainingScreenState extends State<TrainingScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.18),
+                            color: Colors.white.withValues(alpha: 0.18),
                             borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white.withOpacity(0.3), width: 1),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -167,7 +167,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
                   // Search input
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(12)),
                     child: TextField(
                       controller: _searchController,
                       style: const TextStyle(color: Colors.white),
@@ -209,10 +209,10 @@ class _TrainingScreenState extends State<TrainingScreen> {
                               duration: const Duration(milliseconds: 150),
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               decoration: BoxDecoration(
-                                color: selected ? Colors.white : Colors.white.withOpacity(0.2),
+                                color: selected ? Colors.white : Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: selected ? Colors.white : Colors.white.withOpacity(0.3),
+                                  color: selected ? Colors.white : Colors.white.withValues(alpha: 0.3),
                                   width: 1,
                                 ),
                               ),
@@ -273,7 +273,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(color: const Color(0xFFE5E7EB), width: 1.2),
-                                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 3))],
+                                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 3))],
                               ),
                               child: Column(
                                 children: [
@@ -286,7 +286,7 @@ class _TrainingScreenState extends State<TrainingScreen> {
                                           Container(
                                             width: 46,
                                             height: 46,
-                                            decoration: BoxDecoration(color: AppColors.navy.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+                                            decoration: BoxDecoration(color: AppColors.navy.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
                                             child: Icon(iconFor(c.icon), color: AppColors.navy),
                                           ),
                                           const SizedBox(width: 14),
