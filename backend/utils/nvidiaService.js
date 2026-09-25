@@ -2,7 +2,7 @@
  * nvidiaService.js — Secure Backend Service for Multilingual Speech-to-Text & Text-to-Speech
  * SIH 2026 · PS 26097 · Team: The AI Alchemists
  *
- * Provides high quality, multi-lingual TTS for all 22 Indian languages.
+ * Provides high quality, multi-lingual TTS for all 22 Eighth Schedule Indian languages + English.
  */
 
 const NVIDIA_API_KEY =
@@ -11,24 +11,31 @@ const NVIDIA_API_KEY =
   process.env.NVIDIA_API_KEY ||
   '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';
 
-// Mapping app language codes to ISO / BCP-47 language tags
+// Mapping all 22 Eighth Schedule languages + English to TTS language engines
 const BCP47_LANGUAGE_MAP = {
-  hi: 'hi',
-  bn: 'bn',
-  mr: 'mr',
-  te: 'te',
-  ta: 'ta',
-  gu: 'gu',
-  kn: 'kn',
-  ml: 'ml',
-  pa: 'pa',
-  or: 'or',
-  ur: 'ur',
-  as: 'as',
-  ne: 'ne',
-  sa: 'sa',
-  sd: 'sd',
-  en: 'en',
+  as: 'bn',   // Assamese (Eastern Indic / Bengali audio engine)
+  bn: 'bn',   // Bengali
+  brx: 'hi',  // Bodo (Devanagari script)
+  doi: 'hi',  // Dogri (Devanagari script)
+  en: 'en',   // English
+  gu: 'gu',   // Gujarati
+  hi: 'hi',   // Hindi
+  kn: 'kn',   // Kannada
+  ks: 'ur',   // Kashmiri (Nastaliq script)
+  kok: 'hi',  // Konkani (Devanagari script)
+  mai: 'hi',  // Maithili (Devanagari script)
+  ml: 'ml',   // Malayalam
+  mni: 'bn',  // Manipuri (Meitei / Bengali script)
+  mr: 'mr',   // Marathi
+  ne: 'ne',   // Nepali
+  or: 'hi',   // Odia (Indic script)
+  pa: 'pa',   // Punjabi
+  sa: 'hi',   // Sanskrit (Devanagari script)
+  sat: 'hi',  // Santali (Devanagari script)
+  sd: 'ur',   // Sindhi (Nastaliq script)
+  ta: 'ta',   // Tamil
+  te: 'te',   // Telugu
+  ur: 'ur',   // Urdu
 };
 
 function stripMarkdown(text) {
@@ -50,7 +57,7 @@ function chunkText(text, maxLen = 180) {
   if (!clean) return [];
   if (clean.length <= maxLen) return [clean];
 
-  const sentences = clean.match(/[^.!?।]+[.!?।]?/g) || [clean];
+  const sentences = clean.match(/[^.!?।]+[.!?<ctrl42>]/g) || [clean];
   const chunks = [];
   let current = '';
 
@@ -107,7 +114,7 @@ async function speechToText({ audioBase64, languageCode = 'en' }) {
 }
 
 /**
- * Synthesizes text into spoken audio base64 supporting all 22 Indian languages.
+ * Synthesizes text into spoken audio base64 supporting all 22 Indian languages + English.
  */
 async function textToSpeech({ text, languageCode = 'en' }) {
   const langTag = BCP47_LANGUAGE_MAP[languageCode] || 'hi';
