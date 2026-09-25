@@ -684,10 +684,12 @@ class AppState extends ChangeNotifier {
 
       // Refresh profile state dynamically from backend
       if (lookupKey.isNotEmpty) {
-        final updatedProfile = await ApiService.fetchProfile(lookupKey);
-        if (updatedProfile != null) {
-          profile = updatedProfile;
-        }
+        try {
+          final updatedProfile = await ApiService.fetchProfile(lookupKey);
+          if (updatedProfile != null) {
+            profile = updatedProfile;
+          }
+        } catch (_) {}
       }
     } catch (e) {
       chatMessages.add(const ChatMessage(

@@ -238,13 +238,25 @@ class ApiService {
   // --- AI Chat (backend/routes/chat.js) ---
 
   static Future<String> sendChatMessage(String mobile, String text, String languageCode, {String? sessionId}) async {
-    final json = await _post('/api/chat/message', {
-      'mobile': mobile,
-      'text': text,
-      'language': languageCode,
-      if (sessionId != null) 'sessionId': sessionId,
-    });
-    return json['reply'] as String? ?? '';
+    try {
+      final json = await _post('/api/chat/message', {
+        'mobile': mobile,
+        'text': text,
+        'language': languageCode,
+        if (sessionId != null) 'sessionId': sessionId,
+      });
+      return json['reply'] as String? ?? '';
+    } catch (_) {
+      // Re-probe active backend URL in case developer IP or network host changed
+      await ApiConfig.resolveActiveBaseUrl();
+      final json = await _post('/api/chat/message', {
+        'mobile': mobile,
+        'text': text,
+        'language': languageCode,
+        if (sessionId != null) 'sessionId': sessionId,
+      });
+      return json['reply'] as String? ?? '';
+    }
   }
 
   static Future<List<ChatMessage>> fetchChatHistory(String mobile, {String? sessionId}) async {
