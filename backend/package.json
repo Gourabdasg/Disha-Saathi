@@ -1,7 +1,7 @@
 {
   "name": "disha-saathi-backend",
   "version": "1.0.0",
-  "description": "Node.js + Express backend stub for Disha Saathi (SIH 2026, PS 26097)",
+  "description": "Node.js + Express backend service for Disha Saathi (SIH 2026, PS 26097)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -12,7 +12,6 @@
     "dotenv": "^16.6.1",
     "express": "^4.19.2",
     "multer": "^2.4.0",
-    "nodemailer": "^10.0.10",
     "pg": "^8.23.0"
   },
   "devDependencies": {

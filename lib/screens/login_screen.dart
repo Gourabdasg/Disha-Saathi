@@ -58,18 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _showError(state.errorMessage ?? 'Google Sign-In failed');
       }
     } catch (e) {
-      // Seamless fallback for Web/Emulator so Google sign-in always opens Home Page
-      final result = await state.loginWithGoogle('dasg69171@gmail.com', 'GOURAB DAS', 'google-12345');
-      if (!mounted) return;
-      if (result != null) {
-        _showSuccess('Google Sign-In Successful! Welcome GOURAB DAS');
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const MainShell()),
-          (route) => false,
-        );
-      } else {
-        _showError('Google Sign-In failed. Please try again.');
-      }
+      _showError('Google Sign-In failed. Please try again.');
     }
   }
 

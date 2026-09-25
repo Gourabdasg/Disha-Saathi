@@ -83,21 +83,10 @@ class _Step1PersonalInfoState extends State<Step1PersonalInfo> {
         state.name = _name.text;
         _showSuccess('Google Account linked: ${_email.text}');
       } else {
-        // Fallback for Google sign-up
-        setState(() {
-          _name.text = 'GOURAB DAS';
-          _email.text = 'dasg69171@gmail.com';
-          _emailVerified = true;
-        });
-        _showSuccess('Google Account linked: dasg69171@gmail.com');
+        _showError('Google Sign-In was cancelled.');
       }
-    } catch (_) {
-      setState(() {
-        _name.text = 'GOURAB DAS';
-        _email.text = 'dasg69171@gmail.com';
-        _emailVerified = true;
-      });
-      _showSuccess('Google Account linked: dasg69171@gmail.com');
+    } catch (e) {
+      _showError('Google Sign-In failed. Please try again.');
     }
   }
 
