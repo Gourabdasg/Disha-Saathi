@@ -87,7 +87,7 @@ class HomeScreen extends StatelessWidget {
                         Container(
                           width: 40,
                           height: 40,
-                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+                          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
                           alignment: Alignment.center,
                           child: Text(profile.name.isNotEmpty ? profile.name[0] : 'U',
                               style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
@@ -106,7 +106,7 @@ class HomeScreen extends StatelessWidget {
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
+                        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(14)),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
