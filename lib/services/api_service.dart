@@ -237,25 +237,45 @@ class ApiService {
 
   // --- AI Chat (backend/routes/chat.js) ---
 
-  static Future<String> sendChatMessage(String mobile, String text, String languageCode) async {
+  static Future<String> sendChatMessage(String mobile, String text, String languageCode, {String? sessionId}) async {
     final json = await _post('/api/chat/message', {
       'mobile': mobile,
       'text': text,
       'language': languageCode,
+      if (sessionId != null) 'sessionId': sessionId,
     });
     return json['reply'] as String? ?? '';
   }
 
-  static Future<List<ChatMessage>> fetchChatHistory(String mobile) async {
-    final list = await _getList('/api/chat/history/$mobile');
+  static Future<List<ChatMessage>> fetchChatHistory(String mobile, {String? sessionId}) async {
+    final path = sessionId != null ? '/api/chat/history/$mobile?sessionId=$sessionId' : '/api/chat/history/$mobile';
+    final list = await _getList(path);
     return list
         .map((m) => ChatMessage(m['text'] as String, m['sender'] == 'bot'))
         .toList();
   }
 
-  static Future<void> clearChatHistory(String mobile) async {
+  static Future<List<ChatSessionItem>> fetchChatSessions(String mobile) async {
     try {
-      await http.delete(ApiConfig.uri('/api/chat/history/$mobile')).timeout(const Duration(seconds: 10));
+      final list = await _getList('/api/chat/sessions/$mobile');
+      return list.map((item) => ChatSessionItem.fromJson(item as Map<String, dynamic>)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> deleteChatSession(String mobile, String sessionId) async {
+    try {
+      await http.delete(ApiConfig.uri('/api/chat/session/$mobile/$sessionId')).timeout(const Duration(seconds: 10));
+    } catch (_) {}
+  }
+
+  static Future<void> clearChatHistory(String mobile, {String? sessionId}) async {
+    try {
+      await _post('/api/chat/clear', {
+        'mobile': mobile,
+        if (sessionId != null) 'sessionId': sessionId,
+      });
     } catch (_) {}
   }
 

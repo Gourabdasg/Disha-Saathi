@@ -95,14 +95,18 @@ async function initDb() {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
 
-      -- Table 3: Chat Messages
+      -- Table 3: Chat Messages (Multi-session support)
       CREATE TABLE IF NOT EXISTS chat_messages (
         id SERIAL PRIMARY KEY,
         mobile VARCHAR(255) NOT NULL,
+        session_id VARCHAR(100) DEFAULT 'default',
         sender VARCHAR(20) NOT NULL CHECK (sender IN ('user', 'bot')),
         text TEXT NOT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+
+      -- Ensure session_id column exists
+      ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS session_id VARCHAR(100) DEFAULT 'default';
 
       -- Table 4: Recommendations
       CREATE TABLE IF NOT EXISTS recommendations (
@@ -134,7 +138,7 @@ async function initDb() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
 
-      -- Table 6: OTP Codes (Persistent Cross-Device / Cloud Multi-node Store)
+      -- Table 6: OTP Codes
       CREATE TABLE IF NOT EXISTS otp_codes (
         id SERIAL PRIMARY KEY,
         identifier VARCHAR(255) NOT NULL UNIQUE,
@@ -147,6 +151,7 @@ async function initDb() {
       CREATE INDEX IF NOT EXISTS idx_beneficiaries_mobile ON beneficiaries(mobile);
       CREATE INDEX IF NOT EXISTS idx_beneficiaries_email ON beneficiaries(email);
       CREATE INDEX IF NOT EXISTS idx_chat_messages_mobile ON chat_messages(mobile);
+      CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(mobile, session_id);
       CREATE INDEX IF NOT EXISTS idx_user_profiles_mobile ON user_profiles(mobile);
       CREATE INDEX IF NOT EXISTS idx_otp_codes_identifier ON otp_codes(identifier);
     `);

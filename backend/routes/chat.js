@@ -7,80 +7,171 @@ const { buildNsqfChatResponse } = require('../utils/nsqfMatcher');
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
 
 // In-memory fallback message store for offline / demo mode
-const inMemoryMessages = new Map();
+// Map<mobile, Map<sessionId, Array<msg>>>
+const inMemorySessions = new Map();
 
-async function saveMessage(mobile, sender, text) {
+function getInMemoryList(mobile, sessionId) {
   const key = mobile || 'anonymous';
-  const msg = { mobile: key, sender, text, createdAt: new Date() };
+  const sid = sessionId || 'default';
+  if (!inMemorySessions.has(key)) inMemorySessions.set(key, new Map());
+  const userMap = inMemorySessions.get(key);
+  if (!userMap.has(sid)) userMap.set(sid, []);
+  return userMap.get(sid);
+}
 
-  if (!inMemoryMessages.has(key)) {
-    inMemoryMessages.set(key, []);
-  }
-  inMemoryMessages.get(key).push(msg);
+async function saveMessage(mobile, sender, text, sessionId = 'default') {
+  const key = mobile || 'anonymous';
+  const sid = sessionId || 'default';
+  const msg = { mobile: key, sessionId: sid, sender, text, createdAt: new Date() };
+
+  getInMemoryList(key, sid).push(msg);
 
   try {
     await query(
-      `INSERT INTO chat_messages (mobile, sender, text) VALUES ($1, $2, $3);`,
-      [key, sender, text]
+      `INSERT INTO chat_messages (mobile, session_id, sender, text) VALUES ($1, $2, $3, $4);`,
+      [key, sid, sender, text]
     );
   } catch (e) {
     console.warn('ChatMessage PostgreSQL save warning:', e.message);
   }
 }
 
-async function getHistory(mobile) {
+async function getHistory(mobile, sessionId = 'default') {
   const key = mobile || 'anonymous';
+  const sid = sessionId || 'default';
   try {
     const res = await query(
-      `SELECT mobile, sender, text, created_at AS "createdAt" FROM chat_messages WHERE mobile = $1 ORDER BY created_at ASC;`,
-      [key]
+      `SELECT mobile, session_id AS "sessionId", sender, text, created_at AS "createdAt" FROM chat_messages WHERE mobile = $1 AND session_id = $2 ORDER BY created_at ASC;`,
+      [key, sid]
     );
     if (res.rows && res.rows.length > 0) return res.rows;
   } catch (e) {
     console.warn('ChatMessage PostgreSQL find warning:', e.message);
   }
-  return inMemoryMessages.get(key) || [];
+  return getInMemoryList(key, sid);
 }
 
-async function clearHistory(mobile) {
+async function getSessionsList(mobile) {
   const key = mobile || 'anonymous';
-  inMemoryMessages.delete(key);
   try {
-    await query(`DELETE FROM chat_messages WHERE mobile = $1;`, [key]);
+    const res = await query(
+      `SELECT session_id AS "sessionId",
+              MIN(created_at) AS "createdAt",
+              MAX(created_at) AS "updatedAt",
+              COUNT(*) AS "messageCount",
+              (SELECT text FROM chat_messages m2 WHERE m2.mobile = m1.mobile AND m2.session_id = m1.session_id AND m2.sender = 'user' ORDER BY created_at ASC LIMIT 1) AS "firstUserMsg",
+              (SELECT text FROM chat_messages m3 WHERE m3.mobile = m1.mobile AND m3.session_id = m1.session_id ORDER BY created_at DESC LIMIT 1) AS "lastMessage"
+       FROM chat_messages m1
+       WHERE mobile = $1
+       GROUP BY mobile, session_id
+       ORDER BY MAX(created_at) DESC;`,
+      [key]
+    );
+
+    if (res.rows && res.rows.length > 0) {
+      return res.rows.map((row) => {
+        let title = row.firstUserMsg || 'AI Skill Assessment';
+        if (title.length > 35) title = title.substring(0, 32) + '...';
+        return {
+          sessionId: row.sessionId,
+          title: title,
+          lastMessage: row.lastMessage || 'Conversation started',
+          createdAt: row.createdAt,
+          updatedAt: row.updatedAt,
+          messageCount: parseInt(row.messageCount, 10) || 0,
+        };
+      });
+    }
+  } catch (e) {
+    console.warn('Chat sessions list PostgreSQL warning:', e.message);
+  }
+
+  // Fallback to in-memory sessions
+  if (inMemorySessions.has(key)) {
+    const userMap = inMemorySessions.get(key);
+    const list = [];
+    for (const [sid, msgs] of userMap.entries()) {
+      if (!msgs || msgs.length === 0) continue;
+      const firstUser = msgs.find((m) => m.sender === 'user');
+      let title = firstUser ? firstUser.text : 'AI Skill Assessment';
+      if (title.length > 35) title = title.substring(0, 32) + '...';
+      const lastMsg = msgs[msgs.length - 1].text;
+      list.push({
+        sessionId: sid,
+        title,
+        lastMessage: lastMsg,
+        createdAt: msgs[0].createdAt,
+        updatedAt: msgs[msgs.length - 1].createdAt,
+        messageCount: msgs.length,
+      });
+    }
+    return list;
+  }
+
+  return [];
+}
+
+async function clearHistory(mobile, sessionId = 'default') {
+  const key = mobile || 'anonymous';
+  const sid = sessionId || 'default';
+
+  if (inMemorySessions.has(key)) {
+    inMemorySessions.get(key).delete(sid);
+  }
+
+  try {
+    await query(`DELETE FROM chat_messages WHERE mobile = $1 AND session_id = $2;`, [key, sid]);
   } catch (e) {
     console.warn('ChatMessage PostgreSQL clear warning:', e.message);
   }
 }
 
+async function deleteSession(mobile, sessionId) {
+  const key = mobile || 'anonymous';
+  const sid = sessionId || 'default';
+
+  if (inMemorySessions.has(key)) {
+    inMemorySessions.get(key).delete(sid);
+  }
+
+  try {
+    await query(`DELETE FROM chat_messages WHERE mobile = $1 AND session_id = $2;`, [key, sid]);
+  } catch (e) {
+    console.warn('ChatMessage PostgreSQL delete session warning:', e.message);
+  }
+}
+
 async function handleChatPost(req, res) {
   try {
-    const { mobile, text, language } = req.body;
+    const { mobile, text, language, sessionId } = req.body;
 
     if (!text) {
       return res.status(400).json({ error: 'text is required' });
     }
 
     const userMobile = mobile || 'anonymous';
+    const sid = sessionId || 'default';
     const langCode = (language || 'en').toLowerCase().trim();
 
-    // Save user message
-    await saveMessage(userMobile, 'user', text);
+    // Save user message in specific session
+    await saveMessage(userMobile, 'user', text, sid);
 
     // Step 1: Onboarding flow
     const onboarding = await handleOnboardingMessage(userMobile, text, null);
 
     if (onboarding.handled) {
-      await saveMessage(userMobile, 'bot', onboarding.reply);
+      await saveMessage(userMobile, 'bot', onboarding.reply, sid);
       return res.json({
         reply: onboarding.reply,
         onboardingComplete: onboarding.profileComplete,
+        sessionId: sid,
       });
     }
 
-    // Step 2: Dynamic NSQF Dataset Training Recommendations Engine over NSQF_Training_Recommendation.js
+    // Step 2: Dynamic NSQF Dataset Training Recommendations Engine
     const reply = await generateAssistantReply(text, onboarding.profile, langCode);
-    await saveMessage(userMobile, 'bot', reply);
-    return res.json({ reply, onboardingComplete: true });
+    await saveMessage(userMobile, 'bot', reply, sid);
+    return res.json({ reply, onboardingComplete: true, sessionId: sid });
   } catch (err) {
     console.error('Chat route error:', err);
     return res.status(500).json({ error: 'Something went wrong. Please try again.' });
@@ -90,7 +181,8 @@ async function handleChatPost(req, res) {
 async function handleChatGet(req, res) {
   try {
     const mobile = req.params.mobile || 'anonymous';
-    const messages = await getHistory(mobile);
+    const sessionId = req.query.sessionId || req.query.session_id || 'default';
+    const messages = await getHistory(mobile, sessionId);
     return res.json(messages);
   } catch (err) {
     console.error('Fetch chat history error:', err);
@@ -98,12 +190,36 @@ async function handleChatGet(req, res) {
   }
 }
 
+async function handleGetSessions(req, res) {
+  try {
+    const mobile = req.params.mobile || 'anonymous';
+    const sessions = await getSessionsList(mobile);
+    return res.json(sessions);
+  } catch (err) {
+    console.error('Fetch sessions error:', err);
+    return res.status(500).json({ error: 'Could not fetch chat sessions' });
+  }
+}
+
+async function handleDeleteSession(req, res) {
+  try {
+    const mobile = req.params.mobile || 'anonymous';
+    const sessionId = req.params.sessionId || req.body.sessionId;
+    await deleteSession(mobile, sessionId);
+    return res.json({ message: 'Session deleted successfully', mobile, sessionId });
+  } catch (err) {
+    console.error('Delete session error:', err);
+    return res.status(500).json({ error: 'Could not delete session' });
+  }
+}
+
 async function handleChatClear(req, res) {
   try {
-    const { mobile } = req.body;
+    const { mobile, sessionId } = req.body;
     const userMobile = mobile || req.params.mobile || 'anonymous';
-    await clearHistory(userMobile);
-    return res.json({ message: 'Chat history cleared successfully', mobile: userMobile });
+    const sid = sessionId || 'default';
+    await clearHistory(userMobile, sid);
+    return res.json({ message: 'Chat history cleared successfully', mobile: userMobile, sessionId: sid });
   } catch (err) {
     console.error('Clear chat error:', err);
     return res.status(500).json({ error: 'Could not clear chat history' });
@@ -112,11 +228,12 @@ async function handleChatClear(req, res) {
 
 async function handleChatRestart(req, res) {
   try {
-    const { mobile } = req.body;
+    const { mobile, sessionId } = req.body;
     const userMobile = mobile || 'anonymous';
-    await clearHistory(userMobile);
+    const sid = sessionId || 'default';
+    await clearHistory(userMobile, sid);
     await resetOnboarding(userMobile);
-    return res.json({ message: 'Chat restarted successfully', mobile: userMobile });
+    return res.json({ message: 'Chat restarted successfully', mobile: userMobile, sessionId: sid });
   } catch (err) {
     console.error('Restart chat error:', err);
     return res.status(500).json({ error: 'Could not restart chat' });
@@ -127,9 +244,11 @@ async function handleChatRestart(req, res) {
 router.post('/', handleChatPost);
 router.post('/message', handleChatPost);
 
+router.get('/sessions/:mobile', handleGetSessions);
 router.get('/:mobile', handleChatGet);
 router.get('/history/:mobile', handleChatGet);
 
+router.delete('/session/:mobile/:sessionId', handleDeleteSession);
 router.delete('/history/:mobile', handleChatClear);
 router.post('/clear', handleChatClear);
 router.post('/restart', handleChatRestart);

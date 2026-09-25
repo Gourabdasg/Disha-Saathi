@@ -615,12 +615,43 @@ class AppState extends ChangeNotifier {
 
   // --- AI Chat Features ---
 
+  String activeSessionId = 'session_default';
+
+  /// Starts a fresh, new Chat Session without deleting previous profile or sessions.
+  void startNewChatSession() {
+    activeSessionId = 'session_${DateTime.now().millisecondsSinceEpoch}';
+    _chatHistoryLoaded = true;
+    chatMessages
+      ..clear()
+      ..add(
+        const ChatMessage(
+          "Hello! I'm your AI Skill Assistant. Tell me about the work you currently do. आप वर्तमान में क्या काम करते हैं?",
+          true,
+        ),
+      );
+    notifyListeners();
+  }
+
+  /// Switches to and loads a specific conversation session from Chat History.
+  Future<void> loadChatSession(String sessionId) async {
+    activeSessionId = sessionId;
+    final lookupKey = mobile.isNotEmpty ? mobile : email.trim().toLowerCase();
+    if (lookupKey.isEmpty) return;
+    try {
+      final history = await ApiService.fetchChatHistory(lookupKey, sessionId: sessionId);
+      chatMessages
+        ..clear()
+        ..addAll(history);
+      notifyListeners();
+    } catch (_) {}
+  }
+
   Future<void> loadChatHistory() async {
     final lookupKey = mobile.isNotEmpty ? mobile : email.trim().toLowerCase();
     if (_chatHistoryLoaded || lookupKey.isEmpty) return;
     _chatHistoryLoaded = true;
     try {
-      final history = await ApiService.fetchChatHistory(lookupKey);
+      final history = await ApiService.fetchChatHistory(lookupKey, sessionId: activeSessionId);
       if (history.isNotEmpty) {
         chatMessages
           ..clear()
@@ -638,8 +669,21 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     final lookupKey = mobile.isNotEmpty ? mobile : email.trim().toLowerCase();
     try {
-      final reply = await ApiService.sendChatMessage(lookupKey, text, selectedLanguage.code);
+      final reply = await ApiService.sendChatMessage(
+        lookupKey,
+        text,
+        selectedLanguage.code,
+        sessionId: activeSessionId,
+      );
       chatMessages.add(ChatMessage(reply.isNotEmpty ? reply : "Sorry, I didn't get a response — please try again.", true));
+
+      // Refresh profile state dynamically from backend
+      if (lookupKey.isNotEmpty) {
+        final updatedProfile = await ApiService.fetchProfile(lookupKey);
+        if (updatedProfile != null) {
+          profile = updatedProfile;
+        }
+      }
     } catch (e) {
       chatMessages.add(const ChatMessage(
         "I couldn't reach the server just now. Please check your connection and try again.",
@@ -653,7 +697,7 @@ class AppState extends ChangeNotifier {
   Future<void> clearChat() async {
     final lookupKey = mobile.isNotEmpty ? mobile : email.trim().toLowerCase();
     if (lookupKey.isNotEmpty) {
-      await ApiService.clearChatHistory(lookupKey);
+      await ApiService.clearChatHistory(lookupKey, sessionId: activeSessionId);
     }
     _chatHistoryLoaded = true;
     chatMessages

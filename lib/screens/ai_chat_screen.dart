@@ -8,6 +8,7 @@ import '../models/app_models.dart';
 import '../providers/app_state.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
+import 'chat_history_screen.dart';
 
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
@@ -235,6 +236,29 @@ class _AiChatScreenState extends State<AiChatScreen> {
     }
   }
 
+  void _showClearConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Clear Messages?'),
+        content: const Text('Clear messages in this current chat session? This will not delete your saved profile or previous chat history.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<AppState>().clearChat();
+            },
+            child: const Text('Clear', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
@@ -327,20 +351,46 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       PopupMenuButton<String>(
                         icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
                         onSelected: (val) {
-                          if (val == 'clear') {
-                            context.read<AppState>().clearChat();
+                          if (val == 'new_chat') {
+                            context.read<AppState>().startNewChatSession();
+                          } else if (val == 'history') {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const ChatHistoryScreen()),
+                            );
+                          } else if (val == 'clear') {
+                            _showClearConfirmationDialog(context);
                           } else if (val == 'restart') {
                             context.read<AppState>().restartChat();
                           }
                         },
                         itemBuilder: (_) => [
                           const PopupMenuItem(
+                            value: 'new_chat',
+                            child: Row(
+                              children: [
+                                Icon(Icons.add_circle_outline_rounded, size: 18, color: AppColors.navy),
+                                SizedBox(width: 8),
+                                Text('New Chat', style: TextStyle(fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'history',
+                            child: Row(
+                              children: [
+                                Icon(Icons.history_rounded, size: 18, color: AppColors.teal),
+                                SizedBox(width: 8),
+                                Text('Chat History', style: TextStyle(fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
                             value: 'clear',
                             child: Row(
                               children: [
-                                Icon(Icons.cleaning_services_rounded, size: 18, color: AppColors.navy),
+                                Icon(Icons.cleaning_services_rounded, size: 18, color: Colors.redAccent),
                                 SizedBox(width: 8),
-                                Text('Clear Messages'),
+                                Text('Clear Messages', style: TextStyle(fontWeight: FontWeight.w600)),
                               ],
                             ),
                           ),
@@ -350,7 +400,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                               children: [
                                 Icon(Icons.restart_alt_rounded, size: 18, color: AppColors.orange),
                                 SizedBox(width: 8),
-                                Text('Restart Assessment'),
+                                Text('Restart Assessment', style: TextStyle(fontWeight: FontWeight.w600)),
                               ],
                             ),
                           ),
