@@ -155,17 +155,20 @@ router.post('/login', async (req, res) => {
 router.post('/email/otp/send', async (req, res) => {
   try {
     const { email } = req.body;
-    if (!email || !email.includes('@')) {
+    if (!email || !email.includes('@') || email.trim().length < 5) {
       return res.status(400).json({ error: 'Valid email address is required' });
     }
 
     const cleanEmail = email.toLowerCase().trim();
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
+    const dispatched = await sendOtpEmail(cleanEmail, otp);
+    if (!dispatched) {
+      return res.status(500).json({ error: 'Unable to send OTP. Please try again.' });
+    }
+
     emailOtpStore.set(cleanEmail, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
     await saveOtp(cleanEmail, otp);
-
-    await sendOtpEmail(cleanEmail, otp);
 
     return res.json({
       message: `OTP sent successfully to ${cleanEmail}`,
