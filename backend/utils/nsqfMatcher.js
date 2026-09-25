@@ -138,39 +138,39 @@ const MULTILINGUAL_KEYWORDS = {
 // Multilingual Prompt Explanations
 const LOCALIZED_EXPLANATIONS = {
   hi: {
-    title: 'आपके लिए आधिकारिक NSQF-संरेखित प्रशिक्षण सिफारिशें:',
-    why: 'यह पाठ्यक्रम आपकी प्रोफ़ाइल, कौशल, रुचि और शैक्षिक योग्यता के आधार पर चुना गया है।',
-    noMatch: 'आपकी वर्तमान खोज के लिए कोई सटीक NSQF पाठ्यक्रम नहीं मिला। यहाँ कुछ निकटतम उपलब्ध विकल्प दिए गए हैं:',
+    jobTitle: 'आपके लिए अनुशंसित करियर / नौकरी की भूमिका:',
+    trainingTitle: 'आपके लिए आधिकारिक NSQF-संरेखित प्रशिक्षण सिफारिशें:',
+    why: 'यह मार्गदर्शन आपकी प्रोफ़ाइल, कौशल, रुचि और शैक्षिक योग्यता के आधार पर तैयार किया गया है।',
   },
   bn: {
-    title: 'আপনার জন্য সরকারি এনএসকিউএফ-অনুমোদিত প্রশিক্ষণ সুপারিশ:',
-    why: 'এই কোর্সটি আপনার প্রোফাইল, দক্ষতা, আগ্রহ এবং শিক্ষাগত যোগ্যতার ওপর ভিত্তি করে নির্বাচন করা হয়েছে।',
-    noMatch: 'আপনার প্রশ্নের সাথে হুবহু মিলে যাওয়া এনএসকিউএফ কোর্স পাওয়া যায়নি। নিচে উপলব্ধ নিকটতম বিকল্পগুলি দেওয়া হলো:',
+    jobTitle: 'আপনার জন্য প্রস্তাবিত উপযুক্ত কেরিয়ার / চাকরির ভূমিকা:',
+    trainingTitle: 'আপনার জন্য সরকারি এনএসকিউএফ-অনুমোদিত প্রশিক্ষণ সুপারিশ:',
+    why: 'এই নির্দেশিকা আপনার প্রোফাইল, দক্ষতা, আগ্রহ এবং শিক্ষাগত যোগ্যতার ওপর ভিত্তি করে তৈরি করা হয়েছে।',
   },
   mr: {
-    title: 'तुमच्यासाठी अधिकृत NSQF-संरेखित प्रशिक्षण शिफारसी:',
-    why: 'हा कोर्स तुमच्या प्रोफाइल, कौशल्ये, आवड आणि शैक्षणिक पात्रतेवर आधारित निवडला गेला आहे.',
-    noMatch: 'तुमच्या शोधानुसार कोणताही अचूक NSQF कोर्स सापडला नाही. खाली उपलब्ध जवळचे पर्याय दिले आहेत:',
+    jobTitle: 'तुमच्यासाठी शिफारस केलेली योग्य करिअर / नोकरीची भूमिका:',
+    trainingTitle: 'तुमच्यासाठी अधिकृत NSQF-संरेखित प्रशिक्षण शिफारसी:',
+    why: 'हे मार्गदर्शन तुमच्या प्रोफाइल, कौशल्ये आणि शैक्षणिक पात्रतेवर आधारित आहे.',
   },
   te: {
-    title: 'మీ కోసం అధికారిక NSQF-ఆమోదించిన శిక్షణ సిఫార్సులు:',
-    why: 'మీ ప్రొఫైల్, నైపుణ్యాలు, ఆసక్తులు మరియు విద్యా అర్హత ఆధారంగా ఈ కోర్సు ఎంపిక చేయబడింది.',
-    noMatch: 'మీ శోధనకు తగిన సరిగ్గా సరిపోయే NSQF కోర్సు కనుగొనబడలేదు. కొన్ని సమీప ప్రత్యామ్నాయాలు ఇక్కడ ఉన్నాయి:',
+    jobTitle: 'మీ కోసం సిఫార్సు చేయబడిన ఉద్యోగ / కెరీర్ పాత్ర:',
+    trainingTitle: 'మీ కోసం అధికారిక NSQF-ఆమోదించిన శిక్షణ సిఫార్సులు:',
+    why: 'ఈ మార్గదర్శకం మీ ప్రొఫైల్, నైపుణ్యాలు మరియు విద్యా అర్హత ఆధారంగా రూపొందించబడింది.',
   },
   ta: {
-    title: 'உங்களுக்கான அதிகாரப்பூர்வ NSQF பயிற்சி பரிந்துரைகள்:',
-    why: 'உங்கள் சுயவிவரம், திறன்கள், ஆர்வங்கள் மற்றும் கல்வித் தகுதியின் அடிப்படையில் இந்த பாடநெறி தேர்ந்தெடுக்கப்பட்டது.',
-    noMatch: 'உங்கள் தேடலுக்கு சரியான NSQF பயிற்சி கிடைக்கவில்லை. இதோ சில சிறந்த மாற்று தேர்வுகள்:',
+    jobTitle: 'உங்களுக்கான பரிந்துரைக்கப்பட்ட வேலை / தொழில் பங்கு:',
+    trainingTitle: 'உங்களுக்கான அதிகாரப்பூர்வ NSQF பயிற்சி பரிந்துரைகள்:',
+    why: 'இந்த வழிகாட்டுதல் உங்கள் சுயவிவரம், திறன்கள் மற்றும் கல்வித் தகுதியின் அடிப்படையில் அமைக்கப்பட்டது.',
   },
   ur: {
-    title: 'آپ کے لیے سرکاری طور پر منظور شدہ NSQF تربیتی کورسز:',
-    why: 'یہ کورس آپ کے پروفائل، مہارتوں، دلچسپیوں اور تعلیمی قابلیت کی بنیاد پر منتخب کیا گیا ہے۔',
-    noMatch: 'آپ کی تلاش سے بالکل مماثل کوئی NSQF کورس نہیں ملا۔ یہاں چند بہترین متبادل کورسز موجود ہیں:',
+    jobTitle: 'آپ کے لیے تجویز کردہ موزوں نوکری / کیریئر کا کردار:',
+    trainingTitle: 'آپ کے لیے سرکاری طور پر منظور شدہ NSQF تربیتی کورسز:',
+    why: 'یہ رہنمائی آپ کے پروفائل، مہارتوں اور تعلیمی قابلیت کی بنیاد پر تیار کی گئی ہے۔',
   },
   en: {
-    title: 'Recommended Official NSQF Training Courses For You:',
-    why: 'This course matches your profile, skills, career goals, and educational qualification pathway.',
-    noMatch: 'No exact NSQF training matches found for this specific query. Here are the closest available official NSQF alternatives:',
+    jobTitle: 'Recommended Suitable Job / Career Role:',
+    trainingTitle: 'Recommended Official NSQF Training Courses For You:',
+    why: 'This guidance matches your profile, skills, career goals, and educational qualification pathway.',
   },
 };
 
@@ -264,9 +264,8 @@ function matchNsqfTrainings({ profile = {}, queryText = '', limit = 4 }) {
   // Sort descending by match percentage
   scoredRecords.sort((a, b) => b.matchPercent - a.matchPercent);
 
-  // If no specific match found, return top 4 diverse high-quality NSQF courses as default options
   if (scoredRecords.length === 0) {
-    const defaultIndices = [0, 4, 10, 15]; // Diverse default records from dataset
+    const defaultIndices = [0, 4, 10, 15];
     return defaultIndices.map((i) => {
       const row = nsqfDataset[i];
       return {
@@ -291,30 +290,40 @@ function matchNsqfTrainings({ profile = {}, queryText = '', limit = 4 }) {
 }
 
 /**
- * Builds AI Assistant Response text in the user's selected language, incorporating exact NSQF records.
+ * Builds AI Assistant Response text in the user's selected language, following Job -> NSQF Training flow.
  */
 function buildNsqfChatResponse(profile, userMessage, languageCode) {
   const lang = (languageCode || 'en').toLowerCase().trim();
-  const text = (userMessage || '').toLowerCase();
+  const loc = LOCALIZED_EXPLANATIONS[lang] || LOCALIZED_EXPLANATIONS.en;
 
+  const { recommendJobRole, checkTrainingRequirement } = require('./onboardingFlow');
+
+  const jobRole = recommendJobRole(profile);
+  const trainingCheck = checkTrainingRequirement(profile, jobRole);
   const matches = matchNsqfTrainings({ profile, queryText: userMessage, limit: 4 });
 
-  const loc = LOCALIZED_EXPLANATIONS[lang] || LOCALIZED_EXPLANATIONS.en;
-  let reply = `${loc.title}\n\n`;
+  let reply = `💼 **${loc.jobTitle}**\n🎯 **${jobRole.title}** (Sector: ${jobRole.sector})\n\n`;
 
-  matches.forEach((item, idx) => {
-    reply += `${idx + 1}. **${item.title}** (${item.level} · ${item.duration})\n`;
-    reply += `   • **Sector**: ${item.sectorName}\n`;
-    reply += `   • **Awarding Body**: ${item.awardingBody}\n`;
-    reply += `   • **Pathway**: ${item.progressionPathway.split('\n')[0]}\n`;
-    reply += `   • **Match**: ${item.matchPercent}%\n\n`;
-  });
+  if (!trainingCheck.required) {
+    reply += `✅ **Training Assessment:**\n${trainingCheck.reason}\n\n`;
+  } else {
+    reply += `🎓 **${loc.trainingTitle}**\n`;
+    reply += `*(Why: ${trainingCheck.reason})*\n\n`;
+
+    matches.forEach((item, idx) => {
+      reply += `${idx + 1}. **${item.title}** (${item.level} · ${item.duration})\n`;
+      reply += `   • **Sector**: ${item.sectorName}\n`;
+      reply += `   • **Awarding Body**: ${item.awardingBody}\n`;
+      reply += `   • **Pathway**: ${item.progressionPathway.split('\n')[0]}\n`;
+      reply += `   • **Match**: ${item.matchPercent}%\n\n`;
+    });
+  }
 
   reply += `${loc.why}`;
 
   return {
     reply: reply.trim(),
-    matchedTrainings: matches,
+    matchedTrainings: trainingCheck.required ? matches : [],
   };
 }
 

@@ -7,7 +7,7 @@ const { parseNaturalLanguage } = require('./nlpEngine');
 const nsqfDataset = require('../data/NSQF_Training_Recommendation');
 
 // ---------------------------------------------------------------------------
-// 1. Field definitions (canonical order)
+// 1. Field definitions (canonical 14-step order)
 // ---------------------------------------------------------------------------
 const FIELD_ORDER = [
   {
@@ -164,16 +164,83 @@ function getQuestionFor(field, profile) {
 }
 
 // ---------------------------------------------------------------------------
-// 5. NSQF Dataset Matcher & Final Summary
+// 5. Job Recommendation & NSQF Training Requirement Decision Logic
 // ---------------------------------------------------------------------------
 
-function searchNsqfRecommendations(profile, limit = 4) {
+function recommendJobRole(profile) {
+  const goalAndInterests = `${profile.careerGoal || ''} ${profile.interests || ''}`.toLowerCase();
+  const allText = `${goalAndInterests} ${profile.skills || ''} ${profile.currentOccupation || ''}`.toLowerCase();
+
+  const matchDomain = (str) => {
+    if (str.includes('tailor') || str.includes('sew') || str.includes('stitch') || str.includes('cloth') || str.includes('सिलाई') || str.includes('সেলাই') || str.includes('দর্জি')) {
+      return { title: 'Self Employed Tailor / Garment Technician', sector: 'Apparel & Textiles' };
+    }
+    if (str.includes('farm') || str.includes('crop') || str.includes('agri') || str.includes('खेती') || str.includes('কৃষি') || str.includes('organic')) {
+      return { title: 'Organic Farmer / Agri Crop Cultivator', sector: 'Agriculture' };
+    }
+    if (str.includes('data analyst') || str.includes('data entry') || str.includes('coding') || str.includes('computer') || str.includes('office') || str.includes('excel') || str.includes('typing')) {
+      return { title: 'Data Entry Operator / Office Assistant', sector: 'IT-ITeS' };
+    }
+    if (str.includes('electric') || str.includes('wire') || str.includes('power') || str.includes('बिजली') || str.includes('বিদ্যুৎ')) {
+      return { title: 'Assistant Electrician / Wiring Technician', sector: 'Electronics & HW / Power' };
+    }
+    if (str.includes('health') || str.includes('nurse') || str.includes('patient') || str.includes('medical') || str.includes('अस्पताल') || str.includes('হাসপাতাল')) {
+      return { title: 'General Duty Assistant / Healthcare Associate', sector: 'Healthcare' };
+    }
+    if (str.includes('drive') || str.includes('driver') || str.includes('vehicle') || str.includes('चालक') || str.includes('ড্রাইভার')) {
+      return { title: 'Commercial Vehicle Driver / Logistics Operator', sector: 'Transportation, Logistics & Warehousing' };
+    }
+    if (str.includes('sales') || str.includes('retail') || str.includes('shop') || str.includes('store') || str.includes('दुकान') || str.includes('দোকান')) {
+      return { title: 'Retail Sales Associate / Store Executive', sector: 'Retail' };
+    }
+    if (str.includes('cook') || str.includes('food') || str.includes('chef') || str.includes('hotel') || str.includes('खाना') || str.includes('রান্না')) {
+      return { title: 'Food Production Technician / Cook', sector: 'Tourism & Hospitality / Food Processing' };
+    }
+    if (str.includes('solar') || str.includes('green') || str.includes('clean')) {
+      return { title: 'Solar LED / Rooftop Solar Technician', sector: 'Environmental Science & Green Jobs' };
+    }
+    return null;
+  };
+
+  const primaryMatch = matchDomain(goalAndInterests);
+  if (primaryMatch) return primaryMatch;
+
+  const secondaryMatch = matchDomain(allText);
+  if (secondaryMatch) return secondaryMatch;
+
+  const fallbackJob = profile.careerGoal || profile.interests || profile.skills || profile.currentOccupation || 'General Skilled Associate';
+  return { title: fallbackJob, sector: 'Skill Development' };
+}
+
+function checkTrainingRequirement(profile, jobRole) {
+  const expText = (profile.experience || '').toLowerCase();
+  const skillsText = (profile.skills || '').toLowerCase();
+  const occText = (profile.currentOccupation || '').toLowerCase();
+
+  const hasYearsExp = /\b([2-9]|\d{2})\s*(year|yr|سال|वर्ष|इयर्स|বছর)\b/i.test(expText) || /\b(3|4|5|6|7|8|9|10)\s*years?\b/i.test(expText);
+  const roleTitleLower = jobRole.title.toLowerCase();
+  const alreadyInSameRole = occText.length > 3 && roleTitleLower.includes(occText.toLowerCase());
+
+  if (hasYearsExp || (alreadyInSameRole && (skillsText.length > 5 || expText.includes('experience')))) {
+    return {
+      required: false,
+      reason: `You already possess ${profile.experience || 'relevant'} experience and matching skills for ${jobRole.title}. No additional NSQF training is required at this stage. You are qualified to apply directly for job opportunities!`,
+    };
+  }
+
+  return {
+    required: true,
+    reason: `Taking an official NSQF-aligned training course will help build certified skills, practical experience, and official accreditation required for this job role.`,
+  };
+}
+
+function searchNsqfRecommendations(profile, limit = 3) {
   if (!Array.isArray(nsqfDataset) || nsqfDataset.length === 0) return [];
 
   const queryTerms = [
     profile.careerGoal,
-    profile.skills,
     profile.interests,
+    profile.skills,
     profile.education,
     profile.currentOccupation,
   ]
@@ -203,36 +270,37 @@ function searchNsqfRecommendations(profile, limit = 4) {
   scored.sort((a, b) => b.score - a.score);
 
   if (scored.length > 0 && scored[0].score === 0) {
-    return [nsqfDataset[0], nsqfDataset[4], nsqfDataset[10], nsqfDataset[15]].slice(0, limit);
+    return [nsqfDataset[0], nsqfDataset[4], nsqfDataset[10]].slice(0, limit);
   }
 
   return scored.slice(0, limit).map((s) => s.item);
 }
 
 function buildSummary(profile) {
-  const parts = [];
   const displayName = profile.name || 'Friend';
+  const jobRole = recommendJobRole(profile);
+  const trainingCheck = checkTrainingRequirement(profile, jobRole);
 
-  if (profile.education) parts.push(profile.education);
-  if (profile.skills) parts.push(`skilled in ${profile.skills}`);
-  if (profile.currentOccupation) parts.push(`working as ${profile.currentOccupation}`);
-  if (profile.careerGoal) parts.push(`aiming for ${profile.careerGoal}`);
+  let responseText = `Thank you, ${displayName}! 🎉 I have completed your profile assessment.\n\n`;
 
-  let descriptor = parts.length
-    ? `You are ${parts.join(', ')}`
-    : `I've recorded your profile information`;
+  responseText += `💼 **Recommended Suitable Job / Career Role:**\n`;
+  responseText += `🎯 **${jobRole.title}** (Sector: ${jobRole.sector})\n\n`;
 
-  let responseText = `Thank you, ${displayName}! 🎉 I have completed your profile assessment.\n${descriptor}.\n\n`;
+  if (!trainingCheck.required) {
+    responseText += `✅ **Training Requirement Assessment:**\n`;
+    responseText += `${trainingCheck.reason}\n`;
+  } else {
+    responseText += `🎓 **Recommended Official NSQF Training Courses:**\n`;
+    responseText += `*(Why: ${trainingCheck.reason})*\n\n`;
 
-  const topNsqf = searchNsqfRecommendations(profile, 4);
-  if (topNsqf && topNsqf.length > 0) {
-    responseText += `🎯 Recommended Official NSQF Training Courses For You:\n\n`;
+    const topNsqf = searchNsqfRecommendations(profile, 3);
     topNsqf.forEach((rec, idx) => {
       responseText += `${idx + 1}. **${rec.Title}** (${rec.Level || 'NSQF Level 3'})\n`;
       responseText += `   • **Sector**: ${rec['Sector Name'] || 'Skill Development'}\n`;
       responseText += `   • **Duration**: ${rec['Minimum Notational Hours'] || rec['Maximum Notational Hours'] || '300 Hours'}\n`;
+      responseText += `   • **Awarding Body**: ${rec['Awarding Body'] || 'NSDC'}\n`;
       if (rec['Proposed Occupation']) {
-        responseText += `   • **Career**: ${rec['Proposed Occupation']}\n`;
+        responseText += `   • **Career Pathway**: ${rec['Proposed Occupation']}\n`;
       }
       responseText += `\n`;
     });
@@ -250,6 +318,8 @@ module.exports = {
   getMissingFields,
   getNextField,
   getQuestionFor,
+  recommendJobRole,
+  checkTrainingRequirement,
   buildSummary,
   searchNsqfRecommendations,
 };
