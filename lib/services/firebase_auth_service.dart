@@ -68,6 +68,8 @@ class FirebaseAuthService {
     try {
       if (kIsWeb) {
         final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        googleProvider.addScope('email');
+        googleProvider.addScope('profile');
         googleProvider.setCustomParameters({'prompt': 'select_account'});
 
         try {
