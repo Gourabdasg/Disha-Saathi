@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../models/app_models.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
-import '../widgets/common.dart';
 
 class ProgressScreen extends StatelessWidget {
   final bool embedded;
@@ -69,9 +68,9 @@ class ProgressScreen extends StatelessWidget {
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                PillTag('4/7 Steps', bg: Colors.white24, fg: Colors.white),
+                                _pillTag('4/7 Steps', Colors.white24, Colors.white),
                                 const SizedBox(width: 8),
-                                PillTag('On Track', bg: AppColors.tealLight, fg: Colors.white),
+                                _pillTag('On Track', AppColors.tealLight, Colors.white),
                               ],
                             ),
                           ],
@@ -99,6 +98,14 @@ class ProgressScreen extends StatelessWidget {
     );
   }
 
+  Widget _pillTag(String label, Color bg, Color fg) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+      child: Text(label, style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.bold)),
+    );
+  }
+
   Widget _stepTile(JourneyStep step, bool isLast) {
     final isDone = step.state == JourneyStepState.completed;
     final isActive = step.state == JourneyStepState.active;
@@ -116,7 +123,7 @@ class ProgressScreen extends StatelessWidget {
                   color: isDone ? AppColors.success : (isActive ? AppColors.navy : Colors.grey.shade300),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(_iconData(step.iconKey), size: 18, color: isDone || isActive ? Colors.white : Colors.grey.shade600),
+                child: Icon(_iconData(step.icon), size: 18, color: isDone || isActive ? Colors.white : Colors.grey.shade600),
               ),
               if (!isLast)
                 Expanded(

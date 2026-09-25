@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../models/app_models.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
-import '../widgets/common.dart';
 import 'training_screen.dart';
 
 class RecommendationsScreen extends StatefulWidget {
@@ -185,9 +184,9 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                                 title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                                 subtitle: Row(
                                   children: [
-                                    PillTag('${item.matchPercent}% Match', bg: AppColors.navy, fg: Colors.white),
+                                    _pillTag('${item.matchPercent}% Match', AppColors.navy, Colors.white),
                                     const SizedBox(width: 6),
-                                    PillTag('Level ${item.nsqfLevel}', bg: AppColors.bgLight, fg: AppColors.textMuted),
+                                    _pillTag('Level ${item.nsqfLevel}', AppColors.bgLight, AppColors.textMuted),
                                     const SizedBox(width: 6),
                                     Text(item.duration, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
                                   ],
@@ -212,7 +211,7 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
                                       Wrap(
                                         spacing: 8,
                                         runSpacing: 8,
-                                        children: item.skills.map((s) => _skillChip(s)).toList(),
+                                        children: item.skillsToLearn.map((s) => _skillChip(s)).toList(),
                                       ),
                                       const SizedBox(height: 14),
                                       Container(
@@ -257,6 +256,14 @@ class _RecommendationsScreenState extends State<RecommendationsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _pillTag(String label, Color bg, Color fg) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(10)),
+      child: Text(label, style: TextStyle(color: fg, fontSize: 11, fontWeight: FontWeight.bold)),
     );
   }
 
