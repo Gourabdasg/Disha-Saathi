@@ -8,6 +8,21 @@ const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
 // In-memory fallback message store for offline / demo mode
 const inMemoryMessages = new Map();
 
+const multilingualReplies = {
+  hi: 'नमस्ते! मैं आपका दिशा साथी एआई सहायक हूं। मैं आपकी आजीविका और कौशल विकास में कैसे मदद कर सकता हूं?',
+  bn: 'নমস্কার! আমি আপনার দিশা সাথী এআই সহকারী। আমি কিভাবে আপনার জীবিকা ও দক্ষতা বৃদ্ধিতে সাহায্য করতে পারি?',
+  mr: 'नमस्कार! मी तुमचा दिशा साथी एआय सहाय्यक आहे. मी तुमच्या उपजीविका आणि कौशल्य विकासात कशी मदत करू शकतो?',
+  te: 'నమస్కారం! నేను మీ దిశా సాథీ AI సహాయకుడిని. మీ జీవనోపాధి మరియు నైపుణ్యాభివృద్ధికి నేను ఎలా సహాయపడగలను?',
+  ta: 'வணக்கம்! நான் உங்கள் திஷா சாதி AI உதவியாளர். உங்கள் வாழ்வாதாரம் மற்றும் திறன் வளர்ச்சிக்கு நான் எவ்வாறு உதவ முடியும்?',
+  ur: 'سلام! میں آپ کا دیشا ساتھی اے آئی اسسٹنٹ ہوں۔ میں آپ کے روزگار اور مہارت کی ترقی میں کیسے مدد کر سکتا ہوں؟',
+  pa: 'ਸਤਿ ਸ਼੍ਰੀ ਅਕਾਲ! ਮੈਂ ਤੁਹਾਡਾ ਦਿਸ਼ਾ ਸਾਥੀ ਏਆਈ ਸਹਾਇਕ ਹਾਂ। ਮੈਂ ਤੁਹਾਡੀ ਰੋਜ਼ੀ-ਰੋਟੀ ਅਤੇ ਹੁਨਰ ਵਿਕਾਸ ਵਿੱਚ ਕਿਵੇਂ ਮਦਦ ਕਰ ਸਕਦਾ ਹਾਂ؟',
+  gu: 'નમસ્તે! હું તમારો દિશા સાથી AI સહાયક છું. હું તમારી આજીવિકા અને કૌશલ્ય વિકાસમાં કેવી રીતે મદદ કરી શકું?',
+  kn: 'ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ ದಿಶಾ ಸಾಥಿ AI ಸಹಾಯಕ. ನಿಮ್ಮ ಜೀವ‌ನೋಪಾಯ ಮತ್ತು ಕೌಶಲ್ಯ ಅಭಿವೃದ್ಧಿಗೆ ನಾನು ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಲ್ಲೆನು?',
+  or: 'ନମସ୍କାର! ମୁଁ ଆପଣଙ୍କର ଦିଶା ସାଥୀ AI ସହାୟକ | ମୁଁ ଆପଣଙ୍କର ଜୀବିକା ଏବଂ ଦକ୍ଷତା ବିକାଶରେ କିପରି ସାହାଯ୍ୟ କରିପାରିବି?',
+  ml: 'നമസ്കാരം! ഞാൻ നിങ്ങളുടെ ദിശ സാഥി AI അസിസ്റ്റൻറാണ്. നിങ്ങളുടെ ജീവനോപാധിയും നൈപുണ്യ വികസനവും മെച്ചപ്പെടുത്താൻ എനിക്ക് എങ്ങനെ സഹായിക്കാനാകും?',
+  en: 'Hello! I am your Disha Saathi AI Assistant. How can I assist you with your livelihood and skill development today?',
+};
+
 async function saveMessage(mobile, sender, text) {
   const key = mobile || 'anonymous';
   const msg = { mobile: key, sender, text, createdAt: new Date() };
@@ -53,13 +68,14 @@ async function clearHistory(mobile) {
 
 async function handleChatPost(req, res) {
   try {
-    const { mobile, text } = req.body;
+    const { mobile, text, language } = req.body;
 
     if (!text) {
       return res.status(400).json({ error: 'text is required' });
     }
 
     const userMobile = mobile || 'anonymous';
+    const langCode = (language || 'en').toLowerCase().trim();
 
     // Save user message
     await saveMessage(userMobile, 'user', text);
@@ -75,8 +91,8 @@ async function handleChatPost(req, res) {
       });
     }
 
-    // Step 2: Call Python FastAPI AI Service for NLP skill matching
-    const reply = await generateAssistantReply(text, onboarding.profile);
+    // Step 2: Call Python FastAPI AI Service or Multilingual Assistant for NLP skill matching
+    const reply = await generateAssistantReply(text, onboarding.profile, langCode);
     await saveMessage(userMobile, 'bot', reply);
     return res.json({ reply, onboardingComplete: true });
   } catch (err) {
@@ -132,12 +148,14 @@ router.delete('/history/:mobile', handleChatClear);
 router.post('/clear', handleChatClear);
 router.post('/restart', handleChatRestart);
 
-async function generateAssistantReply(userText, profile) {
+async function generateAssistantReply(userText, profile, language) {
+  const langCode = (language || 'en').toLowerCase().trim();
+
   try {
     const response = await fetch(`${AI_SERVICE_URL}/ai/skill-match`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: userText }),
+      body: JSON.stringify({ text: userText, language: langCode }),
     });
 
     if (response.ok) {
@@ -148,6 +166,10 @@ async function generateAssistantReply(userText, profile) {
     }
   } catch (err) {
     console.warn('Python AI Service call warning (using fallback):', err.message);
+  }
+
+  if (multilingualReplies[langCode]) {
+    return multilingualReplies[langCode];
   }
 
   const name = profile && profile.name ? profile.name : 'there';

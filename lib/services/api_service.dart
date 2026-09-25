@@ -237,8 +237,12 @@ class ApiService {
 
   // --- AI Chat (backend/routes/chat.js) ---
 
-  static Future<String> sendChatMessage(String mobile, String text) async {
-    final json = await _post('/api/chat/message', {'mobile': mobile, 'text': text});
+  static Future<String> sendChatMessage(String mobile, String text, String languageCode) async {
+    final json = await _post('/api/chat/message', {
+      'mobile': mobile,
+      'text': text,
+      'language': languageCode,
+    });
     return json['reply'] as String? ?? '';
   }
 

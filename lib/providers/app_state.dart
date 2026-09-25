@@ -403,7 +403,7 @@ class AppState extends ChangeNotifier {
     _setLoading(true);
     try {
       final normalizedEmail = email.trim().toLowerCase();
-      this.email = normalizedEmail;
+      email = normalizedEmail;
       final token = await ApiService.verifyEmailOtp(normalizedEmail, otp);
       final lookupKey = mobile.isNotEmpty ? mobile : normalizedEmail;
 
@@ -418,15 +418,15 @@ class AppState extends ChangeNotifier {
         profile = existing;
         if (existing.name.isNotEmpty) name = existing.name;
         if (existing.mobile.isNotEmpty) mobile = existing.mobile;
-        if (existing.email.isNotEmpty) this.email = existing.email.trim().toLowerCase();
+        if (existing.email.isNotEmpty) email = existing.email.trim().toLowerCase();
         isAuthenticated = true;
-        await saveSessionToPrefs(token: token, mobile: mobile, email: this.email, name: name);
+        await saveSessionToPrefs(token: token, mobile: mobile, email: email, name: name);
         notifyListeners();
         return 'existing';
       }
 
       isAuthenticated = true;
-      await saveSessionToPrefs(token: token, mobile: mobile, email: this.email, name: name);
+      await saveSessionToPrefs(token: token, mobile: mobile, email: email, name: name);
       notifyListeners();
       return 'new';
     } catch (e) {
@@ -638,7 +638,7 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     final lookupKey = mobile.isNotEmpty ? mobile : email.trim().toLowerCase();
     try {
-      final reply = await ApiService.sendChatMessage(lookupKey, text);
+      final reply = await ApiService.sendChatMessage(lookupKey, text, selectedLanguage.code);
       chatMessages.add(ChatMessage(reply.isNotEmpty ? reply : "Sorry, I didn't get a response — please try again.", true));
     } catch (e) {
       chatMessages.add(const ChatMessage(
