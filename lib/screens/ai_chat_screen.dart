@@ -177,16 +177,16 @@ class _AiChatScreenState extends State<AiChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent + 200,
+          _scrollController.position.maxScrollExtent + 250,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOutCubic,
         );
       }
     });
-    Future.delayed(const Duration(milliseconds: 150), () {
+    Future.delayed(const Duration(milliseconds: 180), () {
       if (mounted && _scrollController.hasClients) {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent + 200,
+          _scrollController.position.maxScrollExtent + 250,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOutCubic,
         );
@@ -385,90 +385,161 @@ class _AiChatScreenState extends State<AiChatScreen> {
               ),
             ),
 
-            // Messages List with Speaker Icon 🔊 for TTS (Requirements 15, 16, 17)
+            // Messages List with Bot Message Box (Matching Reference Image)
             Expanded(
               child: ListView.builder(
                 controller: _scrollController,
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 itemCount: messages.length,
                 itemBuilder: (context, i) {
                   final m = messages[i];
                   final isBot = m.isBot;
                   final isPlaying = _playingMessageIndex == i;
 
+                  if (isBot) {
+                    return Align(
+                      alignment: Alignment.centerLeft,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 14),
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.88,
+                        ),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEBF3FF), // Light blue container from reference image
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFD0E2FF), width: 1.2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.02),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Circular Bot Icon Badge (Matching Reference Image)
+                                Container(
+                                  width: 32,
+                                  height: 32,
+                                  margin: const EdgeInsets.only(top: 2, right: 10),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF1E65D6), // Deep rich blue
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.podcasts_rounded, // Radio/signal/podcast icon from reference image
+                                    color: Colors.white,
+                                    size: 18,
+                                  ),
+                                ),
+
+                                // Bot Message Text Content
+                                Expanded(
+                                  child: SelectableText(
+                                    m.text,
+                                    style: const TextStyle(
+                                      fontSize: 14.5,
+                                      height: 1.45,
+                                      color: Color(0xFF1A2138),
+                                      fontWeight: FontWeight.w400,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            // Read Aloud Button (Bottom Right inside Bot Box - Matching Reference Image)
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: InkWell(
+                                onTap: () => _playTtsForMessage(i, m.text),
+                                borderRadius: BorderRadius.circular(20),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(color: const Color(0xFFD0E2FF), width: 1),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.03),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (_isLoadingTts && isPlaying)
+                                        const SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF1E65D6)),
+                                        )
+                                      else
+                                        Icon(
+                                          isPlaying ? Icons.stop_circle_rounded : Icons.volume_up_rounded,
+                                          size: 16,
+                                          color: isPlaying ? AppColors.orange : const Color(0xFF1E65D6),
+                                        ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        isPlaying ? 'Stop' : 'Read Aloud',
+                                        style: TextStyle(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: isPlaying ? AppColors.orange : const Color(0xFF1E65D6),
+                                        ),
+                                      ),
+                                      if (!isPlaying) ...[
+                                        const SizedBox(width: 4),
+                                        const Icon(
+                                          Icons.campaign_rounded,
+                                          size: 14,
+                                          color: Color(0xFF1E65D6),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  // User Message Bubble
                   return Align(
-                    alignment: isBot ? Alignment.centerLeft : Alignment.centerRight,
+                    alignment: Alignment.centerRight,
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       constraints: BoxConstraints(
-                        maxWidth: MediaQuery.of(context).size.width * 0.82,
+                        maxWidth: MediaQuery.of(context).size.width * 0.75,
                       ),
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                       decoration: BoxDecoration(
-                        color: isBot ? Colors.white : AppColors.navy,
-                        borderRadius: BorderRadius.only(
-                          topLeft: const Radius.circular(16),
-                          topRight: const Radius.circular(16),
-                          bottomLeft: Radius.circular(isBot ? 0 : 16),
-                          bottomRight: Radius.circular(isBot ? 16 : 0),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
+                        color: const Color(0xFF1E65D6), // Rich deep blue
+                        borderRadius: BorderRadius.circular(22),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                isBot ? 'Disha Saathi Assistant' : 'You',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: isBot ? AppColors.teal : Colors.white70,
-                                ),
-                              ),
-
-                              // Read Aloud / Speaker Button for Bot Messages (Requirement 17)
-                              if (isBot)
-                                InkWell(
-                                  onTap: () => _playTtsForMessage(i, m.text),
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(2),
-                                    child: _isLoadingTts && isPlaying
-                                        ? const SizedBox(
-                                            width: 16,
-                                            height: 16,
-                                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.teal),
-                                          )
-                                        : Icon(
-                                            isPlaying ? Icons.stop_circle_rounded : Icons.volume_up_rounded,
-                                            size: 20,
-                                            color: isPlaying ? AppColors.orange : AppColors.teal,
-                                          ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-
-                          // Message Text Content
-                          SelectableText(
-                            m.text,
-                            style: TextStyle(
-                              fontSize: 14,
-                              height: 1.4,
-                              color: isBot ? AppColors.navy : Colors.white,
-                            ),
-                          ),
-                        ],
+                      child: SelectableText(
+                        m.text,
+                        style: const TextStyle(
+                          fontSize: 14.5,
+                          height: 1.35,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w400,
+                        ),
                       ),
                     ),
                   );
