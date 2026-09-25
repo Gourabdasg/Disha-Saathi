@@ -94,11 +94,6 @@ class _LoginScreenState extends State<LoginScreen> {
       _showError('Google Sign-In failed. Please try again.');
     }
   }
-    } catch (e) {
-      final cleanMsg = e.toString().replaceFirst('Exception: ', '');
-      _showError(cleanMsg.isNotEmpty ? cleanMsg : 'Google Sign-In failed. Please try again.');
-    }
-  }
 
   Future<void> _submitEmailOtp() async {
     final state = context.read<AppState>();
