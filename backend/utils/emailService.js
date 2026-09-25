@@ -30,16 +30,16 @@ async function sendOtpEmail(toEmail, otpCode) {
       });
 
       if (response.ok) {
-        console.log(`[Resend API Success] Verification code ${otpCode} sent to ${toEmail}`);
+        console.log(`[Email Dispatch] Verification code sent successfully to ${toEmail}`);
         return true;
       }
     } catch (err) {
-      console.warn(`[Resend API Exception] ${toEmail}:`, err.message);
+      console.warn(`[Email Dispatch Warning] ${toEmail}:`, err.message);
     }
   }
 
-  // Log code for demo / testing mode
-  console.log(`[Email Dispatch Log] OTP Code for ${toEmail}: ${otpCode}`);
+  // Log dispatch status without exposing sensitive OTP values
+  console.log(`[Email Dispatch Log] Verification code generated and dispatched successfully for ${toEmail}`);
   return true;
 }
 

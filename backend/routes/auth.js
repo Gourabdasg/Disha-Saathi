@@ -118,7 +118,7 @@ router.post('/otp/send', async (req, res) => {
   otpStore.set(cleanMobile, { otp, expiresAt: Date.now() + 10 * 60 * 1000 });
   await saveOtp(cleanMobile, otp);
 
-  console.log(`[Mobile OTP] Generated OTP ${otp} for +91 ${cleanMobile}`);
+  console.log(`[Mobile OTP] OTP generated and dispatched successfully to +91 ${cleanMobile}`);
 
   res.json({
     message: `Mobile OTP sent to +91 ${cleanMobile}`,

@@ -42,7 +42,7 @@ async function initDb() {
       -- Table 1: Beneficiaries
       CREATE TABLE IF NOT EXISTS beneficiaries (
         id SERIAL PRIMARY KEY,
-        mobile VARCHAR(50) DEFAULT '',
+        mobile VARCHAR(255) DEFAULT '',
         email VARCHAR(255) DEFAULT '',
         name VARCHAR(255) DEFAULT '',
         annual_income VARCHAR(100) DEFAULT '',
@@ -69,6 +69,23 @@ async function initDb() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+
+      -- Clean empty/null mobile strings to ensure UNIQUE constraint applicability
+      UPDATE beneficiaries SET mobile = CONCAT('anon_', id) WHERE mobile IS NULL OR mobile = '';
+
+      -- Ensure UNIQUE constraint on beneficiaries.mobile for ON CONFLICT (mobile)
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint WHERE conname = 'beneficiaries_mobile_unique'
+        ) THEN
+          DELETE FROM beneficiaries b1
+          USING beneficiaries b2
+          WHERE b1.id < b2.id AND b1.mobile = b2.mobile;
+
+          ALTER TABLE beneficiaries ADD CONSTRAINT beneficiaries_mobile_unique UNIQUE (mobile);
+        END IF;
+      END $$;
 
       -- Table 2: User Profiles (Conversational Onboarding State)
       CREATE TABLE IF NOT EXISTS user_profiles (
