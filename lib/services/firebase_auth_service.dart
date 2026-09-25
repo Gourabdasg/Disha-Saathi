@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 
 /// Service managing Firebase Authentication for Disha Saathi.
@@ -61,10 +62,15 @@ class FirebaseAuthService {
     }
   }
 
-  // --- Google Sign-In Authentication ---
+  // --- Google Sign-In Authentication (Web Popup & Native Mobile) ---
 
   static Future<UserCredential?> signInWithGoogle() async {
     try {
+      if (kIsWeb) {
+        final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+        return await _auth.signInWithPopup(googleProvider);
+      }
+
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         return null; // User cancelled Google Sign-In
