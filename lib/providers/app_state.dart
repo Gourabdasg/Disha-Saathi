@@ -4,41 +4,80 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_strings.dart';
 import '../models/app_models.dart';
 import '../services/api_service.dart';
-import '../services/firebase_auth_service.dart';
 
-/// Central app state shared across screens using Provider.
-/// Integrates Firebase Authentication for Google Sign-In, Phone OTP, and PostgreSQL for backend storage.
+String getInitialGreetingForLanguage(String langCode) {
+  switch (langCode.toLowerCase().trim()) {
+    case 'as':
+      return 'নমস্কাৰ! 👋 দিশা সাথীলৈ স্বাগতম। আপোনাৰ নামটো জানিব পাৰোঁনে?';
+    case 'bn':
+      return 'নমস্কার! 👋 দিশা সাথীতে আপনাকে স্বাগতম। আপনার নাম জানতে পারি?';
+    case 'brx':
+      return 'खुलुमबाय! 👋 दिशा साथियांव नोंथांखौ सिनायनो हायोगोना?';
+    case 'doi':
+      return 'नमस्ते! 👋 दिशा साथी च तुंदा स्वागत ऐ। तुंदा नां केह ऐ?';
+    case 'gu':
+      return 'નમસ્તે! 👋 દિશા સાથીમાં આપનું સ્વાગત છે. શું હું તમારું નામ જાણી શકું?';
+    case 'hi':
+      return 'नमस्ते! 👋 दिशा साथी में आपका स्वागत है। क्या मैं आपका नाम जान सकता हूँ?';
+    case 'kn':
+      return 'ನಮಸ್ಕಾರ! 👋 ದಿಶಾ ಸಾಥಿಗೆ ಸುಸ್ವಾಗತ. ನಿಮ್ಮ ಹೆಸರು ತಿಳಿಯಬಹುದೇ?';
+    case 'ks':
+      return 'سلام! 👋 دِشا ساتھی منٛز تُہند سواتَگتھ۔ تُہند ناڤ کیاہ چھُ؟';
+    case 'kok':
+      return 'नमस्कार! 👋 दिशा साथींत तुमचें स्वागत. तुमचें नांव कळूं येता?';
+    case 'mai':
+      return 'नमस्कार! 👋 दिशा साथी मे अहाँक स्वागत अछि। अहाँक नाम की थिक?';
+    case 'ml':
+      return 'നമസ്കാരം! 👋 ദിശാ സാഥിയിലേക്ക് സ്വാഗതം. നിങ്ങളുടെ പേര് അറിയാമോ?';
+    case 'mni':
+      return 'খুরুমজরী! 👋 দিশা সাথীদা তরাম্না ওকচরী। নহাকগী মমিং পাম্বীয়ু?';
+    case 'mr':
+      return 'नमस्कार! 👋 दिशा साथी मध्ये तुमचे स्वागत आहे. तुमचे नाव काय आहे?';
+    case 'ne':
+      return 'नमस्ते! 👋 दिशा साथीमा तपाईंलाई स्वागत छ। तपाईंको नाम थाहा पाउन सकिन्छ?';
+    case 'or':
+      return 'ନମସ୍କାର! 👋 ଦିଶା ସାଥୀକୁ ଆପଣଙ୍କୁ ସ୍ୱାଗତ। ଆପଣଙ୍କ ନାମ ଜାଣିପାରେ କି?';
+    case 'pa':
+      return 'ਸਤਿ ਸ਼੍ਰੀ ਅਕਾਲ! 👋 ਦਿਸ਼ਾ ਸਾਥੀ ਵਿੱਚ ਤੁਹਾਡਾ ਸਵਾਗਤ ਹੈ। ਕੀ ਮੈਂ ਤੁਹਾਡਾ ਨਾਮ ਜਾਣ ਸਕਦਾ ਹਾਂ?';
+    case 'sa':
+      return 'नमो नमः! 👋 दिशा साथी इत्यत्र भवतः स्वागतम्। भवतः नाम किम्?';
+    case 'sat':
+      return 'ᱡᱚᱦᱟᱨ! 👋 ᱫᱤᱥᱟᱹ ᱥᱟᱛᱷᱤ ᱨᱮ ᱟᱢᱟᱜ ᱥᱟᱹᱜᱩᱱ ᱫᱟᱨᱟᱢ᱾ ᱟᱢᱟᱜ ᱧᱩᱛᱩᱢ ᱪᱮᱫ?';
+    case 'sd':
+      return 'سلام! 👋 دشا ساٿي ۾ ڀلي ڪري آيا. توهان جو نالو ڇا آهي؟';
+    case 'ta':
+      return 'வணக்கம்! 👋 திஷா சாதிக்கு வரவேற்கிறோம். உங்கள் பெயர் என்ன?';
+    case 'te':
+      return 'నమస్కారం! 👋 దిశా సాథీకి స్వాగతం. మీ పేరు తెలుసుకోవచ్చా?';
+    case 'ur':
+      return 'السلام علیکم! 👋 دِشا ساتھی میں آپ کا خیرمقدم ہے۔ کیا میں آپ کا نام جان سکتا ہوں؟';
+    case 'en':
+    default:
+      return 'Hello! 👋 Welcome to Disha Saathi. May I know your name?';
+  }
+}
+
 class AppState extends ChangeNotifier {
-  AppLanguage selectedLanguage =
-      AppLanguage.all.firstWhere((l) => l.code == 'en'); // English default
-  UserProfile profile = UserProfile();
-  final List<ChatMessage> chatMessages = [
-    const ChatMessage(
-      "Hello! I'm your AI Skill Assistant. Tell me about the work you currently do. आप वर्तमान में क्या काम करते हैं?",
-      true,
-    ),
-  ];
+  AppLanguage selectedLanguage = AppLanguage.all[4]; // Default: English (en)
 
-  int registrationStep = 0; // 0..3 across the 4-step form
   bool isAuthenticated = false;
-
-  // Set as soon as the person enters/confirms a mobile number or email
-  String mobile = '';
-  String email = '';
-  String latestDemoOtp = '';
-  String firebaseVerificationId = '';
-
-  // UI feedback for in-flight network calls.
   bool isLoading = false;
   String? errorMessage;
 
-  // Registration form fields (Step 1: Personal Info)
-  String name = '';
+  String mobile = '';
+  String email = '';
+  String name = 'Rahul Kumar';
+  String latestDemoOtp = '';
+
+  UserProfile profile = UserProfile();
+
+  int registrationStep = 0;
+
+  // Step 1: Personal
   String fatherName = '';
   String motherName = '';
   String aadhaar = '';
   String annualIncome = '';
-  String category = 'Scheduled Caste (SC)';
   String scCategoryNo = '';
   String scCertificateUrl = '';
   String scCertificateFilename = '';
@@ -68,6 +107,18 @@ class AppState extends ChangeNotifier {
     SharedPreferences.getInstance().then((prefs) {
       prefs.setString('selected_language_code', lang.code);
     });
+
+    if (chatMessages.length <= 1) {
+      chatMessages
+        ..clear()
+        ..add(
+          ChatMessage(
+            getInitialGreetingForLanguage(lang.code),
+            true,
+          ),
+        );
+    }
+
     notifyListeners();
   }
 
@@ -98,7 +149,7 @@ class AppState extends ChangeNotifier {
     } catch (_) {}
   }
 
-  Future<bool> checkAndRestoreSession() async {
+  Future<bool> restoreSessionFromPrefs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
 
@@ -106,40 +157,99 @@ class AppState extends ChangeNotifier {
       if (savedLangCode != null && savedLangCode.isNotEmpty) {
         final foundLang = AppLanguage.all.firstWhere(
           (l) => l.code == savedLangCode,
-          orElse: () => AppLanguage.all.first,
+          orElse: () => AppLanguage.all[4],
         );
         selectedLanguage = foundLang;
       }
 
-      // Restore active Firebase user or SharedPreferences session
-      final firebaseUser = FirebaseAuthService.currentUser;
-      final isAuth = (prefs.getBool('is_authenticated') ?? false) || firebaseUser != null;
-      final savedMobile = prefs.getString('user_mobile') ?? (firebaseUser?.phoneNumber ?? '');
-      final savedEmail = (prefs.getString('user_email') ?? (firebaseUser?.email ?? '')).trim().toLowerCase();
-      final savedName = prefs.getString('user_name') ?? (firebaseUser?.displayName ?? '');
+      final isAuth = prefs.getBool('is_authenticated') ?? false;
+      if (!isAuth) return false;
 
-      if (isAuth && (savedMobile.isNotEmpty || savedEmail.isNotEmpty)) {
+      final savedMobile = prefs.getString('user_mobile') ?? '';
+      final savedEmail = prefs.getString('user_email') ?? '';
+      final savedName = prefs.getString('user_name') ?? 'Rahul Kumar';
+
+      final lookupKey = savedMobile.isNotEmpty ? savedMobile : savedEmail;
+      if (lookupKey.isEmpty) return false;
+
+      UserProfile? existing;
+      try {
+        existing = await ApiService.fetchProfile(lookupKey);
+      } catch (_) {}
+
+      if (existing != null) {
+        profile = existing;
+        mobile = existing.mobile;
+        email = existing.email.trim().toLowerCase();
+        name = existing.name.isNotEmpty ? existing.name : savedName;
+      } else {
         mobile = savedMobile;
         email = savedEmail;
         name = savedName;
-        isAuthenticated = true;
-
-        final lookupKey = mobile.isNotEmpty ? mobile : email;
-        try {
-          final existing = await ApiService.fetchProfile(lookupKey);
-          if (existing != null) {
-            profile = existing;
-            if (existing.name.isNotEmpty) name = existing.name;
-            if (existing.email.isNotEmpty) email = existing.email.trim().toLowerCase();
-          }
-        } catch (_) {}
-
-        notifyListeners();
-        return true;
+        profile = UserProfile(mobile: mobile, email: email, name: name);
       }
-    } catch (_) {}
+
+      isAuthenticated = true;
+      notifyListeners();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Completely clears the user's session, Firebase auth, profile, form fields, and chat history.
+  Future<void> logout() async {
+    await clearSessionPrefs();
+
+    isAuthenticated = false;
+    isLoading = false;
+    errorMessage = null;
+
+    mobile = '';
+    email = '';
+    name = 'Rahul Kumar';
+    latestDemoOtp = '';
+
+    profile = UserProfile();
+
+    registrationStep = 0;
+    fatherName = '';
+    motherName = '';
+    aadhaar = '';
+    annualIncome = '';
+    scCategoryNo = '';
+    scCertificateUrl = '';
+    scCertificateFilename = '';
+    district = 'Murshidabad';
+    stateName = 'West Bengal';
+    location = 'Barasat, West Bengal';
+
+    highestQualification = '';
+    stream = '';
+    yearsOfStudy = '';
+    workExperience = '';
+    selectedLivelihood = '';
+    selectedSkills.clear();
+    selectedInterests.clear();
+
+    _chatHistoryLoaded = false;
+    chatMessages
+      ..clear()
+      ..add(
+        ChatMessage(
+          getInitialGreetingForLanguage(selectedLanguage.code),
+          true,
+        ),
+      );
+
     notifyListeners();
-    return false;
+  }
+
+  // --- Registration Step Methods ---
+
+  void setRegistrationStep(int step) {
+    registrationStep = step;
+    notifyListeners();
   }
 
   void nextRegistrationStep() {
@@ -188,133 +298,56 @@ class AppState extends ChangeNotifier {
     return str.replaceFirst('Exception: ', '');
   }
 
-  /// Completely clears the user's session, Firebase auth, profile, form fields, and chat history.
-  void logout() {
-    FirebaseAuthService.signOut();
-    clearSessionPrefs();
-    isAuthenticated = false;
-    mobile = '';
-    email = '';
-    latestDemoOtp = '';
-    firebaseVerificationId = '';
-    name = '';
-    fatherName = '';
-    motherName = '';
-    aadhaar = '';
-    annualIncome = '';
-    category = 'Scheduled Caste (SC)';
-    scCategoryNo = '';
-    scCertificateUrl = '';
-    scCertificateFilename = '';
-    district = 'Murshidabad';
-    stateName = 'West Bengal';
-    location = 'Barasat, West Bengal';
-
-    highestQualification = '';
-    stream = '';
-    yearsOfStudy = '';
-    workExperience = '';
-
-    selectedLivelihood = '';
-    selectedSkills.clear();
-    selectedInterests.clear();
-
-    registrationStep = 0;
-    _chatHistoryLoaded = false;
-    isLoading = false;
-    errorMessage = null;
+  void _prepareNewSession({String? newMobile, String? newEmail, String? newName}) {
+    mobile = newMobile ?? mobile;
+    email = newEmail != null ? newEmail.trim().toLowerCase() : email;
+    name = newName ?? name;
 
     profile = UserProfile(
-      mobile: '',
-      email: '',
-      name: 'Beneficiary',
-      district: 'Murshidabad',
-      state: 'West Bengal',
-      location: 'Barasat, West Bengal',
-    );
-
-    chatMessages
-      ..clear()
-      ..add(
-        const ChatMessage(
-          "Hello! I'm your AI Skill Assistant. Tell me about the work you currently do. आप वर्तमान में क्या काम करते हैं?",
-          true,
-        ),
-      );
-
-    notifyListeners();
-  }
-
-  /// Helper to wipe any previous session data before commencing a new login/signup flow.
-  void _prepareNewSession({String newMobile = '', String newEmail = '', String newName = ''}) {
-    _chatHistoryLoaded = false;
-    chatMessages
-      ..clear()
-      ..add(
-        const ChatMessage(
-          "Hello! I'm your AI Skill Assistant. Tell me about the work you currently do. आप वर्तमान में क्या काम करते हैं?",
-          true,
-        ),
-      );
-    mobile = newMobile;
-    email = newEmail.trim().toLowerCase();
-    name = newName;
-    fatherName = '';
-    motherName = '';
-    aadhaar = '';
-    annualIncome = '';
-    scCategoryNo = '';
-    scCertificateUrl = '';
-    scCertificateFilename = '';
-    highestQualification = '';
-    stream = '';
-    yearsOfStudy = '';
-    workExperience = '';
-    selectedLivelihood = '';
-    selectedSkills.clear();
-    selectedInterests.clear();
-    registrationStep = 0;
-
-    profile = UserProfile(
-      mobile: newMobile,
+      mobile: mobile,
       email: email,
-      name: newName.isNotEmpty ? newName : 'Beneficiary',
-      district: district,
-      state: stateName,
-      location: location,
+      name: name,
     );
+
+    _chatHistoryLoaded = false;
+    chatMessages
+      ..clear()
+      ..add(
+        ChatMessage(
+          getInitialGreetingForLanguage(selectedLanguage.code),
+          true,
+        ),
+      );
   }
 
-  // --- Auth (Firebase Phone OTP + PostgreSQL) ---
+  // --- Mobile OTP Auth ---
 
-  Future<String?> sendOtp(String mobile) async {
-    _prepareNewSession(newMobile: mobile);
+  String firebaseVerificationId = '';
+
+  Future<String?> sendOtp(String mobileNumber) async {
+    _prepareNewSession(newMobile: mobileNumber);
     _setLoading(true);
+
     final completer = Completer<String?>();
 
     try {
+      final res = await ApiService.sendOtp(mobileNumber);
+      latestDemoOtp = res['demoOtp'] as String? ?? '';
+
       await FirebaseAuthService.sendPhoneOtp(
-        phoneNumber: mobile,
-        onCodeSent: (verificationId, resendToken) async {
+        phoneNumber: mobileNumber,
+        onCodeSent: (verificationId, resendToken) {
           firebaseVerificationId = verificationId;
-          try {
-            final res = await ApiService.sendOtp(mobile);
-            latestDemoOtp = res['demoOtp'] as String? ?? '123456';
-          } catch (_) {
-            latestDemoOtp = '123456';
-          }
           isLoading = false;
           notifyListeners();
           if (!completer.isCompleted) completer.complete(latestDemoOtp);
         },
-        onError: (err) async {
-          try {
-            final res = await ApiService.sendOtp(mobile);
-            latestDemoOtp = res['demoOtp'] as String? ?? '123456';
+        onError: (err) {
+          if (latestDemoOtp.isNotEmpty) {
             isLoading = false;
             notifyListeners();
             if (!completer.isCompleted) completer.complete(latestDemoOtp);
-          } catch (e) {
+          } else {
             isLoading = false;
             errorMessage = err;
             notifyListeners();
@@ -322,7 +355,7 @@ class AppState extends ChangeNotifier {
           }
         },
         onAutoVerified: (credential) async {
-          // Auto SMS verification on Android
+          // Auto SMS verification
         },
       );
     } catch (e) {
@@ -455,18 +488,19 @@ class AppState extends ChangeNotifier {
         notifyListeners();
         return 'existing';
       }
+
+      isAuthenticated = true;
       await saveSessionToPrefs(token: token, mobile: mobile, email: email, name: name);
       notifyListeners();
       return 'new';
     } catch (e) {
       isLoading = false;
+      isAuthenticated = false;
       errorMessage = _cleanError(e);
       notifyListeners();
       return null;
     }
   }
-
-  // --- Google & Firebase Auth ---
 
   Future<String?> loginWithGoogle(String email, String name, String? googleId) async {
     final normalizedEmail = email.trim().toLowerCase();
@@ -518,104 +552,16 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  Future<String?> loginWithEmail(String email, String password) async {
-    final normalizedEmail = email.trim().toLowerCase();
-    _prepareNewSession(newEmail: normalizedEmail);
-    _setLoading(true);
-    try {
-      final res = await ApiService.loginWithEmail(email: normalizedEmail, password: password);
-      final token = res['token'] as String? ?? 'demo-jwt';
-      final lookupKey = mobile.isNotEmpty ? mobile : normalizedEmail;
-      final existing = await ApiService.fetchProfile(lookupKey);
-      isLoading = false;
-      if (existing != null) {
-        profile = existing;
-        name = existing.name;
-        mobile = existing.mobile;
-        this.email = existing.email.trim().toLowerCase();
-        isAuthenticated = true;
-        await saveSessionToPrefs(token: token, mobile: mobile, email: this.email, name: name);
-        notifyListeners();
-        return 'existing';
-      }
-      await saveSessionToPrefs(token: token, mobile: mobile, email: this.email, name: name);
-      notifyListeners();
-      return 'new';
-    } catch (e) {
-      isLoading = false;
-      errorMessage = _cleanError(e);
-      notifyListeners();
-      return null;
-    }
-  }
-
-  // --- Registration & Profile Updates ---
-
-  Future<bool> updateUserProfile(UserProfile updatedProfile) async {
-    _setLoading(true);
-    try {
-      updatedProfile.email = updatedProfile.email.trim().toLowerCase();
-      profile = await ApiService.saveProfile(updatedProfile);
-      isLoading = false;
-      await saveSessionToPrefs(mobile: profile.mobile, email: profile.email, name: profile.name);
-      notifyListeners();
-      return true;
-    } catch (e) {
-      profile = updatedProfile;
-      isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  Future<bool> completeRegistration() async {
-    profile.mobile = mobile.isNotEmpty ? mobile : email.trim().toLowerCase();
-    profile.email = email.trim().toLowerCase();
-    profile.name = name.isNotEmpty ? name : profile.name;
-    profile.annualIncome = annualIncome;
-    profile.category = 'Scheduled Caste (SC)';
-    profile.scCategoryNo = scCategoryNo;
-    profile.scCertificateUrl = scCertificateUrl;
-    profile.scCertificateFilename = scCertificateFilename;
-    profile.district = district.isNotEmpty ? district : profile.district;
-    profile.state = stateName.isNotEmpty ? stateName : profile.state;
-    profile.location = location.isNotEmpty ? location : profile.location;
-    profile.highestQualification = highestQualification;
-    profile.stream = stream;
-    profile.yearsOfStudy = int.tryParse(yearsOfStudy) ?? profile.yearsOfStudy;
-    profile.workExperienceYears = int.tryParse(workExperience) ?? profile.workExperienceYears;
-    profile.livelihood = selectedLivelihood.isNotEmpty ? selectedLivelihood : profile.livelihood;
-
-    if (selectedSkills.isNotEmpty) {
-      profile.existingSkills
-        ..clear()
-        ..addAll(selectedSkills);
-    }
-    if (selectedInterests.isNotEmpty) {
-      profile.careerInterests
-        ..clear()
-        ..addAll(selectedInterests);
-    }
-
-    _setLoading(true);
-    try {
-      profile = await ApiService.saveProfile(profile);
-      isAuthenticated = true;
-      isLoading = false;
-      await saveSessionToPrefs(mobile: profile.mobile, email: profile.email, name: profile.name);
-      notifyListeners();
-      return true;
-    } catch (e) {
-      isLoading = false;
-      errorMessage = e.toString();
-      notifyListeners();
-      return false;
-    }
-  }
-
   // --- AI Chat Features ---
 
   String activeSessionId = 'session_default';
+
+  final List<ChatMessage> chatMessages = [
+    const ChatMessage(
+      "Hello! 👋 Welcome to Disha Saathi. May I know your name?",
+      true,
+    ),
+  ];
 
   /// Starts a fresh, new Chat Session without deleting previous profile or sessions.
   void startNewChatSession() {
@@ -624,8 +570,8 @@ class AppState extends ChangeNotifier {
     chatMessages
       ..clear()
       ..add(
-        const ChatMessage(
-          "Hello! I'm your AI Skill Assistant. Tell me about the work you currently do. आप वर्तमान में क्या काम करते हैं?",
+        ChatMessage(
+          getInitialGreetingForLanguage(selectedLanguage.code),
           true,
         ),
       );
@@ -656,8 +602,17 @@ class AppState extends ChangeNotifier {
         chatMessages
           ..clear()
           ..addAll(history);
-        notifyListeners();
+      } else {
+        chatMessages
+          ..clear()
+          ..add(
+            ChatMessage(
+              getInitialGreetingForLanguage(selectedLanguage.code),
+              true,
+            ),
+          );
       }
+      notifyListeners();
     } catch (_) {
       // Backend down or no history yet
     }
@@ -703,8 +658,8 @@ class AppState extends ChangeNotifier {
     chatMessages
       ..clear()
       ..add(
-        const ChatMessage(
-          "Hello! I'm your AI Skill Assistant. Tell me about the work you currently do. आप वर्तमान में क्या काम करते हैं?",
+        ChatMessage(
+          getInitialGreetingForLanguage(selectedLanguage.code),
           true,
         ),
       );
@@ -721,51 +676,83 @@ class AppState extends ChangeNotifier {
     chatMessages
       ..clear()
       ..add(
-        const ChatMessage(
-          "Hello! 👋 Welcome to Disha Saathi AI Assistant. What is your name?",
+        ChatMessage(
+          getInitialGreetingForLanguage(selectedLanguage.code),
           true,
         ),
       );
     notifyListeners();
   }
 
-  /// Starts a completely new chat session without carrying over prior conversation context.
-  void startNewChat() {
-    chatMessages
-      ..clear()
-      ..add(
-        const ChatMessage(
-          "New conversation started! How can I assist you today with your skills and career?",
-          true,
-        ),
-      );
-    notifyListeners();
-  }
+  // --- Profile Modifications & Saves ---
 
-  /// Deletes an individual chat message by index.
-  void deleteChatMessage(int index) {
-    if (index >= 0 && index < chatMessages.length) {
-      chatMessages.removeAt(index);
+  Future<bool> updateUserProfile(UserProfile updatedProfile) async {
+    _setLoading(true);
+    try {
+      updatedProfile.email = updatedProfile.email.trim().toLowerCase();
+      profile = await ApiService.saveProfile(updatedProfile);
+      mobile = profile.mobile;
+      email = profile.email;
+      name = profile.name;
+      await saveSessionToPrefs(mobile: profile.mobile, email: profile.email, name: profile.name);
+      isLoading = false;
       notifyListeners();
+      return true;
+    } catch (e) {
+      profile = updatedProfile;
+      isLoading = false;
+      errorMessage = _cleanError(e);
+      notifyListeners();
+      return false;
     }
   }
 
-  /// Edits a previous user message, removes subsequent responses, and resends.
-  Future<void> editAndResendMessage(int index, String newText) async {
-    if (index >= 0 && index < chatMessages.length) {
-      chatMessages.removeRange(index, chatMessages.length);
+  Future<bool> saveRegistrationProfile() async {
+    _setLoading(true);
+    try {
+      profile.mobile = mobile.isNotEmpty ? mobile : email.trim().toLowerCase();
+      profile.email = email.trim().toLowerCase();
+      profile.name = name.isNotEmpty ? name : profile.name;
+      profile.annualIncome = annualIncome;
+      profile.category = 'Scheduled Caste (SC)';
+      profile.scCategoryNo = scCategoryNo;
+      profile.scCertificateUrl = scCertificateUrl;
+      profile.scCertificateFilename = scCertificateFilename;
+      profile.district = district.isNotEmpty ? district : profile.district;
+      profile.state = stateName.isNotEmpty ? stateName : profile.state;
+      profile.location = location.isNotEmpty ? location : profile.location;
+      profile.highestQualification = highestQualification;
+      profile.stream = stream;
+      profile.yearsOfStudy = int.tryParse(yearsOfStudy) ?? profile.yearsOfStudy;
+      profile.workExperienceYears = int.tryParse(workExperience) ?? profile.workExperienceYears;
+      profile.livelihood = selectedLivelihood.isNotEmpty ? selectedLivelihood : profile.livelihood;
+
+      if (selectedSkills.isNotEmpty) {
+        profile.existingSkills
+          ..clear()
+          ..addAll(selectedSkills);
+      }
+      if (selectedInterests.isNotEmpty) {
+        profile.careerInterests
+          ..clear()
+          ..addAll(selectedInterests);
+      }
+
+      profile = await ApiService.saveProfile(profile);
+      mobile = profile.mobile;
+      email = profile.email;
+      name = profile.name;
+      await saveSessionToPrefs(mobile: profile.mobile, email: profile.email, name: profile.name);
+
+      isLoading = false;
+      isAuthenticated = true;
       notifyListeners();
-      await sendChatMessage(newText);
+      return true;
+    } catch (e) {
+      isLoading = false;
+      errorMessage = _cleanError(e);
+      notifyListeners();
+      return false;
     }
   }
-
-  List<JourneyStep> get journeySteps => const [
-    JourneyStep('Profile Setup', 'Completed', JourneyStepState.completed, 'check'),
-    JourneyStep('Livelihood Mapping', 'Completed', JourneyStepState.completed, 'check'),
-    JourneyStep('Skill Assessment', 'Completed', JourneyStepState.completed, 'check'),
-    JourneyStep('Recommendations', 'Completed', JourneyStepState.completed, 'check'),
-    JourneyStep('Training', 'In progress — Find training to continue', JourneyStepState.active, 'school'),
-    JourneyStep('Completion', 'Locked · Complete previous step', JourneyStepState.locked, 'medal'),
-    JourneyStep('Certification', 'Locked · Complete previous step', JourneyStepState.locked, 'certificate'),
-  ];
 }
