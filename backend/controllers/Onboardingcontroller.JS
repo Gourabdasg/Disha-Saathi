@@ -151,12 +151,34 @@ async function getOrCreateProfile(mobile) {
 async function handleOnboardingMessage(mobile, message, llmClient = null) {
   const profile = await getOrCreateProfile(mobile);
 
-  // Onboarding already finished — let the normal AI chat flow handle this message.
-  if (profile.onboardingComplete) {
+  const trimmed = (message || '').trim();
+  const lower = trimmed.toLowerCase();
+
+  // If the user asks a direct training/course/job question or profile is established, skip onboarding and let AI handle it directly.
+  const isTrainingQuestion =
+    lower.includes('train') ||
+    lower.includes('course') ||
+    lower.includes('learn') ||
+    lower.includes('skill') ||
+    lower.includes('job') ||
+    lower.includes('career') ||
+    lower.includes('nsqf') ||
+    lower.includes('कोर्स') ||
+    lower.includes('प्रशिक्षण') ||
+    lower.includes('कौशल') ||
+    lower.includes('कোর্স') ||
+    lower.includes('প্রশিক্ষণ') ||
+    lower.includes('দক্ষতা') ||
+    lower.includes('কাজ') ||
+    lower.includes('চাই') ||
+    lower.includes('பயிற்சி') ||
+    lower.includes('تربیت') ||
+    lower.includes('کورس') ||
+    (profile.name && profile.name.trim().length > 0);
+
+  if (isTrainingQuestion || profile.onboardingComplete) {
     return { handled: false, reply: null, profileComplete: true, profile };
   }
-
-  const trimmed = (message || '').trim();
 
   // --- Case A: onboarding hasn't started yet (no name captured) and the
   //     user just sent a greeting -> kick off with the first question. ---

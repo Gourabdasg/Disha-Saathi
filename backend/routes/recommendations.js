@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const { matchNsqfSkills } = require('../utils/nlpEngine');
+const { matchNsqfTrainings } = require('../utils/nsqfMatcher');
 const { query } = require('../db');
 
 /**
  * GET /api/recommendations/:beneficiaryId
- * Returns personalized NSQF course recommendations computed by the NLP engine.
+ * Returns personalized NSQF course recommendations computed dynamically from NSQF_Training_Recommendation.js.
  */
 router.get('/:beneficiaryId', async (req, res) => {
   try {
@@ -13,23 +13,19 @@ router.get('/:beneficiaryId', async (req, res) => {
     if (req.params.beneficiaryId) {
       try {
         const result = await query(
-          `SELECT * FROM beneficiaries WHERE mobile = $1 OR email = $1 LIMIT 1;`,
+          `SELECT * FROM user_profiles WHERE mobile = $1 OR email = $1 LIMIT 1;`,
           [req.params.beneficiaryId]
         );
         if (result.rows && result.rows.length > 0) profileData = result.rows[0];
       } catch (_) {}
     }
 
-    const recommendations = matchNsqfSkills(profileData);
+    const recommendations = matchNsqfTrainings({ profile: profileData, limit: 5 });
     res.json(recommendations);
   } catch (err) {
-    console.error('Recommendations error:', err);
-    res.json([
-      { title: 'Self Employed Tailor', matchPercent: 94, nsqfLevel: 4, duration: '3 months' },
-      { title: 'Organic Grower', matchPercent: 88, nsqfLevel: 3, duration: '2.5 months' },
-      { title: 'Domestic Data Entry Operator', matchPercent: 85, nsqfLevel: 3, duration: '2 months' },
-      { title: 'Assistant Electrician', matchPercent: 80, nsqfLevel: 3, duration: '3 months' },
-    ]);
+    console.error('Recommendations route error:', err);
+    const recommendations = matchNsqfTrainings({ profile: {}, limit: 4 });
+    res.json(recommendations);
   }
 });
 

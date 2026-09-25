@@ -2,26 +2,12 @@ const express = require('express');
 const router = express.Router();
 const { query } = require('../db');
 const { handleOnboardingMessage, resetOnboarding } = require('../controllers/onboardingController');
+const { buildNsqfChatResponse } = require('../utils/nsqfMatcher');
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
 
 // In-memory fallback message store for offline / demo mode
 const inMemoryMessages = new Map();
-
-const multilingualReplies = {
-  hi: 'नमस्ते! मैं आपका दिशा साथी एआई सहायक हूं। मैं आपकी आजीविका और कौशल विकास में कैसे मदद कर सकता हूं?',
-  bn: 'নমস্কার! আমি আপনার দিশা সাথী এআই সহকারী। আমি কিভাবে আপনার জীবিকা ও দক্ষতা বৃদ্ধিতে সাহায্য করতে পারি?',
-  mr: 'नमस्कार! मी तुमचा दिशा साथी एआय सहाय्यक आहे. मी तुमच्या उपजीविका आणि कौशल्य विकासात कशी मदत करू शकतो?',
-  te: 'నమస్కారం! నేను మీ దిశా సాథీ AI సహాయకుడిని. మీ జీవనోపాధి మరియు నైపుణ్యాభివృద్ధికి నేను ఎలా సహాయపడగలను?',
-  ta: 'வணக்கம்! நான் உங்கள் திஷா சாதி AI உதவியாளர். உங்கள் வாழ்வாதாரம் மற்றும் திறன் வளர்ச்சிக்கு நான் எவ்வாறு உதவ முடியும்?',
-  ur: 'سلام! میں آپ کا دیشا ساتھی اے آئی اسسٹنٹ ہوں۔ میں آپ کے روزگار اور مہارت کی ترقی میں کیسے مدد کر سکتا ہوں؟',
-  pa: 'ਸਤਿ ਸ਼੍ਰੀ ਅਕਾਲ! ਮੈਂ ਤੁਹਾਡਾ ਦਿਸ਼ਾ ਸਾਥੀ ਏਆਈ ਸਹਾਇਕ ਹਾਂ। ਮੈਂ ਤੁਹਾਡੀ ਰੋਜ਼ੀ-ਰੋਟੀ ਅਤੇ ਹੁਨਰ ਵਿਕਾਸ ਵਿੱਚ ਕਿਵੇਂ ਮਦਦ ਕਰ ਸਕਦਾ ਹਾਂ؟',
-  gu: 'નમસ્તે! હું તમારો દિશા સાથી AI સહાયક છું. હું તમારી આજીવિકા અને કૌશલ્ય વિકાસમાં કેવી રીતે મદદ કરી શકું?',
-  kn: 'ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ ದಿಶಾ ಸಾಥಿ AI ಸಹಾಯಕ. ನಿಮ್ಮ ಜೀವ‌ನೋಪಾಯ ಮತ್ತು ಕೌಶಲ್ಯ ಅಭಿವೃದ್ಧಿಗೆ ನಾನು ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಲ್ಲೆನು?',
-  or: 'ନମସ୍କାର! ମୁଁ ଆପଣଙ୍କର ଦିଶା ସାଥୀ AI ସହାୟକ | ମୁଁ ଆପଣଙ୍କର ଜୀବିକା ଏବଂ ଦକ୍ଷତା ବିକାଶରେ କିପରି ସାହାଯ୍ୟ କରିପାରିବି?',
-  ml: 'നമസ്കാരം! ഞാൻ നിങ്ങളുടെ ദിശ സാഥി AI അസിസ്റ്റൻറാണ്. നിങ്ങളുടെ ജീവനോപാധിയും നൈപുണ്യ വികസനവും മെച്ചപ്പെടുത്താൻ എനിക്ക് എങ്ങനെ സഹായിക്കാനാകും?',
-  en: 'Hello! I am your Disha Saathi AI Assistant. How can I assist you with your livelihood and skill development today?',
-};
 
 async function saveMessage(mobile, sender, text) {
   const key = mobile || 'anonymous';
@@ -91,7 +77,7 @@ async function handleChatPost(req, res) {
       });
     }
 
-    // Step 2: Call Python FastAPI AI Service or Multilingual Assistant for NLP skill matching
+    // Step 2: Dynamic NSQF Dataset Training Recommendations Engine over NSQF_Training_Recommendation.js
     const reply = await generateAssistantReply(text, onboarding.profile, langCode);
     await saveMessage(userMobile, 'bot', reply);
     return res.json({ reply, onboardingComplete: true });
@@ -155,25 +141,22 @@ async function generateAssistantReply(userText, profile, language) {
     const response = await fetch(`${AI_SERVICE_URL}/ai/skill-match`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: userText, language: langCode }),
+      body: JSON.stringify({ text: userText, language: langCode, profile }),
     });
 
     if (response.ok) {
       const data = await response.json();
-      if (data && data.reply) {
+      if (data && data.reply && data.reply.trim().length > 15) {
         return data.reply;
       }
     }
   } catch (err) {
-    console.warn('Python AI Service call warning (using fallback):', err.message);
+    console.warn('Python AI Service call warning (using Node.js NSQF matcher):', err.message);
   }
 
-  if (multilingualReplies[langCode]) {
-    return multilingualReplies[langCode];
-  }
-
-  const name = profile && profile.name ? profile.name : 'there';
-  return `Got it, ${name}! I am your AI Skill Assistant. How else can I assist you with your career or skill development?`;
+  // Dynamic NSQF Matching Engine over NSQF_Training_Recommendation.js
+  const nsqfResult = buildNsqfChatResponse(profile, userText, langCode);
+  return nsqfResult.reply;
 }
 
 module.exports = router;

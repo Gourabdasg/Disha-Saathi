@@ -3,12 +3,12 @@ Disha Saathi — Python + FastAPI AI/ML service
 SIH 2026 · PS 26097 · Team: The AI Alchemists
 
 Hosts:
-  - /ai/skill-match : real NLP skill extraction (see nlp_engine.py)
+  - /ai/skill-match : real NLP skill extraction over NSQF_Training_Recommendation.js
   - /ai/stt         : real speech-to-text via NVIDIA Riva cloud (see riva_speech.py)
   - /ai/tts         : real text-to-speech via NVIDIA Riva cloud (see riva_speech.py)
 
 Run with: uvicorn main:app --reload --port 8000
-Docs (try it live in your browser): http://localhost:8000/docs
+Docs: http://localhost:8000/docs
 """
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import Response
@@ -16,7 +16,7 @@ from pydantic import BaseModel
 from typing import List, Dict, Optional
 from dotenv import load_dotenv
 
-load_dotenv()  # reads ai-service/.env — see .env.example
+load_dotenv()
 
 import nlp_engine
 import riva_speech
@@ -26,6 +26,8 @@ app = FastAPI(title="Disha Saathi AI Service")
 
 class SkillMatchRequest(BaseModel):
     text: str
+    language: Optional[str] = "en"
+    profile: Optional[dict] = None
 
 
 class SkillMatchResponse(BaseModel):
@@ -42,14 +44,14 @@ class TtsRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "disha-saathi-ai"}
+    return {"status": "ok", "service": "disha-saathi-ai", "dataset_count": len(nlp_engine.NSQF_DATASET)}
 
 
 @app.post("/ai/skill-match", response_model=SkillMatchResponse)
 def skill_match(req: SkillMatchRequest):
-    """Real NLP extraction over English text. See nlp_engine.py."""
+    """Dynamic NSQF Training Recommendations over NSQF_Training_Recommendation.js."""
     detected = nlp_engine.extract_skills(req.text)
-    result = nlp_engine.build_reply(detected)
+    result = nlp_engine.build_reply(req.text, profile=req.profile, language=req.language or "en")
     return {
         "detectedSkills": detected,
         "reply": result["reply"],
@@ -62,11 +64,6 @@ async def speech_to_text(
     audio: UploadFile = File(...),
     language_code: str = Form("en-US"),
 ):
-    """
-    Real speech-to-text via NVIDIA Riva cloud. Send a 16-bit mono WAV (or
-    FLAC/OPUS) file as multipart form-data under the field name "audio",
-    plus an optional "language_code" form field (default en-US).
-    """
     audio_bytes = await audio.read()
     try:
         transcript = riva_speech.transcribe(audio_bytes, language_code=language_code)
@@ -77,11 +74,6 @@ async def speech_to_text(
 
 @app.post("/ai/tts")
 def text_to_speech(req: TtsRequest):
-    """
-    Real text-to-speech via NVIDIA Riva cloud. Returns a playable WAV file
-    directly (audio/wav content type) — save the response body as a .wav
-    file, or play it directly if your HTTP client supports streaming audio.
-    """
     voice = req.voice_name or "Magpie-Multilingual.EN-US.Aria"
     try:
         wav_bytes = riva_speech.synthesize(
