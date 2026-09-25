@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../providers/app_state.dart';
 import '../services/firebase_auth_service.dart';
 import '../theme/app_theme.dart';
@@ -21,6 +23,36 @@ class _LoginScreenState extends State<LoginScreen> {
   final _mobileController = TextEditingController();
   final _emailController = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    if (kIsWeb) {
+      _checkRedirectResult();
+    }
+  }
+
+  Future<void> _checkRedirectResult() async {
+    try {
+      final redirectResult = await FirebaseAuth.instance.getRedirectResult();
+      if (redirectResult.user != null && mounted) {
+        final user = redirectResult.user!;
+        final state = context.read<AppState>();
+        final result = await state.loginWithGoogle(
+          user.email ?? '',
+          user.displayName ?? '',
+          user.uid,
+        );
+        if (mounted && result != null) {
+          _showSuccess('Google Sign-In Successful! Welcome ${state.name.isNotEmpty ? state.name : (user.displayName ?? '')}');
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (_) => const MainShell()),
+            (route) => false,
+          );
+        }
+      }
+    } catch (_) {}
+  }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: AppColors.danger),
@@ -38,7 +70,6 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final userCredential = await FirebaseAuthService.signInWithGoogle();
       if (userCredential == null || userCredential.user == null) {
-        _showError('Google Sign-In was cancelled.');
         return;
       }
       final user = userCredential.user!;
@@ -58,7 +89,8 @@ class _LoginScreenState extends State<LoginScreen> {
         _showError(state.errorMessage ?? 'Google Sign-In failed');
       }
     } catch (e) {
-      _showError('Google Sign-In failed. Please try again.');
+      final cleanMsg = e.toString().replaceFirst('Exception: ', '');
+      _showError(cleanMsg.isNotEmpty ? cleanMsg : 'Google Sign-In failed. Please try again.');
     }
   }
 

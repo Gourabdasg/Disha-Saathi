@@ -62,13 +62,24 @@ class FirebaseAuthService {
     }
   }
 
-  // --- Google Sign-In Authentication (Web Popup & Native Mobile) ---
+  // --- Google Sign-In Authentication (Web Popup/Redirect & Native Mobile) ---
 
   static Future<UserCredential?> signInWithGoogle() async {
     try {
       if (kIsWeb) {
         final GoogleAuthProvider googleProvider = GoogleAuthProvider();
-        return await _auth.signInWithPopup(googleProvider);
+        googleProvider.setCustomParameters({'prompt': 'select_account'});
+
+        try {
+          return await _auth.signInWithPopup(googleProvider);
+        } on FirebaseAuthException catch (e) {
+          print('[Firebase Auth Popup Exception] Code: ${e.code}, Message: ${e.message}');
+          if (e.code == 'popup-blocked' || e.code == 'popup-closed-by-user') {
+            await _auth.signInWithRedirect(googleProvider);
+            return null;
+          }
+          rethrow;
+        }
       }
 
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -84,9 +95,11 @@ class FirebaseAuthService {
 
       return await _auth.signInWithCredential(credential);
     } on FirebaseAuthException catch (e) {
+      print('[Firebase Auth Exception] Code: ${e.code}, Message: ${e.message}');
       throw _mapFirebaseError(e);
     } catch (e) {
-      throw 'Google sign-in was cancelled or failed. Please try again.';
+      print('[Google Sign-In Exception]: $e');
+      throw e.toString().replaceFirst('Exception: ', '');
     }
   }
 
@@ -101,6 +114,14 @@ class FirebaseAuthService {
 
   static String _mapFirebaseError(FirebaseAuthException e) {
     switch (e.code) {
+      case 'popup-blocked':
+        return 'Sign-In popup was blocked by browser. Please allow popups or try again.';
+      case 'popup-closed-by-user':
+        return 'Google Sign-In popup was closed before completion.';
+      case 'unauthorized-domain':
+        return 'This domain is not authorized for Google Sign-In in Firebase Console.';
+      case 'operation-not-allowed':
+        return 'Google Sign-In is not enabled in Firebase Console (Authentication -> Sign-in method -> Google).';
       case 'invalid-phone-number':
         return 'Enter a valid 10-digit mobile number.';
       case 'invalid-verification-code':
@@ -112,7 +133,7 @@ class FirebaseAuthService {
       case 'network-request-failed':
         return 'Internet connection unavailable. Please check your network.';
       default:
-        return e.message ?? 'Authentication error. Please try again.';
+        return e.message ?? 'Authentication error (${e.code}). Please try again.';
     }
   }
 }
