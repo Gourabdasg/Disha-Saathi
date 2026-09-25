@@ -12,7 +12,22 @@ class ProgressScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final profile = state.profile;
-    final steps = state.journeySteps;
+    final steps = [
+      const JourneyStep('Registration', 'Completed', JourneyStepState.completed, 'person'),
+      JourneyStep(
+        'Livelihood Assessment',
+        profile.calculateCompletionPercent() >= 100 ? 'Completed' : '${profile.calculateCompletionPercent()}% Complete',
+        profile.calculateCompletionPercent() >= 100 ? JourneyStepState.completed : JourneyStepState.active,
+        'chat',
+      ),
+      JourneyStep(
+        'Skill Recommendation',
+        profile.calculateCompletionPercent() >= 100 ? 'Matched NSQF Courses' : 'In progress',
+        profile.calculateCompletionPercent() >= 100 ? JourneyStepState.completed : JourneyStepState.active,
+        'school',
+      ),
+      const JourneyStep('PM-AJAY Certification', 'In progress', JourneyStepState.active, 'medal'),
+    ];
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,

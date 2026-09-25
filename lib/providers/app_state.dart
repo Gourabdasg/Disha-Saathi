@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../l10n/app_strings.dart';
 import '../models/app_models.dart';
 import '../services/api_service.dart';
+import '../services/firebase_auth_service.dart';
 
 String getInitialGreetingForLanguage(String langCode) {
   switch (langCode.toLowerCase().trim()) {
@@ -67,6 +68,7 @@ class AppState extends ChangeNotifier {
   String mobile = '';
   String email = '';
   String name = 'Rahul Kumar';
+  String category = 'Scheduled Caste (SC)';
   String latestDemoOtp = '';
 
   UserProfile profile = UserProfile();
@@ -99,6 +101,26 @@ class AppState extends ChangeNotifier {
   final Set<String> selectedInterests = {};
 
   bool _chatHistoryLoaded = false;
+
+  List<JourneyStep> get journeySteps {
+    final completion = profile.calculateCompletionPercent();
+    return [
+      const JourneyStep('Registration', 'Completed', JourneyStepState.completed, 'person'),
+      JourneyStep(
+        'Livelihood Assessment',
+        completion >= 100 ? 'Completed' : '$completion% Complete',
+        completion >= 100 ? JourneyStepState.completed : JourneyStepState.active,
+        'chat',
+      ),
+      JourneyStep(
+        'Skill Recommendation',
+        completion >= 100 ? 'Matched NSQF Courses' : 'In progress',
+        completion >= 100 ? JourneyStepState.completed : JourneyStepState.active,
+        'school',
+      ),
+      const JourneyStep('PM-AJAY Certification', 'In progress', JourneyStepState.active, 'medal'),
+    ];
+  }
 
   // --- Session & Language Persistence Methods (shared_preferences) ---
 
@@ -196,6 +218,8 @@ class AppState extends ChangeNotifier {
       return false;
     }
   }
+
+  Future<bool> checkAndRestoreSession() => restoreSessionFromPrefs();
 
   /// Completely clears the user's session, Firebase auth, profile, form fields, and chat history.
   Future<void> logout() async {
@@ -755,4 +779,6 @@ class AppState extends ChangeNotifier {
       return false;
     }
   }
+
+  Future<bool> completeRegistration() => saveRegistrationProfile();
 }
