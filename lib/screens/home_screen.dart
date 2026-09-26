@@ -416,16 +416,21 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                               const SizedBox(height: 2),
 
-                              // Greeting Name + Animated Waving Emoji 👋 on the EXACT same line
+                              // Greeting Name + Animated Waving Emoji 👋 on the EXACT same line (Dynamic Full Name Scaling)
                               Row(
-                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Flexible(
-                                    child: Text(
-                                      'Hello, ${profile.name.isNotEmpty ? profile.name : 'Beneficiary'}',
-                                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        'Hello, ${profile.name.isNotEmpty ? profile.name : 'Beneficiary'}',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 18.5,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 6),
