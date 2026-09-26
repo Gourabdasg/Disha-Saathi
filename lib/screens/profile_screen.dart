@@ -243,7 +243,7 @@ class ProfileScreen extends StatelessWidget {
             const SizedBox(height: 10),
             _menuTile(Icons.account_balance_outlined, state.tr('pm_ajay_details'), onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const PmAjayDetailsScreen()),
+                MaterialPageRoute(builder: (_) => const PmAjayGiaDetailsScreen()),
               );
             }),
 
@@ -257,12 +257,12 @@ class ProfileScreen extends StatelessWidget {
             }),
             _menuTile(Icons.description_outlined, state.tr('terms_conditions'), onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const TermsScreen()),
+                MaterialPageRoute(builder: (_) => const TermsAndConditionsScreen()),
               );
             }),
             _menuTile(Icons.privacy_tip_outlined, state.tr('privacy_policy'), onTap: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const PrivacyScreen()),
+                MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
               );
             }),
 
