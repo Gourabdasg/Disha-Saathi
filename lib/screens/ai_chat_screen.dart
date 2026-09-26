@@ -9,6 +9,7 @@ import '../providers/app_state.dart';
 import '../services/api_service.dart';
 import '../theme/app_theme.dart';
 import 'chat_history_screen.dart';
+import 'training_screen.dart';
 
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
@@ -507,17 +508,9 @@ class _AiChatScreenState extends State<AiChatScreen> {
                                   ),
                                 ),
 
-                                // Bot Message Text Content
+                                // Bot Message Content (Styled text & NSQF Cards)
                                 Expanded(
-                                  child: SelectableText(
-                                    m.text,
-                                    style: const TextStyle(
-                                      fontSize: 14.5,
-                                      height: 1.45,
-                                      color: Color(0xFF1A2138),
-                                      fontWeight: FontWeight.w400,
-                                    ),
-                                  ),
+                                  child: _buildBotMessageContent(context, m.text),
                                 ),
                               ],
                             ),
@@ -779,4 +772,335 @@ class _AiChatScreenState extends State<AiChatScreen> {
       },
     );
   }
+}
+
+class ParsedNsqfCourse {
+  final String title;
+  final String level;
+  final String duration;
+  final String sector;
+  final String courseCode;
+  final String awardingBody;
+  final String careerPathway;
+  final String matchScore;
+
+  ParsedNsqfCourse({
+    required this.title,
+    required this.level,
+    required this.duration,
+    required this.sector,
+    required this.courseCode,
+    required this.awardingBody,
+    required this.careerPathway,
+    required this.matchScore,
+  });
+}
+
+class ParsedBotMessage {
+  final String headerText;
+  final List<ParsedNsqfCourse> courses;
+  final String footerText;
+
+  ParsedBotMessage({
+    required this.headerText,
+    required this.courses,
+    required this.footerText,
+  });
+}
+
+ParsedBotMessage _parseBotMessage(String text) {
+  final cleanText = text.replaceAll('**', '');
+
+  if (!cleanText.contains('Course Code:') && !cleanText.contains('Match Score:')) {
+    return ParsedBotMessage(
+      headerText: cleanText.trim(),
+      courses: [],
+      footerText: '',
+    );
+  }
+
+  String mainBody = cleanText;
+  String footerText = '';
+
+  if (cleanText.contains('Why this is recommended')) {
+    final parts = cleanText.split(RegExp(r'💡\s*Why this is recommended:?|Why this is recommended:?'));
+    mainBody = parts[0];
+    if (parts.length > 1) {
+      footerText = '💡 Why this is recommended:\n${parts[1].trim()}';
+    }
+  }
+
+  String headerText = '';
+  final courseStartIndex = mainBody.indexOf(RegExp(r'\n1\.\s+|\n1\s+'));
+  if (courseStartIndex != -1) {
+    headerText = mainBody.substring(0, courseStartIndex).trim();
+    mainBody = mainBody.substring(courseStartIndex);
+  } else if (mainBody.contains('Course Code:')) {
+    final firstCode = mainBody.indexOf('Course Code:');
+    final lineStart = mainBody.lastIndexOf('\n', firstCode);
+    if (lineStart != -1) {
+      headerText = mainBody.substring(0, lineStart).trim();
+      mainBody = mainBody.substring(lineStart);
+    }
+  }
+
+  final courseBlocks = mainBody.split(RegExp(r'\n(?=\d+[\.\)]\s+)'));
+  List<ParsedNsqfCourse> courses = [];
+
+  for (final block in courseBlocks) {
+    if (!block.contains('Course Code:') && !block.contains('Match Score:')) continue;
+
+    String title = '';
+    String level = '';
+    String duration = '';
+    String sector = '';
+    String courseCode = '';
+    String awardingBody = '';
+    String careerPathway = '';
+    String matchScore = '';
+
+    final lines = block.split('\n');
+    for (var line in lines) {
+      final trimmed = line.trim().replaceAll(RegExp(r'^[•\-\*\d\.\)\s]+'), '');
+
+      if (trimmed.contains('Level') && (trimmed.contains('Hours') || trimmed.contains('Duration'))) {
+        final levelMatch = RegExp(r'\((Level\s*\d+)\s*·?\s*(.*?)\)').firstMatch(trimmed);
+        if (levelMatch != null) {
+          title = trimmed.substring(0, levelMatch.start).trim();
+          level = levelMatch.group(1) ?? '';
+          duration = levelMatch.group(2) ?? '';
+        } else {
+          title = trimmed;
+        }
+      } else if (title.isEmpty && trimmed.isNotEmpty && !trimmed.contains(':')) {
+        title = trimmed;
+      }
+
+      if (trimmed.startsWith('Sector:')) {
+        sector = trimmed.replaceFirst('Sector:', '').trim();
+      } else if (trimmed.startsWith('Course Code:')) {
+        courseCode = trimmed.replaceFirst('Course Code:', '').trim();
+      } else if (trimmed.startsWith('Awarding Body:')) {
+        awardingBody = trimmed.replaceFirst('Awarding Body:', '').trim();
+      } else if (trimmed.startsWith('Career Pathway:')) {
+        careerPathway = trimmed.replaceFirst('Career Pathway:', '').trim();
+      } else if (trimmed.startsWith('Match Score:')) {
+        matchScore = trimmed.replaceFirst('Match Score:', '').trim();
+      }
+    }
+
+    if (title.isNotEmpty) {
+      courses.add(ParsedNsqfCourse(
+        title: title,
+        level: level.isNotEmpty ? level : 'Level 3',
+        duration: duration.isNotEmpty ? duration : '300 Hours',
+        sector: sector.isNotEmpty ? sector : 'Skill Development',
+        courseCode: courseCode,
+        awardingBody: awardingBody,
+        careerPathway: careerPathway,
+        matchScore: matchScore.isNotEmpty ? matchScore : '85%',
+      ));
+    }
+  }
+
+  return ParsedBotMessage(
+    headerText: headerText,
+    courses: courses,
+    footerText: footerText,
+  );
+}
+
+Widget _buildBotMessageContent(BuildContext context, String text) {
+  final parsed = _parseBotMessage(text);
+
+  if (parsed.courses.isEmpty) {
+    return SelectableText(
+      parsed.headerText,
+      style: const TextStyle(
+        fontSize: 14.5,
+        height: 1.45,
+        color: Color(0xFF1A2138),
+        fontWeight: FontWeight.w400,
+      ),
+    );
+  }
+
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      if (parsed.headerText.isNotEmpty) ...[
+        SelectableText(
+          parsed.headerText,
+          style: const TextStyle(
+            fontSize: 14.5,
+            height: 1.45,
+            color: Color(0xFF1A2138),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 12),
+      ],
+
+      // Render Individual Course Cards
+      ...parsed.courses.map((c) => _buildNsqfCard(context, c)),
+
+      if (parsed.footerText.isNotEmpty) ...[
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.teal.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.teal.withValues(alpha: 0.2)),
+          ),
+          child: Text(
+            parsed.footerText,
+            style: const TextStyle(
+              fontSize: 12.5,
+              height: 1.4,
+              color: AppColors.textDark,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    ],
+  );
+}
+
+Widget _buildNsqfCard(BuildContext context, ParsedNsqfCourse course) {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 16),
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: const Color(0xFFCBD5E1), width: 1.2),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 10,
+          offset: const Offset(0, 4),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Top Header: 🎓 NSQF TRAINING Badge
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.navy.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Row(
+                children: [
+                  Text('🎓', style: TextStyle(fontSize: 12)),
+                  SizedBox(width: 5),
+                  Text('NSQF TRAINING', style: TextStyle(color: AppColors.navy, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.6)),
+                ],
+              ),
+            ),
+            if (course.matchScore.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
+                ),
+                child: Text('⭐ ${course.matchScore} Match', style: const TextStyle(color: Color(0xFFB45309), fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
+          ],
+        ),
+
+        const SizedBox(height: 12),
+
+        // Course Title
+        Text(
+          course.title,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark, height: 1.35),
+        ),
+
+        const SizedBox(height: 12),
+        const Divider(height: 1, color: Color(0xFFE2E8F0)),
+        const SizedBox(height: 12),
+
+        // Key-Value Grid Rows (Matching Screenshot 1)
+        if (course.level.isNotEmpty) _courseDetailRow('NSQF Level', course.level),
+        if (course.duration.isNotEmpty) _courseDetailRow('Duration', course.duration),
+        if (course.sector.isNotEmpty) _courseDetailRow('Sector', course.sector),
+        if (course.courseCode.isNotEmpty) _courseDetailRow('Course Code', course.courseCode),
+
+        if (course.awardingBody.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          const Text('Awarding Body', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+          const SizedBox(height: 2),
+          Text(
+            course.awardingBody,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textDark, height: 1.3),
+          ),
+        ],
+
+        if (course.careerPathway.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          const Text('Career Pathway', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+          const SizedBox(height: 2),
+          Text(
+            course.careerPathway,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textDark, height: 1.3),
+          ),
+        ],
+
+        const SizedBox(height: 16),
+
+        // Find Training Button
+        SizedBox(
+          width: double.infinity,
+          height: 42,
+          child: ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const TrainingScreen()),
+              );
+            },
+            icon: const Icon(Icons.location_searching_rounded, size: 16, color: Colors.white),
+            label: const Text('Find Training Near You →', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.5)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.navy,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _courseDetailRow(String label, String value) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Row(
+      children: [
+        SizedBox(
+          width: 110,
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textDark),
+          ),
+        ),
+      ],
+    ),
+  );
 }
