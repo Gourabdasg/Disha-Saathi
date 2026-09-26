@@ -69,6 +69,94 @@ class _WavingEmojiWidgetState extends State<WavingEmojiWidget> with SingleTicker
   }
 }
 
+/// Subtle, professional pulsing/ripple glow animation widget around waveform icon
+class VoiceWaveformPulseWidget extends StatefulWidget {
+  const VoiceWaveformPulseWidget({super.key});
+
+  @override
+  State<VoiceWaveformPulseWidget> createState() => _VoiceWaveformPulseWidgetState();
+}
+
+class _VoiceWaveformPulseWidgetState extends State<VoiceWaveformPulseWidget> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2000),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final progress = _controller.value;
+        final rippleScale = 1.0 + (progress * 0.35);
+        final rippleOpacity = (1.0 - progress).clamp(0.0, 0.6);
+
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            // Outer Pulsing Glow Ring
+            Transform.scale(
+              scale: rippleScale,
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: rippleOpacity),
+                    width: 2.0,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF38BDF8).withValues(alpha: rippleOpacity * 0.5),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Inner Circular Icon Badge
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.25),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.4),
+                  width: 1.2,
+                ),
+              ),
+              alignment: Alignment.center,
+              child: child,
+            ),
+          ],
+        );
+      },
+      child: const Icon(
+        Icons.graphic_eq_rounded,
+        color: Colors.white,
+        size: 26,
+      ),
+    );
+  }
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -336,7 +424,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ],
                               ),
                             ),
-                            const Icon(Icons.graphic_eq_rounded, color: Colors.white, size: 28),
+
+                            // Interactive Pulsing Voice Waveform Badge
+                            const VoiceWaveformPulseWidget(),
                           ],
                         ),
                       ),
