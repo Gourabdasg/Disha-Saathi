@@ -68,6 +68,8 @@ class UserProfile {
   String mobilityConstraints;
   String careerGoal;
   bool onboardingComplete;
+  String photoUrl;
+  String bio;
 
   List<String> existingSkills;
   List<String> careerInterests;
@@ -98,6 +100,15 @@ class UserProfile {
     this.yearsOfStudy = 10,
     this.experienceName = '',
     this.experienceDuration = '',
+    this.workExperienceYears = 0,
+    this.livelihood = '',
+    this.familyOccupation = '',
+    this.employmentPreference = '',
+    this.mobilityConstraints = '',
+    this.careerGoal = '',
+    this.onboardingComplete = false,
+    this.photoUrl = '',
+    this.bio = '',
     this.workExperienceYears = 0,
     this.livelihood = '',
     this.familyOccupation = '',
@@ -197,6 +208,8 @@ class UserProfile {
       mobilityConstraints: json['mobilityConstraints'] ?? '',
       careerGoal: json['careerGoal'] ?? '',
       onboardingComplete: json['onboardingComplete'] == true,
+      photoUrl: json['photoUrl'] ?? json['photo_url'] ?? '',
+      bio: json['bio'] ?? '',
       existingSkills: (json['existingSkills'] as List?)?.map((e) => e.toString()).toList() ??
           (json['skills'] is String && (json['skills'] as String).isNotEmpty
               ? (json['skills'] as String).split(',').map((s) => s.trim()).toList()
@@ -253,6 +266,9 @@ class UserProfile {
     'mobilityConstraints': mobilityConstraints,
     'careerGoal': careerGoal,
     'onboardingComplete': onboardingComplete,
+    'photoUrl': photoUrl,
+    'photo_url': photoUrl,
+    'bio': bio,
     'existingSkills': existingSkills,
     'skills': existingSkills.join(', '),
     'careerInterests': careerInterests,

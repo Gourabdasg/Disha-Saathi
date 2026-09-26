@@ -45,6 +45,8 @@ async function initDb() {
         mobile VARCHAR(255) DEFAULT '',
         email VARCHAR(255) DEFAULT '',
         name VARCHAR(255) DEFAULT '',
+        photo_url TEXT DEFAULT '',
+        bio TEXT DEFAULT '',
         annual_income VARCHAR(100) DEFAULT '',
         category VARCHAR(100) DEFAULT 'Scheduled Caste (SC)',
         sc_category_no VARCHAR(100) DEFAULT '',
@@ -70,6 +72,9 @@ async function initDb() {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
 
+      ALTER TABLE beneficiaries ADD COLUMN IF NOT EXISTS photo_url TEXT DEFAULT '';
+      ALTER TABLE beneficiaries ADD COLUMN IF NOT EXISTS bio TEXT DEFAULT '';
+
       -- Clean empty/null mobile strings to ensure UNIQUE constraint applicability
       UPDATE beneficiaries SET mobile = CONCAT('anon_', id) WHERE mobile IS NULL OR mobile = '';
 
@@ -93,6 +98,8 @@ async function initDb() {
         mobile VARCHAR(255) NOT NULL UNIQUE,
         email VARCHAR(255) DEFAULT '',
         name VARCHAR(255) DEFAULT '',
+        photo_url TEXT DEFAULT '',
+        bio TEXT DEFAULT '',
         age INTEGER DEFAULT NULL,
         state VARCHAR(100) DEFAULT '',
         district VARCHAR(100) DEFAULT '',
@@ -111,6 +118,9 @@ async function initDb() {
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+
+      ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS photo_url TEXT DEFAULT '';
+      ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS bio TEXT DEFAULT '';
 
       -- Table 3: Chat Messages (Multi-session support)
       CREATE TABLE IF NOT EXISTS chat_messages (

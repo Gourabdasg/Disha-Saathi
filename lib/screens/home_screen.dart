@@ -4,6 +4,7 @@ import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/contact_icons_row.dart';
 import 'ai_chat_screen.dart';
+import 'edit_profile_screen.dart';
 import 'notifications_screen.dart';
 import 'profile_completion_screen.dart';
 import 'progress_screen.dart';
@@ -84,13 +85,21 @@ class HomeScreen extends StatelessWidget {
                           Navigator.of(context).push(MaterialPageRoute(builder: (_) => const NotificationsScreen()));
                         }),
                         const SizedBox(width: 10),
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                          alignment: Alignment.center,
-                          child: Text(profile.name.isNotEmpty ? profile.name[0] : 'U',
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                        InkWell(
+                          borderRadius: BorderRadius.circular(10),
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+                            );
+                          },
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                            alignment: Alignment.center,
+                            child: Text(profile.name.isNotEmpty ? profile.name[0] : 'U',
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                          ),
                         ),
                       ],
                     ),

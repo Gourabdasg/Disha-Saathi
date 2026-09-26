@@ -61,6 +61,8 @@ function mapPgRowToProfile(row) {
     mobile: row.mobile || '',
     email: row.email || '',
     name: row.name || 'Rahul Kumar',
+    photoUrl: row.photo_url || '',
+    bio: row.bio || '',
     age: row.age || null,
     district: row.district || '',
     state: row.state || '',
@@ -106,6 +108,8 @@ router.post('/profile', async (req, res) => {
     const mobileVal = rawMobile || (rawEmail ? `e_${rawEmail}` : '');
     const emailVal = rawEmail;
     const nameVal = req.body.name || '';
+    const photoUrlVal = req.body.photoUrl || req.body.photo_url || '';
+    const bioVal = req.body.bio || '';
     const ageVal = parseInt(req.body.age, 10) || null;
     const incomeVal = req.body.annualIncome || '';
     const categoryVal = req.body.category || 'Scheduled Caste (SC)';
@@ -133,15 +137,17 @@ router.post('/profile', async (req, res) => {
 
     const sqlUserProfiles = `
       INSERT INTO user_profiles (
-        mobile, name, age, state, district, location, education,
+        mobile, name, photo_url, bio, age, state, district, location, education,
         current_occupation, family_occupation, skills, experience,
         interests, employment_preference, mobility_constraints, career_goal,
         onboarding_complete, updated_at
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, CURRENT_TIMESTAMP
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, CURRENT_TIMESTAMP
       )
       ON CONFLICT (mobile) DO UPDATE SET
         name = EXCLUDED.name,
+        photo_url = CASE WHEN EXCLUDED.photo_url <> '' THEN EXCLUDED.photo_url ELSE user_profiles.photo_url END,
+        bio = CASE WHEN EXCLUDED.bio <> '' THEN EXCLUDED.bio ELSE user_profiles.bio END,
         age = COALESCE(EXCLUDED.age, user_profiles.age),
         state = EXCLUDED.state,
         district = EXCLUDED.district,
@@ -164,7 +170,7 @@ router.post('/profile', async (req, res) => {
     const interestsStr = Array.isArray(interestsVal) ? interestsVal.join(', ') : (interestsVal || '');
 
     const result = await query(sqlUserProfiles, [
-      mobileVal, nameVal, ageVal, stateVal, districtVal, locationVal, qualVal,
+      mobileVal, nameVal, photoUrlVal, bioVal, ageVal, stateVal, districtVal, locationVal, qualVal,
       livelihoodVal, familyOccupationVal, skillsStr, expNameVal, interestsStr,
       empPrefVal, mobConVal, goalVal, req.body.onboardingComplete || false,
     ]);
