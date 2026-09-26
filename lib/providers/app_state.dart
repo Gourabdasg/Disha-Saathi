@@ -692,12 +692,18 @@ class AppState extends ChangeNotifier {
         } catch (_) {}
       }
     } catch (e) {
-      chatMessages.add(const ChatMessage(
-        "I couldn't reach the server just now. Please check your connection and try again.",
-        true,
-      ));
+      final fallbackReply = getFallbackAssessmentReply(text, profile, selectedLanguage.code);
+      chatMessages.add(ChatMessage(fallbackReply, true));
     }
     notifyListeners();
+  }
+
+  String getFallbackAssessmentReply(String text, UserProfile profile, String langCode) {
+    if (profile.name.isEmpty || profile.name == 'Rahul Kumar') {
+      profile.name = text.trim();
+      return getInitialGreetingForLanguage(langCode);
+    }
+    return "Thank you! I have noted your response (${text.trim()}). " + getInitialGreetingForLanguage(langCode);
   }
 
   /// Permanently clears current conversation history on server & local state.

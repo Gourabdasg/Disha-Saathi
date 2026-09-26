@@ -247,7 +247,7 @@ class ApiService {
       });
       return json['reply'] as String? ?? '';
     } catch (_) {
-      // Re-probe active backend URL in case developer IP or network host changed
+      // Rapid parallel re-probe active backend host
       await ApiConfig.resolveActiveBaseUrl();
       final json = await _post('/api/chat/message', {
         'mobile': mobile,
