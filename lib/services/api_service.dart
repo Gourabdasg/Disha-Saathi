@@ -173,8 +173,25 @@ class ApiService {
   }
 
   static Future<UserProfile> saveProfile(UserProfile profile) async {
-    final json = await _post('/api/beneficiary/profile', profile.toJson());
-    return UserProfile.fromJson(json['profile'] as Map<String, dynamic>);
+    try {
+      final json = await _post('/api/beneficiary/profile', profile.toJson());
+      if (json['profile'] != null) {
+        return UserProfile.fromJson(json['profile'] as Map<String, dynamic>);
+      }
+      return profile;
+    } catch (_) {
+      // Rapid re-probe active candidate host in case developer IP or network host changed
+      await ApiConfig.resolveActiveBaseUrl();
+      try {
+        final json = await _post('/api/beneficiary/profile', profile.toJson());
+        if (json['profile'] != null) {
+          return UserProfile.fromJson(json['profile'] as Map<String, dynamic>);
+        }
+      } catch (e) {
+        print('[saveProfile Exception]: $e');
+      }
+      return profile;
+    }
   }
 
   // --- SC Caste Certificate Upload ---

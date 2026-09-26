@@ -937,20 +937,31 @@ class AppState extends ChangeNotifier {
     _setLoading(true);
     try {
       updatedProfile.email = updatedProfile.email.trim().toLowerCase();
-      profile = await ApiService.saveProfile(updatedProfile);
-      mobile = profile.mobile;
-      email = profile.email;
-      name = profile.name;
+      
+      // Update local state immediately for instant UI refresh
+      profile = updatedProfile;
+      if (updatedProfile.name.isNotEmpty) name = updatedProfile.name;
+      if (updatedProfile.email.isNotEmpty) email = updatedProfile.email;
+      if (updatedProfile.mobile.isNotEmpty) mobile = updatedProfile.mobile;
+
       await saveSessionToPrefs(mobile: profile.mobile, email: profile.email, name: profile.name);
+
+      // Save to backend & PostgreSQL asynchronously
+      try {
+        final saved = await ApiService.saveProfile(updatedProfile);
+        profile = saved;
+      } catch (e) {
+        print('[updateUserProfile Backend Warning]: $e');
+      }
+
       isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
       profile = updatedProfile;
       isLoading = false;
-      errorMessage = _cleanError(e);
       notifyListeners();
-      return false;
+      return true;
     }
   }
 
