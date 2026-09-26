@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../models/app_models.dart';
 import '../providers/app_state.dart';
@@ -13,8 +14,102 @@ import 'progress_screen.dart';
 import 'recommendations_screen.dart';
 import 'training_screen.dart';
 
-class HomeScreen extends StatelessWidget {
+/// Gentle, professional waving hand emoji 👋 animation widget
+class WavingEmojiWidget extends StatefulWidget {
+  const WavingEmojiWidget({super.key});
+
+  @override
+  State<WavingEmojiWidget> createState() => _WavingEmojiWidgetState();
+}
+
+class _WavingEmojiWidgetState extends State<WavingEmojiWidget> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _rotation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+
+    _rotation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: -0.15).chain(CurveTween(curve: Curves.easeInOut)), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: -0.15, end: 0.15).chain(CurveTween(curve: Curves.easeInOut)), weight: 30),
+      TweenSequenceItem(tween: Tween(begin: 0.15, end: -0.10).chain(CurveTween(curve: Curves.easeInOut)), weight: 25),
+      TweenSequenceItem(tween: Tween(begin: -0.10, end: 0.0).chain(CurveTween(curve: Curves.easeOut)), weight: 25),
+    ]).animate(_controller);
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _rotation,
+      builder: (context, child) {
+        return Transform.rotate(
+          angle: _rotation.value,
+          origin: const Offset(8, 16),
+          child: child,
+        );
+      },
+      child: const Text(
+        '👋',
+        style: TextStyle(fontSize: 22),
+      ),
+    );
+  }
+}
+
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _autoDetectLocationIfNeeded();
+    });
+  }
+
+  Future<void> _autoDetectLocationIfNeeded() async {
+    final state = context.read<AppState>();
+    final profile = state.profile;
+
+    if (profile.location.isEmpty || profile.location.toLowerCase().contains('village')) {
+      try {
+        final res = await http.get(Uri.parse('http://ip-api.com/json')).timeout(const Duration(seconds: 4));
+        if (res.statusCode == 200) {
+          final data = jsonDecode(res.body);
+          final city = data['city'] as String? ?? 'Kolkata';
+          final region = data['regionName'] as String? ?? 'West Bengal';
+
+          profile.district = city;
+          profile.state = region;
+          profile.location = '$city, $region';
+
+          state.district = city;
+          state.stateName = region;
+          state.location = '$city, $region';
+
+          await state.updateUserProfile(profile);
+        }
+      } catch (_) {}
+    }
+  }
 
   Widget _buildSmallAvatarWidget(UserProfile profile) {
     if (profile.photoUrl.isNotEmpty) {
@@ -52,9 +147,15 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final profile = state.profile;
-    final displayLocation = profile.location.isNotEmpty
-        ? profile.location
-        : (profile.district.isNotEmpty ? '${profile.district}, ${profile.state}' : 'Kolkata, West Bengal');
+
+    String displayLocation;
+    if (profile.location.isNotEmpty && !profile.location.toLowerCase().contains('village')) {
+      displayLocation = profile.location;
+    } else if (profile.district.isNotEmpty) {
+      displayLocation = '${profile.district}, ${profile.state}';
+    } else {
+      displayLocation = 'Kolkata, West Bengal';
+    }
 
     final completionPercent = profile.calculateCompletionPercent();
     final journeyPercent = profile.calculateProgressPercent();
@@ -86,11 +187,27 @@ class HomeScreen extends StatelessWidget {
                                 style: const TextStyle(color: AppColors.tealLight, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.8),
                               ),
                               const SizedBox(height: 2),
-                              Text(
-                                'Hello, ${profile.name.isNotEmpty ? profile.name : 'Beneficiary'} 👋',
-                                style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
+
+                              // Greeting Name + Animated Waving Emoji 👋 on the EXACT same line
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      'Hello, ${profile.name.isNotEmpty ? profile.name : 'Beneficiary'}',
+                                      style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const WavingEmojiWidget(),
+                                ],
                               ),
+
                               const SizedBox(height: 4),
+
+                              // Auto-Detected Location Display (No hardcoded Village)
                               Row(
                                 children: [
                                   const Icon(Icons.location_on, size: 14, color: Colors.white70),
