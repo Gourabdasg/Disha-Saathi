@@ -249,13 +249,17 @@ class ApiService {
     } catch (_) {
       // Rapid parallel re-probe active backend host
       await ApiConfig.resolveActiveBaseUrl();
-      final json = await _post('/api/chat/message', {
-        'mobile': mobile,
-        'text': text,
-        'language': languageCode,
-        if (sessionId != null) 'sessionId': sessionId,
-      });
-      return json['reply'] as String? ?? '';
+      try {
+        final json = await _post('/api/chat/message', {
+          'mobile': mobile,
+          'text': text,
+          'language': languageCode,
+          if (sessionId != null) 'sessionId': sessionId,
+        });
+        return json['reply'] as String? ?? '';
+      } catch (e) {
+        rethrow;
+      }
     }
   }
 

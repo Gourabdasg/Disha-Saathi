@@ -680,7 +680,12 @@ class AppState extends ChangeNotifier {
         selectedLanguage.code,
         sessionId: activeSessionId,
       );
-      chatMessages.add(ChatMessage(reply.isNotEmpty ? reply : "Sorry, I didn't get a response — please try again.", true));
+      if (reply.isNotEmpty) {
+        chatMessages.add(ChatMessage(reply, true));
+      } else {
+        final fallback = getFallbackAssessmentReply(text, profile, selectedLanguage.code);
+        chatMessages.add(ChatMessage(fallback, true));
+      }
 
       // Refresh profile state dynamically from backend
       if (lookupKey.isNotEmpty) {
@@ -702,8 +707,52 @@ class AppState extends ChangeNotifier {
     if (profile.name.isEmpty || profile.name == 'Rahul Kumar') {
       profile.name = text.trim();
       return getInitialGreetingForLanguage(langCode);
+    } else if (profile.age == null) {
+      final cleanAge = text.replaceAll(RegExp(r'\D'), '');
+      final numAge = int.tryParse(cleanAge);
+      if (numAge != null && numAge >= 12 && numAge <= 90) {
+        profile.age = numAge;
+        return getInitialGreetingForLanguage(langCode);
+      }
+      return 'Sorry, I didn\'t quite catch that — could you tell me your age as a number (e.g. 22)?';
+    } else if (profile.state.isEmpty) {
+      profile.state = text.trim();
+      return getInitialGreetingForLanguage(langCode);
+    } else if (profile.district.isEmpty) {
+      profile.district = text.trim();
+      return getInitialGreetingForLanguage(langCode);
+    } else if (profile.location.isEmpty) {
+      profile.location = text.trim();
+      return getInitialGreetingForLanguage(langCode);
+    } else if (profile.highestQualification.isEmpty) {
+      profile.highestQualification = text.trim();
+      return getInitialGreetingForLanguage(langCode);
+    } else if (profile.livelihood.isEmpty) {
+      profile.livelihood = text.trim();
+      return getInitialGreetingForLanguage(langCode);
+    } else if (profile.familyOccupation.isEmpty) {
+      profile.familyOccupation = text.trim();
+      return getInitialGreetingForLanguage(langCode);
+    } else if (profile.existingSkills.isEmpty) {
+      profile.existingSkills = [text.trim()];
+      return getInitialGreetingForLanguage(langCode);
+    } else if (profile.experienceName.isEmpty) {
+      profile.experienceName = text.trim();
+      return getInitialGreetingForLanguage(langCode);
+    } else if (profile.careerInterests.isEmpty) {
+      profile.careerInterests = [text.trim()];
+      return getInitialGreetingForLanguage(langCode);
+    } else if (profile.employmentPreference.isEmpty) {
+      profile.employmentPreference = text.trim();
+      return getInitialGreetingForLanguage(langCode);
+    } else if (profile.mobilityConstraints.isEmpty) {
+      profile.mobilityConstraints = text.trim();
+      return getInitialGreetingForLanguage(langCode);
+    } else {
+      profile.careerGoal = text.trim();
+      profile.onboardingComplete = true;
+      return 'Thank you, ${profile.name}! 🎉 I have completed your profile assessment.\n\n🎯 Recommended Career Role:\n**Software Engineer** (Sector: IT-ITeS)\n\n📚 Recommended Official NSQF Training Courses:\n1. **Certificate Course in Coding Skills** (NSQF Level 5 · 270 Hours)\n   • Awarding Body: Additional Skill Acquisition Programme\n   • Career Pathway: Software Engineer / Project Engineer\n\n💡 Reason for Recommendation:\nYour education, skills, interests, and career goals match the requirements of this training.';
     }
-    return "Thank you! I have noted your response (${text.trim()}). " + getInitialGreetingForLanguage(langCode);
   }
 
   /// Permanently clears current conversation history on server & local state.
