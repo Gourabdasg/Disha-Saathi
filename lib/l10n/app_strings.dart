@@ -4,7 +4,7 @@ class AppStrings {
   static const Map<String, Map<String, String>> _dict = {
     'en': {
       'app_title': 'Disha Saathi',
-      'ai_chat_title': 'Disha Saathi AI',
+      'ai_chat_title': 'DISHA-AI',
       'scheme_subtitle': 'PM-AJAY · GIA SCHEME',
       'select_language': 'Choose Language',
       'continue_btn': 'Continue →',
@@ -67,7 +67,7 @@ class AppStrings {
     },
     'hi': {
       'app_title': 'दिशा साथी',
-      'ai_chat_title': 'दिशा साथी एआई',
+      'ai_chat_title': 'दिशा-एआई',
       'scheme_subtitle': 'पीएम-अजय · जीआईए योजना',
       'select_language': 'भाषा चुनें',
       'continue_btn': 'आगे बढ़ें →',
@@ -130,7 +130,7 @@ class AppStrings {
     },
     'bn': {
       'app_title': 'दिशा সাথী',
-      'ai_chat_title': 'দিশা সাথী এআই',
+      'ai_chat_title': 'দিশা-এআই',
       'scheme_subtitle': 'পিএম-অজয় · জিআইএ প্রকল্প',
       'select_language': 'ভাষা নির্বাচন করুন',
       'continue_btn': 'এগিয়ে যান →',
@@ -193,7 +193,7 @@ class AppStrings {
     },
     'mr': {
       'app_title': 'दिशा साथी',
-      'ai_chat_title': 'दिशा साथी एआय',
+      'ai_chat_title': 'दिशा-एआय',
       'scheme_subtitle': 'पीएम-अजय · जीआयए योजना',
       'select_language': 'भाषा निवडा',
       'continue_btn': 'पुढे जा →',
@@ -256,7 +256,7 @@ class AppStrings {
     },
     'te': {
       'app_title': 'దిశా సాథీ',
-      'ai_chat_title': 'దిశా సాథీ AI',
+      'ai_chat_title': 'దిశా-AI',
       'scheme_subtitle': 'PM-AJAY · GIA పథకం',
       'select_language': 'భాషను ఎంచుకోండి',
       'continue_btn': 'ముందుకు సాగండి →',
@@ -319,7 +319,7 @@ class AppStrings {
     },
     'ta': {
       'app_title': 'திஷா சாதி',
-      'ai_chat_title': 'திஷா சாதி AI',
+      'ai_chat_title': 'திஷா-AI',
       'scheme_subtitle': 'PM-AJAY · GIA திட்டம்',
       'select_language': 'மொழியைத் தேர்ந்தெடுக்கவும்',
       'continue_btn': 'தொடரவும் →',
@@ -382,7 +382,7 @@ class AppStrings {
     },
     'ur': {
       'app_title': 'دیشا ساتھی',
-      'ai_chat_title': 'دشا ساتھی اے آئی',
+      'ai_chat_title': 'دشا-اے آئی',
       'scheme_subtitle': 'پی ایم - اجے · جی آئی اے اسکیم',
       'select_language': 'زبان کا انتخاب کریں',
       'continue_btn': 'آگے بڑھیں →',
