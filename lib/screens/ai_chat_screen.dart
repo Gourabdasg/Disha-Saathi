@@ -11,9 +11,11 @@ import '../theme/app_theme.dart';
 import 'chat_history_screen.dart';
 import 'training_screen.dart';
 
-/// Professional, subtle breathing pulse glow animation around DISHA-AI logo
+/// Professional, subtle breathing pulse & ripple glow animation around DISHA-AI logo
 class PulsingAiLogoAvatar extends StatefulWidget {
-  const PulsingAiLogoAvatar({super.key});
+  final bool isListening;
+
+  const PulsingAiLogoAvatar({super.key, this.isListening = false});
 
   @override
   State<PulsingAiLogoAvatar> createState() => _PulsingAiLogoAvatarState();
@@ -21,19 +23,23 @@ class PulsingAiLogoAvatar extends StatefulWidget {
 
 class _PulsingAiLogoAvatarState extends State<PulsingAiLogoAvatar> with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  late final Animation<double> _glowOpacity;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2200),
-    )..repeat(reverse: true);
+      duration: Duration(milliseconds: widget.isListening ? 1000 : 2400),
+    )..repeat();
+  }
 
-    _glowOpacity = Tween<double>(begin: 0.15, end: 0.45).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+  @override
+  void didUpdateWidget(covariant PulsingAiLogoAvatar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isListening != widget.isListening) {
+      _controller.duration = Duration(milliseconds: widget.isListening ? 1000 : 2400);
+      _controller.repeat();
+    }
   }
 
   @override
@@ -47,25 +53,56 @@ class _PulsingAiLogoAvatarState extends State<PulsingAiLogoAvatar> with SingleTi
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        return Container(
-          width: 38,
-          height: 38,
-          padding: const EdgeInsets.all(3),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: _glowOpacity.value),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF38BDF8).withValues(alpha: _glowOpacity.value * 0.6),
-                blurRadius: 8,
-                spreadRadius: 1,
+        final progress = _controller.value;
+        final rippleScale = 1.0 + (progress * (widget.isListening ? 0.42 : 0.30));
+        final rippleOpacity = ((1.0 - progress) * (widget.isListening ? 0.8 : 0.5)).clamp(0.0, 0.8);
+
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            // Outer Pulsing AI Glow Ring
+            Transform.scale(
+              scale: rippleScale,
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: rippleOpacity),
+                    width: 2.0,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: (widget.isListening ? const Color(0xFF00E5FF) : const Color(0xFF38BDF8))
+                          .withValues(alpha: rippleOpacity * 0.7),
+                      blurRadius: 10,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(19),
-            child: Image.asset('assets/app_icon_512.png', fit: BoxFit.cover),
-          ),
+            ),
+
+            // Inner Logo Avatar Badge
+            Container(
+              width: 40,
+              height: 40,
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.25),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.45),
+                  width: 1.2,
+                ),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.asset('assets/app_icon_512.png', fit: BoxFit.cover),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -354,7 +391,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
               child: Row(
                 children: [
                   // Animated Pulsing DISHA-AI Logo Avatar (Red-Marked Area)
-                  const PulsingAiLogoAvatar(),
+                  PulsingAiLogoAvatar(isListening: _isListening),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
