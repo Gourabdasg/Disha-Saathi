@@ -1,171 +1,165 @@
-# Disha Saathi – Flutter App
+# Disha Saathi – AI-Powered Skilling & Livelihood Assistant
 
 **Smart India Hackathon 2026 · Problem Statement 26097**
-> AI-Driven Voice Assistant for Livelihood Mapping and NSQF-Aligned Skilling  
-> Recommendations for SC Communities under the GIA component of PM-AJAY  
+> AI-Driven Voice Assistant for Livelihood Mapping and NSQF-Aligned Skilling Recommendations for SC Communities under the GIA component of PM-AJAY  
 > Team: **The AI Alchemists**
 
+---
 
-This is the **Flutter frontend** for Disha Saathi – a voice-first, multilingual
-AI assistant that maps a beneficiary's livelihood and skills, then recommends
-NSQF-aligned training and job pathways.
+This is the **Flutter Frontend Client** for Disha Saathi – a voice-first, 22-language AI assistant that maps a beneficiary's livelihood, skills, and career goals, then recommends NSQF-aligned training and job pathways under the PM-AJAY GIA scheme.
 
-## Tech stack (per the SIH submission)
+---
 
-| Layer     | Technology                     |
-|-----------|---------------------------------|
-| Frontend  | **Flutter** (this repo)        |
-| Backend   | Node.js + Express              |
-| AI / ML   | Python + FastAPI + NLP         |
-| Database  | MongoDB                         |
+## Tech Stack (SIH 2026 Submission Architecture)
 
-This repo ships the complete Flutter client with all screens from the design
-mockups, wired to local mock data via `provider` so the entire flow is
-demoable without a live backend. Swap the mock calls in
-`lib/providers/app_state.dart` for real HTTP calls to your Express API when
-the backend is ready (see `backend/` and `ai-service/` stubs below).
-
-## Screenshots
-
-### Splash, Language & Login
-
-| | | |
-|---|---|---|
-| ![Splash](screenshots/01_splash.png) | ![Language Selection](screenshots/02_language_selection.png) | ![Login](screenshots/03_login.png) |
-| Splash screen | Language selection (22 languages) | Login – Mobile/Email OTP |
-
-### Registration
-
-| | | |
-|---|---|---|
-| ![Personal Info](screenshots/04_personal_info.png) | ![Livelihood](screenshots/05_livelihood.png) | ![Skills](screenshots/06_skills.png) |
-| Registration – Personal Info | Registration – Livelihood | Registration – Skills & Interests |
-
-### Main App
-
-| | | |
-|---|---|---|
-| ![Home](screenshots/07_home.png) | ![AI Chat](screenshots/08_ai_chat.png) | ![Recommendations](screenshots/09_recommendations_digital_office.png) |
-| Home dashboard | AI Voice/Chat livelihood assessment | AI skill recommendations – Digital Office Assistant |
-
-### Recommendations
-
-| | | |
-|---|---|---|
-| ![Data Entry](screenshots/10_recommendations_data_entry.png) | ![Recommendations List](screenshots/11_recommendations_list.png) | ![Progress](screenshots/12_progress_journey.png) |
-| Data Entry Operator recommendation | Multiple skill recommendations | My Progress – skill journey tracker |
-
-### Achievements & Profile
-
-| | |
+| Layer | Technology |
 |---|---|
-| ![Achievements](screenshots/13_achievements.png) | ![Profile](screenshots/14_profile.png) |
-| Achievements & stats | Profile & career interests |
+| **Frontend** | **Flutter** (Cross-platform Web, Android, Desktop) |
+| **Backend** | **Node.js + Express** (PostgreSQL REST API, Multer upload engine) |
+| **AI / ML** | **NVIDIA AI / Python + FastAPI** (Multilingual NLP, STT, TTS, NSQF Matcher) |
+| **Database** | **PostgreSQL** (`user_profiles`, `beneficiaries`, `chat_messages`, `otp_codes`) |
+| **Authentication** | **Firebase Auth** (Google Sign-In, Mobile SMS OTP, Email OTP) |
 
-## Screens included
+---
 
-1. Splash (`दिशा साथी` / Disha Saathi)
-2. Language selection (all 22 languages of India, plus English)
-3. Onboarding carousel (3 slides)
-4. Registration – 4 steps: Name → Mobile No. / Email → SC Category No. → OTP verification
-5. Login – Mobile No. / Email → OTP tabs
-6. OTP verification
-7. Home dashboard (profile completion, voice assistant CTA, quick links)
-8. AI Recommendations (NSQF match %, skill-gap pathway, expected salary)
-9. Training Opportunities (filters, GIA-funded badges, apply flow)
-10. My Progress (7-step skill journey tracker + achievements)
-11. Notifications
-12. AI Chat / Voice Assistant (livelihood assessment conversation)
-13. Profile
-14. Settings
+## Application Screenshots & UI Flow
 
-## Getting started
+### 1. Onboarding, Language Selection & Authentication
 
-```bash
-flutter pub get
-flutter run
-```
+| Splash Screen | Language Selection | Login / Sign-In | Registration |
+|:---:|:---:|:---:|:---:|
+| ![Splash Screen](screenshots/01_splash.png) | ![Language Selection](screenshots/02_language_selection.png) | ![Login](screenshots/03_login.png) | ![Registration](screenshots/04_personal_info.png) |
+| *Ministry Branding & Launch Screen* | *Supports 22 Scheduled Indian Languages + English* | *Google Sign-In, Mobile & Email OTP* | *PM-AJAY GIA Beneficiary Registration* |
 
-Requires Flutter 3.22+ (Dart 3.x). Tested against Material 3.
+<br/>
 
-### Platform folders included
+### 2. Home Dashboard & DISHA-AI Voice Assistant
 
-- `android/` – full Gradle project (Kotlin `MainActivity`, manifest, launcher
-  icons, Gradle wrapper). Open this repo root in **Android Studio** with the
-  Flutter/Dart plugins installed; it will detect the project automatically.
-  The first sync auto-generates `android/local.properties` with your SDK
-  paths – if it doesn't, set `sdk.dir` / `flutter.sdk` there yourself.
-- `web/` – runs with `flutter run -d chrome`.
-- `linux/` – GTK + CMake desktop build (`flutter run -d linux`, needs GTK 3
-  dev libraries on the build machine).
-- `windows/` – Win32 + CMake desktop build (`flutter run -d windows`, needs
-  Visual Studio with the "Desktop development with C++" workload).
-- `test/` – a starter widget test (`flutter test`).
+| Home Dashboard | DISHA-AI Chat | Livelihood Assessment |
+|:---:|:---:|:---:|
+| ![Home Dashboard](screenshots/07_home.png) | ![DISHA-AI Chat](screenshots/08_ai_chat.png) | ![Assessment Flow](screenshots/05_livelihood.png) |
+| *Auto-Detected Location & AI Voice Assistant Hero Card* | *NVIDIA AI Powered Multilingual Voice & Text Assistant* | *14-Step Conversational Skill Mapping Flow* |
 
-**Not included:** `ios/`, `macos/`. Both platforms' core project file
-(`Runner.xcodeproj/project.pbxproj`) is an Xcode-managed indexed format
-that's unsafe to hand-write – a single bad reference silently corrupts the
-project – and Xcode itself only runs on macOS. Each folder has a
-`PLATFORM_SETUP.md` with the one command to generate it properly on a Mac:
+<br/>
 
-```bash
-flutter create --platforms=ios,macos .
-```
+### 3. NSQF Training Recommendations & Progress Journey
 
-This adds the missing platform folders in place without touching your
-existing `lib/`, `android/`, `web/`, `linux/`, `windows/`, or `pubspec.yaml`.
+| Skill Recommendations | Training Courses | Skill Progress Tracker |
+|:---:|:---:|:---:|
+| ![Skill Recommendations](screenshots/09_recommendations_digital_office.png) | ![Training Courses](screenshots/11_recommendations_list.png) | ![Progress Tracker](screenshots/12_progress_journey.png) |
+| *NSQF-Aligned Skill Pathway Matches* | *PM-AJAY GIA Funded Free Training Courses* | *7-Step Skilling & Certification Tracker* |
 
-## Project structure
+<br/>
+
+### 4. Beneficiary Profile & Edit Profile Management
+
+| Beneficiary Profile | Skills & Interests | Achievements & Stats |
+|:---:|:---:|:---:|
+| ![Beneficiary Profile](screenshots/14_profile.png) | ![Skills & Interests](screenshots/06_skills.png) | ![Achievements](screenshots/13_achievements.png) |
+| *Section-Boxed Profile with SC Category Badge* | *Name, Bio & Profile Photo Upload* | *Certification Milestones & Badges* |
+
+---
+
+## Key Features & Capabilities
+
+1. **Multilingual Voice-First Interface**:
+   - Supports all **22 Scheduled Languages of India** + English (`bn`, `hi`, `pa`, `ta`, `te`, `mr`, `ur`, `gu`, `kn`, `ml`, `or`, `as`, etc.).
+   - Integrated Speech-to-Text (STT) and Read Aloud Text-to-Speech (TTS).
+
+2. **Automated Livelihood & Skill Assessment**:
+   - 14-step conversational AI assessment mapping name, age, location, education, occupation, skills, experience, and career goals.
+   - Dynamic profile completion calculation (0% to 100%).
+
+3. **Official NSQF Training Matching Engine**:
+   - Algorithmic matching against **2,814 official NSQF training records** from NCVET dataset.
+   - Generates formatted NSQF Training Cards with Match Score %, NSQF Level, Duration, Sector, Course Code, and Awarding Body.
+
+4. **Multi-Channel Access (App + WhatsApp + IVR)**:
+   - Green WhatsApp support button with pre-filled help prompt (`Hi, I need help with Disha Saathi`).
+   - Toll-free IVR phone helpline dialer launcher.
+
+5. **PostgreSQL & Firebase Integration**:
+   - Firebase Authentication with case-insensitive existing account detection (zero duplicate records).
+   - PostgreSQL persistence for user profiles, chat session histories, and certificate uploads.
+
+---
+
+## Getting Started
+
+### Prerequisites
+- **Flutter SDK**: 3.22.0 or higher
+- **Dart SDK**: 3.4.0 or higher
+- **Node.js**: v18+ (for Express backend server)
+- **PostgreSQL**: v14+ (or Render PostgreSQL database)
+
+### Installation & Run Instructions
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/Gourabdasg/Disha-Saathi.git
+   cd "Disha Saathi"
+   ```
+
+2. **Install Flutter dependencies**:
+   ```bash
+   flutter pub get
+   ```
+
+3. **Start the Express backend server**:
+   ```bash
+   cd backend
+   npm install
+   node server.js
+   ```
+
+4. **Run the Flutter application**:
+   - **Chrome Web**:
+     ```bash
+     flutter run -d chrome
+     ```
+   - **Android Device / Emulator**:
+     ```bash
+     flutter run -d android
+     ```
+
+---
+
+## Project Structure
 
 ```text
 lib/
-  main.dart                     # App entry point, Provider setup
-  theme/app_theme.dart          # Colors, gradients, ThemeData
-  models/app_models.dart        # UserProfile, SkillRecommendation, TrainingCourse, etc.
-  providers/app_state.dart      # Central ChangeNotifier app state (mock data layer)
-  widgets/                      # Reusable components (buttons, chips, badges)
+  main.dart                     # App entry point, Provider initialization
+  config/api_config.dart        # Dynamic parallel API backend host resolution
+  theme/app_theme.dart          # Colors, gradients, Material 3 ThemeData
+  l10n/app_strings.dart         # 23-language localization dictionary
+  models/app_models.dart        # UserProfile, ChatMessage, TrainingCourse, etc.
+  providers/app_state.dart      # Central ChangeNotifier app state & session management
+  services/
+    api_service.dart            # REST API service client for Node.js Express backend
+    firebase_auth_service.dart   # Firebase Auth service (Google Sign-In, Phone OTP, Email OTP)
+  widgets/
+    contact_icons_row.dart      # WhatsApp & IVR call helpline launcher
+    gradient_button.dart        # Standard theme gradient buttons
   screens/
-    splash_screen.dart
-    language_selection_screen.dart
-    onboarding_screen.dart
-    login_screen.dart
-    otp_verification_screen.dart
-    registration/               # 4-step registration flow
-    main_shell.dart             # Bottom-nav shell (Home/Chat/Skills/Progress/Profile)
-    home_screen.dart
-    recommendations_screen.dart
-    training_screen.dart
-    progress_screen.dart
-    notifications_screen.dart
-    ai_chat_screen.dart
-    profile_screen.dart
-    settings_screen.dart
+    splash_screen.dart          # Ministry branding launch screen
+    language_selection_screen.dart # 23-language selector
+    login_screen.dart           # Google Sign-In, Mobile & Email OTP authentication
+    otp_verification_screen.dart # OTP verification screen
+    edit_profile_screen.dart    # Name, Bio & Profile Photo upload
+    main_shell.dart             # Bottom navigation shell (Home/Chat/Skills/Progress/Profile)
+    home_screen.dart            # Home dashboard, voice assistant card, recent activity
+    ai_chat_screen.dart         # DISHA-AI voice & text chat assistant
+    recommendations_screen.dart # NSQF skill pathway recommendations
+    training_screen.dart        # PM-AJAY GIA training centers & courses
+    progress_screen.dart        # 7-step skill journey tracker
+    profile_screen.dart         # Beneficiary profile & scheme settings
+    pm_ajay_details_screen.dart # PM-AJAY GIA scheme details
 ```
 
-## Connecting to the real backend
+---
 
-Replace the mock logic in `AppState` with HTTP calls, e.g.:
+## References & Official Portals
 
-```dart
-final res = await http.post(
-  Uri.parse('$apiBaseUrl/api/auth/otp/verify'),
-  body: {'mobile': mobile, 'otp': otp},
-);
-```
-
-Suggested Express endpoints:
-- `POST /api/auth/otp/send`
-- `POST /api/auth/otp/verify`
-- `POST /api/beneficiary/profile`
-- `GET /api/recommendations/:beneficiaryId`
-- `GET /api/training?district=&nsqfLevel=`
-
-Suggested FastAPI (AI/ML) endpoints:
-- `POST /ai/stt` – speech-to-text (multilingual)
-- `POST /ai/tts` – text-to-speech
-- `POST /ai/skill-match` – NLP-based skill/interest extraction + NSQF matching
-
-## References
-
-- PM-AJAY (GIA component): https://socialjustice.gov.in/schemes/104
-- NSQF notification: https://ncvet.gov.in/national-skills-qualification-framework/nsqf-notification/
+- **PM-AJAY Scheme (GIA Component)**: https://socialjustice.gov.in/schemes/104
+- **National Skills Qualifications Framework (NSQF)**: https://ncvet.gov.in/national-skills-qualification-framework/nsqf-notification/
+- **GitHub Repository**: https://github.com/Gourabdasg/Disha-Saathi.git
