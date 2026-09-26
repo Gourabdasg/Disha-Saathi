@@ -11,6 +11,67 @@ import '../theme/app_theme.dart';
 import 'chat_history_screen.dart';
 import 'training_screen.dart';
 
+/// Professional, subtle breathing pulse glow animation around DISHA-AI logo
+class PulsingAiLogoAvatar extends StatefulWidget {
+  const PulsingAiLogoAvatar({super.key});
+
+  @override
+  State<PulsingAiLogoAvatar> createState() => _PulsingAiLogoAvatarState();
+}
+
+class _PulsingAiLogoAvatarState extends State<PulsingAiLogoAvatar> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _glowOpacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat(reverse: true);
+
+    _glowOpacity = Tween<double>(begin: 0.15, end: 0.45).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Container(
+          width: 38,
+          height: 38,
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: _glowOpacity.value),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF38BDF8).withValues(alpha: _glowOpacity.value * 0.6),
+                blurRadius: 8,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(19),
+            child: Image.asset('assets/app_icon_512.png', fit: BoxFit.cover),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class AiChatScreen extends StatefulWidget {
   const AiChatScreen({super.key});
 
@@ -278,10 +339,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
     final state = context.watch<AppState>();
     final messages = state.chatMessages;
     final activeLang = state.selectedLanguage;
-    final profile = state.profile;
-
-    final completionPercent = profile.profileCompletionPercent;
-    final double completionValue = (completionPercent / 100.0).clamp(0.0, 1.0);
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
@@ -290,165 +347,127 @@ class _AiChatScreenState extends State<AiChatScreen> {
           children: [
             // Top App Bar Header with Multilingual Indicator
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(colors: AppColors.primaryGradient),
               ),
-              child: Column(
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(19),
-                          child: Image.asset('assets/app_icon_512.png', fit: BoxFit.cover),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              state.tr('ai_chat_title'),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                            const Text(
-                              'Powered by NVIDIA AI · Multi-Language',
-                              style: TextStyle(color: Colors.white70, fontSize: 11),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Language Switcher Badge Button
-                      InkWell(
-                        onTap: () => _showLanguageSelector(context, state),
-                        borderRadius: BorderRadius.circular(16),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.white38),
-                          ),
-                          child: Row(
-                            children: [
-                              Text(
-                                activeLang.flagLabel,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 11,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                activeLang.nativeName,
-                                style: const TextStyle(color: Colors.white, fontSize: 12),
-                              ),
-                              const Icon(Icons.arrow_drop_down_rounded, color: Colors.white, size: 18),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(width: 6),
-
-                      // Clear / Restart Conversation Button
-                      PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
-                        onSelected: (val) {
-                          if (val == 'new_chat') {
-                            context.read<AppState>().startNewChatSession();
-                          } else if (val == 'history') {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const ChatHistoryScreen()),
-                            );
-                          } else if (val == 'clear') {
-                            _showClearConfirmationDialog(context);
-                          } else if (val == 'restart') {
-                            context.read<AppState>().restartChat();
-                          }
-                        },
-                        itemBuilder: (_) => [
-                          const PopupMenuItem(
-                            value: 'new_chat',
-                            child: Row(
-                              children: [
-                                Icon(Icons.add_circle_outline_rounded, size: 18, color: AppColors.navy),
-                                SizedBox(width: 8),
-                                Text('New Chat', style: TextStyle(fontWeight: FontWeight.w600)),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuItem(
-                            value: 'history',
-                            child: Row(
-                              children: [
-                                Icon(Icons.history_rounded, size: 18, color: AppColors.teal),
-                                SizedBox(width: 8),
-                                Text('Chat History', style: TextStyle(fontWeight: FontWeight.w600)),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuItem(
-                            value: 'clear',
-                            child: Row(
-                              children: [
-                                Icon(Icons.cleaning_services_rounded, size: 18, color: Colors.redAccent),
-                                SizedBox(width: 8),
-                                Text('Clear Messages', style: TextStyle(fontWeight: FontWeight.w600)),
-                              ],
-                            ),
-                          ),
-                          const PopupMenuItem(
-                            value: 'restart',
-                            child: Row(
-                              children: [
-                                Icon(Icons.restart_alt_rounded, size: 18, color: AppColors.orange),
-                                SizedBox(width: 8),
-                                Text('Restart Assessment', style: TextStyle(fontWeight: FontWeight.w600)),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Dynamic Progress Bar (Requirement 6)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  // Animated Pulsing DISHA-AI Logo Avatar (Red-Marked Area)
+                  const PulsingAiLogoAvatar(),
+                  const SizedBox(width: 12),
+                  Expanded(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Livelihood Assessment', style: TextStyle(color: Colors.white70, fontSize: 12)),
-                            Text('$completionPercent% Complete', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
-                          ],
+                        Text(
+                          state.tr('ai_chat_title'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
-                        const SizedBox(height: 6),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(value: completionValue, minHeight: 6, backgroundColor: Colors.white24, color: AppColors.tealLight),
+                        const Text(
+                          'Powered by NVIDIA AI · Multi-Language',
+                          style: TextStyle(color: Colors.white70, fontSize: 11),
                         ),
                       ],
                     ),
+                  ),
+
+                  // Language Switcher Badge Button
+                  InkWell(
+                    onTap: () => _showLanguageSelector(context, state),
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white38),
+                      ),
+                      child: Row(
+                        children: [
+                          Text(
+                            activeLang.flagLabel,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            activeLang.nativeName,
+                            style: const TextStyle(color: Colors.white, fontSize: 12),
+                          ),
+                          const Icon(Icons.arrow_drop_down_rounded, color: Colors.white, size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 6),
+
+                  // Clear / Restart Conversation Button
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert_rounded, color: Colors.white),
+                    onSelected: (val) {
+                      if (val == 'new_chat') {
+                        context.read<AppState>().startNewChatSession();
+                      } else if (val == 'history') {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const ChatHistoryScreen()),
+                        );
+                      } else if (val == 'clear') {
+                        _showClearConfirmationDialog(context);
+                      } else if (val == 'restart') {
+                        context.read<AppState>().restartChat();
+                      }
+                    },
+                    itemBuilder: (_) => [
+                      const PopupMenuItem(
+                        value: 'new_chat',
+                        child: Row(
+                          children: [
+                            Icon(Icons.add_circle_outline_rounded, size: 18, color: AppColors.navy),
+                            SizedBox(width: 8),
+                            Text('New Chat', style: TextStyle(fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'history',
+                        child: Row(
+                          children: [
+                            Icon(Icons.history_rounded, size: 18, color: AppColors.teal),
+                            SizedBox(width: 8),
+                            Text('Chat History', style: TextStyle(fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'clear',
+                        child: Row(
+                          children: [
+                            Icon(Icons.cleaning_services_rounded, size: 18, color: Colors.redAccent),
+                            SizedBox(width: 8),
+                            Text('Clear Messages', style: TextStyle(fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'restart',
+                        child: Row(
+                          children: [
+                            Icon(Icons.restart_alt_rounded, size: 18, color: AppColors.orange),
+                            SizedBox(width: 8),
+                            Text('Restart Assessment', style: TextStyle(fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
