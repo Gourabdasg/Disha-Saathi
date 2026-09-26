@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/app_models.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/contact_icons_row.dart';
@@ -14,65 +16,90 @@ import 'training_screen.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
+  Widget _buildSmallAvatarWidget(UserProfile profile) {
+    if (profile.photoUrl.isNotEmpty) {
+      if (profile.photoUrl.startsWith('data:image')) {
+        try {
+          final base64Str = profile.photoUrl.split(',').last;
+          final bytes = base64Decode(base64Str);
+          return CircleAvatar(
+            radius: 20,
+            backgroundColor: AppColors.bgLight,
+            backgroundImage: MemoryImage(bytes),
+          );
+        } catch (_) {}
+      } else if (profile.photoUrl.startsWith('http')) {
+        return CircleAvatar(
+          radius: 20,
+          backgroundColor: AppColors.bgLight,
+          backgroundImage: NetworkImage(profile.photoUrl),
+        );
+      }
+    }
+
+    final initial = profile.name.trim().isNotEmpty ? profile.name.trim()[0].toUpperCase() : 'U';
+    return CircleAvatar(
+      radius: 20,
+      backgroundColor: Colors.white.withValues(alpha: 0.15),
+      child: Text(
+        initial,
+        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = context.watch<AppState>();
     final profile = state.profile;
-
     final displayLocation = profile.location.isNotEmpty
         ? profile.location
         : (profile.district.isNotEmpty ? '${profile.district}, ${profile.state}' : 'Kolkata, West Bengal');
 
     final completionPercent = profile.calculateCompletionPercent();
     final journeyPercent = profile.calculateProgressPercent();
-    final missing = profile.missingFields;
 
     return Scaffold(
       backgroundColor: AppColors.bgLight,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Top Header
+              // Requirement 1 & 8: Welcome Banner Header
               Container(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 26),
-                decoration: const BoxDecoration(gradient: LinearGradient(colors: AppColors.primaryGradient)),
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(colors: AppColors.primaryGradient),
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(state.tr('scheme_subtitle'),
-                                  style: const TextStyle(color: AppColors.tealLight, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Flexible(
-                                    child: Text('Hello, ${profile.name}',
-                                        style: const TextStyle(color: Colors.white, fontSize: 21, fontWeight: FontWeight.w700),
-                                        overflow: TextOverflow.ellipsis),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  const Text('👋', style: TextStyle(fontSize: 18)),
-                                ],
+                              Text(
+                                state.tr('scheme_subtitle'),
+                                style: const TextStyle(color: AppColors.tealLight, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.8),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Hello, ${profile.name.isNotEmpty ? profile.name : 'Beneficiary'} 👋',
+                                style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w700),
                               ),
                               const SizedBox(height: 4),
-
-                              // Dynamic Location Display in App Header
                               Row(
                                 children: [
-                                  const Icon(Icons.location_on, color: Colors.white70, size: 14),
+                                  const Icon(Icons.location_on, size: 14, color: Colors.white70),
                                   const SizedBox(width: 4),
-                                  Flexible(
+                                  Expanded(
                                     child: Text(
                                       displayLocation,
-                                      style: const TextStyle(color: Colors.white70, fontSize: 12.5, fontWeight: FontWeight.w500),
+                                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                                      maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
@@ -86,20 +113,13 @@ class HomeScreen extends StatelessWidget {
                         }),
                         const SizedBox(width: 10),
                         InkWell(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(20),
                           onTap: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(builder: (_) => const EditProfileScreen()),
                             );
                           },
-                          child: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-                            alignment: Alignment.center,
-                            child: Text(profile.name.isNotEmpty ? profile.name[0] : 'U',
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-                          ),
+                          child: _buildSmallAvatarWidget(profile),
                         ),
                       ],
                     ),
@@ -122,29 +142,29 @@ class HomeScreen extends StatelessWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Profile Completion – $completionPercent%', style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                                Text('Profile Completion – $completionPercent%', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13.5)),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(color: AppColors.tealLight, borderRadius: BorderRadius.circular(20)),
-                                  child: Text(completionPercent == 100 ? 'Complete ✓' : 'Complete Profile →', style: const TextStyle(color: Colors.white, fontSize: 11.5, fontWeight: FontWeight.w700)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(color: AppColors.teal, borderRadius: BorderRadius.circular(12)),
+                                  child: Text(completionPercent == 100 ? 'Complete ✓' : 'Complete Profile →', style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 10),
                             ClipRRect(
                               borderRadius: BorderRadius.circular(4),
                               child: LinearProgressIndicator(
-                                value: completionPercent / 100.0,
+                                value: completionValueNormalized(completionPercent),
                                 minHeight: 6,
                                 backgroundColor: Colors.white24,
                                 color: AppColors.tealLight,
                               ),
                             ),
-                            if (missing.isNotEmpty) ...[
-                              const SizedBox(height: 6),
+                            if (profile.missingFields.isNotEmpty) ...[
+                              const SizedBox(height: 8),
                               Text(
-                                'Missing: ${missing.take(2).join(', ')}${missing.length > 2 ? ' +${missing.length - 2} more' : ''}',
-                                style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                'Missing: ${profile.missingFields.take(2).join(', ')}${profile.missingFields.length > 2 ? ' +${profile.missingFields.length - 2} more' : ''}',
+                                style: const TextStyle(color: Colors.white70, fontSize: 11.5),
                               ),
                             ],
                           ],
@@ -155,16 +175,18 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
 
-              // AI Voice Assistant Card & Contact Row
               Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Requirement 1 & 18: Primary AI Voice Assistant Hero Card
                     InkWell(
                       borderRadius: BorderRadius.circular(18),
                       onTap: () {
-                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AiChatScreen()));
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const AiChatScreen()),
+                        );
                       },
                       child: Container(
                         padding: const EdgeInsets.all(18),
@@ -191,118 +213,87 @@ class HomeScreen extends StatelessWidget {
                                 children: [
                                   Text(state.tr('ai_voice_assistant'), style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                                   const SizedBox(height: 2),
-                                  Text(state.tr('start_talking'), style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
+                                  Text(state.tr('start_talking'), style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                                   const SizedBox(height: 2),
-                                  const Text('Tell me about your work & skills', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                  const Text('Tell me about your work & skills', style: TextStyle(color: Colors.white70, fontSize: 12.5)),
                                 ],
                               ),
                             ),
-                            const Icon(Icons.graphic_eq_rounded, color: Colors.white, size: 26),
+                            const Icon(Icons.graphic_eq_rounded, color: Colors.white, size: 28),
                           ],
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    const Center(
-                      child: Text(
-                        'Prefer another way to reach us?',
-                        style: TextStyle(fontSize: 12.5, color: AppColors.textMuted, fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
+
+                    const SizedBox(height: 18),
+
+                    // Quick Contact Icons Row (WhatsApp / Call)
                     const ContactIconsRow(),
+
                     const SizedBox(height: 20),
 
-                    // 2 x 2 Feature Grid Cards matching user screenshot
-                    IntrinsicHeight(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Card 1: Livelihood Profile
-                          Expanded(
-                            child: _featureCard(
-                              icon: Icons.agriculture_rounded,
-                              iconColor: AppColors.success,
-                              title: state.tr('livelihood_profile'),
-                              subtitle: profile.livelihood.isNotEmpty ? profile.livelihood : 'Unemployed',
-                              progress: 0.55,
-                              progressColor: AppColors.navy,
-                              onTap: () {
-                                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileCompletionScreen()));
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 14),
+                    // 2x2 Grid of Secondary Features (Requirements 3, 4, 5, 7)
+                    GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisSpacing: 14,
+                      mainAxisSpacing: 14,
+                      childAspectRatio: 1.05,
+                      children: [
+                        // Card 1: Livelihood Profile
+                        _gridCard(
+                          context,
+                          title: state.tr('livelihood_profile'),
+                          subtitle: profile.livelihood.isNotEmpty ? profile.livelihood : 'Student',
+                          icon: Icons.agriculture_rounded,
+                          color: AppColors.teal,
+                          progress: (completionPercent / 100).clamp(0.1, 1.0),
+                          onTap: () {
+                            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileCompletionScreen()));
+                          },
+                        ),
 
-                          // Card 2: Skill Recommendations
-                          Expanded(
-                            child: _featureCard(
-                              icon: Icons.star_rounded,
-                              iconColor: AppColors.warning,
-                              title: state.tr('skill_recommendations'),
-                              subtitle: '4 new matches found',
-                              action: state.tr('view_all'),
-                              onTap: () {
-                                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RecommendationsScreen()));
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 14),
+                        // Card 2: Skill Recommendations (Requirement 3 & 4)
+                        _gridCard(
+                          context,
+                          title: state.tr('skill_recommendations'),
+                          subtitle: '4 new matches found',
+                          icon: Icons.star_rounded,
+                          color: AppColors.orange,
+                          actionText: 'View →',
+                          onTap: () {
+                            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RecommendationsScreen()));
+                          },
+                        ),
 
-                    IntrinsicHeight(
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Card 3: Training Near You
-                          Expanded(
-                            child: _featureCard(
-                              icon: Icons.school_rounded,
-                              iconColor: AppColors.navy,
-                              title: state.tr('training_near_you'),
-                              subtitle: '12 courses available',
-                              action: state.tr('view_all'),
-                              onTap: () {
-                                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TrainingScreen()));
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 14),
+                        // Card 3: Training Near You (Requirement 5)
+                        _gridCard(
+                          context,
+                          title: state.tr('training_near_you'),
+                          subtitle: 'PM-AJAY GIA Centers',
+                          icon: Icons.school_rounded,
+                          color: AppColors.purple,
+                          actionText: 'Explore →',
+                          onTap: () {
+                            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TrainingScreen()));
+                          },
+                        ),
 
-                          // Card 4: My Progress
-                          Expanded(
-                            child: _featureCard(
-                              icon: Icons.show_chart_rounded,
-                              iconColor: AppColors.orange,
-                              title: state.tr('my_progress'),
-                              subtitle: '${state.tr('my_progress')} – $journeyPercent%',
-                              progress: journeyPercent / 100.0,
-                              progressColor: AppColors.orange,
-                              onTap: () {
-                                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProgressScreen()));
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 22),
-                    Text(state.tr('recent_activity'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textDark)),
-                    const SizedBox(height: 12),
-                    Container(
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
-                      child: Column(
-                        children: [
-                          _activityTile(Icons.check, AppColors.success, 'Profile setup completed', '2h ago'),
-                          const Divider(height: 1),
-                          _activityTile(Icons.smart_toy_rounded, AppColors.purple, 'AI analyzed your skills', 'Yesterday'),
-                          const Divider(height: 1),
-                          _activityTile(Icons.school_rounded, AppColors.textMuted, '3 training courses matched', '2d ago'),
-                        ],
-                      ),
+                        // Card 4: My Progress (Requirement 7)
+                        _gridCard(
+                          context,
+                          title: state.tr('my_progress'),
+                          subtitle: '${state.tr('my_progress')} – $journeyPercent%',
+                          icon: Icons.bar_chart_rounded,
+                          color: AppColors.navy,
+                          progress: journeyPercent / 100.0,
+                          progressColor: AppColors.orange,
+                          onTap: () {
+                            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProgressScreen()));
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -314,22 +305,32 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  double completionValueNormalized(int percent) {
+    final val = percent / 100.0;
+    return val < 0.0 ? 0.0 : (val > 1.0 ? 1.0 : val);
+  }
+
   Widget _iconButton(BuildContext context, IconData icon, {bool badge = false, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
         width: 40,
         height: 40,
-        decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
+        decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
         child: Stack(
+          alignment: Alignment.center,
           children: [
-            Center(child: Icon(icon, color: Colors.white, size: 20)),
+            Icon(icon, color: Colors.white, size: 22),
             if (badge)
               Positioned(
-                right: 9,
-                top: 9,
-                child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: AppColors.danger, shape: BoxShape.circle)),
+                right: 8,
+                top: 8,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(color: AppColors.orange, shape: BoxShape.circle),
+                ),
               ),
           ],
         ),
@@ -337,90 +338,65 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _featureCard({
-    required IconData icon,
-    required Color iconColor,
+  Widget _gridCard(
+    BuildContext context, {
     required String title,
     required String subtitle,
+    required IconData icon,
+    required Color color,
+    String? actionText,
     double? progress,
     Color progressColor = AppColors.navy,
-    String? action,
     required VoidCallback onTap,
   }) {
     return InkWell(
-      borderRadius: BorderRadius.circular(18),
       onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.all(16),
-        constraints: const BoxConstraints(minHeight: 142),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: const Color(0xFFE5E7EB), width: 1.2),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 8,
-              offset: const Offset(0, 3),
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(icon, color: iconColor, size: 24),
-                const SizedBox(height: 10),
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5, color: AppColors.textDark, height: 1.25),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted, height: 1.3),
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
+              child: Icon(icon, color: color, size: 20),
             ),
-            const SizedBox(height: 12),
-            if (progress != null)
+            const Spacer(),
+            Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textDark)),
+            const SizedBox(height: 2),
+            Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted)),
+            if (actionText != null) ...[
+              const SizedBox(height: 6),
+              Text(actionText, style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.bold)),
+            ],
+            if (progress != null) ...[
+              const SizedBox(height: 8),
               ClipRRect(
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(3),
                 child: LinearProgressIndicator(
                   value: progress,
-                  minHeight: 6,
-                  backgroundColor: const Color(0xFFE5E7EB),
+                  minHeight: 4,
+                  backgroundColor: Colors.grey.shade200,
                   color: progressColor,
                 ),
               ),
-            if (action != null)
-              Row(
-                children: [
-                  Text(
-                    action,
-                    style: const TextStyle(color: AppColors.navy, fontWeight: FontWeight.bold, fontSize: 12.5),
-                  ),
-                ],
-              ),
+            ],
           ],
         ),
       ),
-    );
-  }
-
-  Widget _activityTile(IconData icon, Color color, String title, String time) {
-    return ListTile(
-      leading: Container(
-        width: 34,
-        height: 34,
-        decoration: BoxDecoration(color: color.withOpacity(0.12), shape: BoxShape.circle),
-        child: Icon(icon, size: 17, color: color),
-      ),
-      title: Text(title, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500)),
-      trailing: Text(time, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
     );
   }
 }

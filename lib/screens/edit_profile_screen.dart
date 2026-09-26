@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:io' show File;
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/app_models.dart';
@@ -49,8 +51,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
-        if (file.bytes != null) {
-          final base64Image = 'data:image/png;base64,${base64Encode(file.bytes!)}';
+        Uint8List? bytes = file.bytes;
+
+        if (bytes == null && file.path != null && file.path!.isNotEmpty) {
+          try {
+            final ioFile = File(file.path!);
+            bytes = await ioFile.readAsBytes();
+          } catch (_) {}
+        }
+
+        if (bytes != null && bytes.isNotEmpty) {
+          final base64Image = 'data:image/png;base64,${base64Encode(bytes)}';
           setState(() {
             _selectedImageBase64 = base64Image;
           });
@@ -247,7 +258,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       maxLines: 4,
                       textCapitalization: TextCapitalization.sentences,
                       decoration: InputDecoration(
-                        hintText: 'Write a short bio or career summary (e.g. Aspiring Data Analyst passionate about IT & coding)...',
+                        hintText: 'Write a short bio or career summary (e.g. Aspiring Data Analyst passionate about AI & Skilling)...',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         filled: true,
                         fillColor: AppColors.bgLight,
