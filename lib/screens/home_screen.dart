@@ -157,6 +157,146 @@ class _VoiceWaveformPulseWidgetState extends State<VoiceWaveformPulseWidget> wit
   }
 }
 
+/// Animated Circular Icon Badge Card Widget for the 4 Secondary Feature Grid Cards
+class AnimatedDashboardIconCard extends StatefulWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final String? actionText;
+  final double? progress;
+  final Color progressColor;
+  final VoidCallback onTap;
+
+  const AnimatedDashboardIconCard({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    this.actionText,
+    this.progress,
+    this.progressColor = AppColors.navy,
+    required this.onTap,
+  });
+
+  @override
+  State<AnimatedDashboardIconCard> createState() => _AnimatedDashboardIconCardState();
+}
+
+class _AnimatedDashboardIconCardState extends State<AnimatedDashboardIconCard> with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _pulseScale;
+  late final Animation<double> _glowOpacity;
+
+  bool _isTapped = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat(reverse: true);
+
+    _pulseScale = Tween<double>(begin: 1.0, end: 1.05).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+
+    _glowOpacity = Tween<double>(begin: 0.12, end: 0.28).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() async {
+    setState(() => _isTapped = true);
+    await Future.delayed(const Duration(milliseconds: 120));
+    if (mounted) {
+      setState(() => _isTapped = false);
+      widget.onTap();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: _handleTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Micro-Animated Circular Icon Badge (Circled in Red)
+            AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                final currentScale = _isTapped ? 1.15 : _pulseScale.value;
+                return Transform.scale(
+                  scale: currentScale,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: widget.color.withValues(alpha: _glowOpacity.value),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: widget.color.withValues(alpha: _glowOpacity.value * 0.8),
+                          blurRadius: 10,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                    child: Icon(widget.icon, color: widget.color, size: 20),
+                  ),
+                );
+              },
+            ),
+            const Spacer(),
+            Text(widget.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textDark)),
+            const SizedBox(height: 2),
+            Text(widget.subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted)),
+            if (widget.actionText != null) ...[
+              const SizedBox(height: 6),
+              Text(widget.actionText!, style: TextStyle(color: widget.color, fontSize: 11.5, fontWeight: FontWeight.bold)),
+            ],
+            if (widget.progress != null) ...[
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: LinearProgressIndicator(
+                  value: widget.progress,
+                  minHeight: 4,
+                  backgroundColor: Colors.grey.shade200,
+                  color: widget.progressColor,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -439,7 +579,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: 20),
 
-                    // 2x2 Grid of Secondary Features (Requirements 3, 4, 5, 7)
+                    // 2x2 Grid of Micro-Animated Secondary Feature Cards (Highlighted Icons in Red)
                     GridView.count(
                       crossAxisCount: 2,
                       shrinkWrap: true,
@@ -449,8 +589,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       childAspectRatio: 1.05,
                       children: [
                         // Card 1: Livelihood Profile
-                        _gridCard(
-                          context,
+                        AnimatedDashboardIconCard(
                           title: state.tr('livelihood_profile'),
                           subtitle: profile.livelihood.isNotEmpty ? profile.livelihood : 'Student',
                           icon: Icons.agriculture_rounded,
@@ -462,8 +601,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
 
                         // Card 2: Skill Recommendations (Requirement 3 & 4)
-                        _gridCard(
-                          context,
+                        AnimatedDashboardIconCard(
                           title: state.tr('skill_recommendations'),
                           subtitle: '4 new matches found',
                           icon: Icons.star_rounded,
@@ -475,8 +613,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
 
                         // Card 3: Training Near You (Requirement 5)
-                        _gridCard(
-                          context,
+                        AnimatedDashboardIconCard(
                           title: state.tr('training_near_you'),
                           subtitle: 'PM-AJAY GIA Centers',
                           icon: Icons.school_rounded,
@@ -488,8 +625,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
 
                         // Card 4: My Progress (Requirement 7)
-                        _gridCard(
-                          context,
+                        AnimatedDashboardIconCard(
                           title: state.tr('my_progress'),
                           subtitle: '${state.tr('my_progress')} – $journeyPercent%',
                           icon: Icons.bar_chart_rounded,
@@ -622,68 +758,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   decoration: const BoxDecoration(color: AppColors.orange, shape: BoxShape.circle),
                 ),
               ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _gridCard(
-    BuildContext context, {
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-    String? actionText,
-    double? progress,
-    Color progressColor = AppColors.navy,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 20),
-            ),
-            const Spacer(),
-            Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textDark)),
-            const SizedBox(height: 2),
-            Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted)),
-            if (actionText != null) ...[
-              const SizedBox(height: 6),
-              Text(actionText, style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.bold)),
-            ],
-            if (progress != null) ...[
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(3),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 4,
-                  backgroundColor: Colors.grey.shade200,
-                  color: progressColor,
-                ),
-              ),
-            ],
           ],
         ),
       ),
