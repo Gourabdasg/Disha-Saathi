@@ -12,13 +12,13 @@ This is the **Flutter Frontend Client** for Disha Saathi – a voice-first, 22-l
 
 ## Tech Stack (SIH 2026 Submission Architecture)
 
-| Layer | Technology |
-|---|---|
-| **Frontend** | **Flutter** (Cross-platform Web, Android, Desktop) |
-| **Backend** | **Node.js + Express** (PostgreSQL REST API, Multer upload engine) |
-| **AI / ML** | **NVIDIA AI / Python + FastAPI** (Multilingual NLP, STT, TTS, NSQF Matcher) |
+| Layer | Technology                                                                      |
+|---|---------------------------------------------------------------------------------|
+| **Frontend** | **Flutter** (Cross-platform Android, Ios, Web, Desktop)                         |
+| **Backend** | **Node.js + Express** (PostgreSQL REST API, Multer upload engine)               |
+| **AI / ML** | **NVIDIA AI / Python + FastAPI** (Multilingual NLP, STT, TTS, NSQF Matcher)     |
 | **Database** | **PostgreSQL** (`user_profiles`, `beneficiaries`, `chat_messages`, `otp_codes`) |
-| **Authentication** | **Firebase Auth** (Google Sign-In, Mobile SMS OTP, Email OTP) |
+| **Authentication** | **Firebase Auth** (Google Sign-In, Mobile SMS OTP, Email OTP)                   |
 
 ---
 
