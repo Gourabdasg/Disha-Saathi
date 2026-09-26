@@ -83,14 +83,14 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
           final base64Str = profile.photoUrl.split(',').last;
           final bytes = base64Decode(base64Str);
           return CircleAvatar(
-            radius: 34,
+            radius: 36,
             backgroundColor: AppColors.bgLight,
             backgroundImage: MemoryImage(bytes),
           );
         } catch (_) {}
       } else if (profile.photoUrl.startsWith('http')) {
         return CircleAvatar(
-          radius: 34,
+          radius: 36,
           backgroundColor: AppColors.bgLight,
           backgroundImage: NetworkImage(profile.photoUrl),
         );
@@ -99,11 +99,11 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
     final initial = profile.name.trim().isNotEmpty ? profile.name.trim()[0].toUpperCase() : 'U';
     return CircleAvatar(
-      radius: 34,
+      radius: 36,
       backgroundColor: AppColors.navy,
       child: Text(
         initial,
-        style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+        style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -139,23 +139,24 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
                         ),
                       ],
                     ),
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         Stack(
                           alignment: Alignment.bottomRight,
                           children: [
                             _buildAvatarWidget(profile),
                             Container(
-                              padding: const EdgeInsets.all(4),
+                              padding: const EdgeInsets.all(5),
                               decoration: const BoxDecoration(
                                 color: AppColors.teal,
                                 shape: BoxShape.circle,
@@ -177,7 +178,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                       style: const TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: AppColors.textDark),
                                     ),
                                   ),
-                                  const Icon(Icons.chevron_right_rounded, size: 22, color: AppColors.textMuted),
+                                  const Icon(Icons.edit_outlined, size: 20, color: AppColors.navy),
                                 ],
                               ),
                               const SizedBox(height: 3),
@@ -196,7 +197,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                 ],
                               ),
                               if (profile.bio.isNotEmpty) ...[
-                                const SizedBox(height: 6),
+                                const SizedBox(height: 4),
                                 Text(
                                   profile.bio,
                                   maxLines: 2,
@@ -204,17 +205,10 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                                   style: const TextStyle(fontSize: 12, color: AppColors.textDark, fontStyle: FontStyle.italic),
                                 ),
                               ],
-                              const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AppColors.success.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Text(
-                                  'SC Category · PM-AJAY Beneficiary',
-                                  style: TextStyle(fontSize: 11, color: AppColors.success, fontWeight: FontWeight.bold),
-                                ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'SC Category · PM-AJAY Beneficiary',
+                                style: TextStyle(fontSize: 11.5, color: AppColors.success, fontWeight: FontWeight.bold),
                               ),
                             ],
                           ),
@@ -228,7 +222,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
             const SizedBox(height: 18),
 
-            // 2. Stat Cards Section (Scale Entrance)
+            // 2. Stat Cards Section (3 White Boxes with Grey Border)
             ScaleTransition(
               scale: _scaleStats,
               child: Row(
@@ -237,8 +231,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     child: _statCard(
                       'Education',
                       profile.highestQualification.isNotEmpty ? profile.highestQualification : 'Add Education',
-                      Icons.school_outlined,
-                      AppColors.navy,
                       onTap: () {
                         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileCompletionScreen()));
                       },
@@ -249,8 +241,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     child: _statCard(
                       'Livelihood',
                       profile.livelihood.isNotEmpty ? profile.livelihood : 'Add Livelihood',
-                      Icons.work_outline_rounded,
-                      AppColors.teal,
                       onTap: () {
                         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileCompletionScreen()));
                       },
@@ -261,8 +251,6 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                     child: _statCard(
                       'NSQF',
                       'NSQF Level 3',
-                      Icons.verified_outlined,
-                      AppColors.orange,
                       onTap: () {
                         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileCompletionScreen()));
                       },
@@ -272,7 +260,7 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
               ),
             ),
 
-            const SizedBox(height: 22),
+            const SizedBox(height: 20),
 
             // 3. Main Content Sections (Fade + Slide Entrance)
             FadeTransition(
@@ -282,19 +270,13 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Skills Section
+                    // Section Box 1: My Skills
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -302,18 +284,12 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Row(
-                                children: [
-                                  const Icon(Icons.psychology_rounded, size: 20, color: AppColors.navy),
-                                  const SizedBox(width: 8),
-                                  Text(state.tr('my_skills'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textDark)),
-                                ],
-                              ),
+                              Text(state.tr('my_skills'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
                               InkWell(
                                 onTap: () {
                                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileCompletionScreen()));
                                 },
-                                child: Text(state.tr('add_skills'), style: const TextStyle(color: AppColors.navy, fontSize: 12.5, fontWeight: FontWeight.bold)),
+                                child: Text(state.tr('add_skills'), style: const TextStyle(color: AppColors.navy, fontSize: 13, fontWeight: FontWeight.bold)),
                               ),
                             ],
                           ),
@@ -322,15 +298,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                             spacing: 8,
                             runSpacing: 8,
                             children: profile.existingSkills.isNotEmpty
-                                ? profile.existingSkills.map((s) => _chip(s, AppColors.navy)).toList()
+                                ? profile.existingSkills.map((s) => _boxChip(s)).toList()
                                 : [
-                                    ActionChip(
-                                      label: Text(state.tr('add_skills'), style: const TextStyle(fontSize: 12, color: AppColors.navy)),
-                                      backgroundColor: AppColors.navy.withValues(alpha: 0.08),
-                                      onPressed: () {
-                                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileCompletionScreen()));
-                                      },
-                                    ),
+                                    _boxChip('Computer'),
                                   ],
                           ),
                         ],
@@ -339,19 +309,13 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
                     const SizedBox(height: 18),
 
-                    // Career Interests Section
+                    // Section Box 2: Career Interests
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.03),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -359,18 +323,12 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Row(
-                                children: [
-                                  const Icon(Icons.auto_awesome_rounded, size: 20, color: AppColors.teal),
-                                  const SizedBox(width: 8),
-                                  Text(state.tr('career_interests'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textDark)),
-                                ],
-                              ),
+                              Text(state.tr('career_interests'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textDark)),
                               InkWell(
                                 onTap: () {
                                   Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileCompletionScreen()));
                                 },
-                                child: Text(state.tr('add_skills'), style: const TextStyle(color: AppColors.teal, fontSize: 12.5, fontWeight: FontWeight.bold)),
+                                child: Text(state.tr('add_skills'), style: const TextStyle(color: AppColors.navy, fontSize: 13, fontWeight: FontWeight.bold)),
                               ),
                             ],
                           ),
@@ -379,15 +337,9 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                             spacing: 8,
                             runSpacing: 8,
                             children: profile.careerInterests.isNotEmpty
-                                ? profile.careerInterests.map((i) => _chip(i, AppColors.teal)).toList()
+                                ? profile.careerInterests.map((i) => _boxChip(i)).toList()
                                 : [
-                                    ActionChip(
-                                      label: Text(state.tr('add_career_interests'), style: const TextStyle(fontSize: 12, color: AppColors.teal)),
-                                      backgroundColor: AppColors.teal.withValues(alpha: 0.08),
-                                      onPressed: () {
-                                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileCompletionScreen()));
-                                      },
-                                    ),
+                                    _boxChip('Computer engineering'),
                                   ],
                           ),
                         ],
@@ -396,21 +348,21 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
                     const SizedBox(height: 22),
 
-                    // Account Menu Group
-                    Text(state.tr('account_section'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textMuted, letterSpacing: 0.5)),
+                    // Section Box 3: ACCOUNT
+                    const Text('ACCOUNT', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF64748B), letterSpacing: 0.6)),
                     const SizedBox(height: 8),
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8)],
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
                       ),
                       child: Column(
                         children: [
                           _menuTile(Icons.assignment_ind_outlined, state.tr('edit_profile'), onTap: () {
                             Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ProfileCompletionScreen()));
                           }),
-                          const Divider(height: 1, indent: 50),
+                          const Divider(height: 1, indent: 52, color: Color(0xFFF1F5F9)),
                           _menuTile(Icons.settings_outlined, state.tr('settings'), onTap: () {
                             Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
                           }),
@@ -420,14 +372,14 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
                     const SizedBox(height: 18),
 
-                    // Scheme Menu Group
-                    Text(state.tr('scheme_section'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textMuted, letterSpacing: 0.5)),
+                    // Section Box 4: SCHEME
+                    const Text('SCHEME', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF64748B), letterSpacing: 0.6)),
                     const SizedBox(height: 8),
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8)],
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
                       ),
                       child: _menuTile(Icons.account_balance_outlined, state.tr('pm_ajay_details'), onTap: () {
                         Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PmAjayGiaDetailsScreen()));
@@ -436,25 +388,25 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
                     const SizedBox(height: 18),
 
-                    // About & Legal Menu Group
-                    Text(state.tr('about_legal'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textMuted, letterSpacing: 0.5)),
+                    // Section Box 5: ABOUT & LEGAL
+                    const Text('ABOUT & LEGAL', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: Color(0xFF64748B), letterSpacing: 0.6)),
                     const SizedBox(height: 8),
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8)],
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
                       ),
                       child: Column(
                         children: [
                           _menuTile(Icons.business_center_outlined, state.tr('our_services'), onTap: () {
                             Navigator.of(context).push(MaterialPageRoute(builder: (_) => const OurServicesScreen()));
                           }),
-                          const Divider(height: 1, indent: 50),
+                          const Divider(height: 1, indent: 52, color: Color(0xFFF1F5F9)),
                           _menuTile(Icons.description_outlined, state.tr('terms_conditions'), onTap: () {
                             Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TermsAndConditionsScreen()));
                           }),
-                          const Divider(height: 1, indent: 50),
+                          const Divider(height: 1, indent: 52, color: Color(0xFFF1F5F9)),
                           _menuTile(Icons.privacy_tip_outlined, state.tr('privacy_policy'), onTap: () {
                             Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()));
                           }),
@@ -464,8 +416,8 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
 
                     const SizedBox(height: 24),
 
-                    // Logout Button
-                    OutlinedButton.icon(
+                    // Section 6: Logout Outlined Button
+                    OutlinedButton(
                       onPressed: () {
                         showDialog(
                           context: context,
@@ -492,15 +444,25 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
                           ),
                         );
                       },
-                      icon: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 18),
-                      label: Text(state.tr('logout'), style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.redAccent),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                        side: const BorderSide(color: Color(0xFFEF4444), width: 1.5),
+                        backgroundColor: Colors.white,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Logout',
+                            style: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
@@ -511,35 +473,27 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     );
   }
 
-  Widget _statCard(String label, String value, IconData icon, Color color, {required VoidCallback onTap}) {
+  Widget _statCard(String label, String value, {required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
         ),
         child: Column(
           children: [
-            Icon(icon, color: color, size: 18),
-            const SizedBox(height: 4),
-            Text(label, style: const TextStyle(fontSize: 10.5, color: AppColors.textMuted, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 4),
+            Text(label, style: const TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
+            const SizedBox(height: 6),
             FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
                 value,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.textDark),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textDark),
               ),
             ),
           ],
@@ -548,23 +502,27 @@ class _ProfileScreenState extends State<ProfileScreen> with SingleTickerProvider
     );
   }
 
-  Widget _chip(String text, Color color) {
+  Widget _boxChip(String text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
       ),
-      child: Text(text, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textDark),
+      ),
     );
   }
 
   Widget _menuTile(IconData icon, String title, {required VoidCallback onTap}) {
     return ListTile(
-      leading: Icon(icon, color: AppColors.navy, size: 20),
-      title: Text(title, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppColors.textDark)),
-      trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textMuted),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      leading: Icon(icon, color: const Color(0xFF0284C7), size: 22),
+      title: Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark)),
+      trailing: const Icon(Icons.chevron_right_rounded, size: 20, color: Color(0xFF94A3B8)),
       onTap: onTap,
     );
   }
