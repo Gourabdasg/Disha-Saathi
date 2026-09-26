@@ -35,28 +35,28 @@ This is the **Flutter Frontend Client** for Disha Saathi – a voice-first, 22-l
 
 ### 2. Home Dashboard & DISHA-AI Voice Assistant
 
-| Home Dashboard | DISHA-AI Chat | Livelihood Assessment |
-|:---:|:---:|:---:|
-| ![Home Dashboard](screenshots/07_home.png) | ![DISHA-AI Chat](screenshots/08_ai_chat.png) | ![Assessment Flow](screenshots/05_livelihood.png) |
-| *Auto-Detected Location & AI Voice Assistant Hero Card* | *NVIDIA AI Powered Multilingual Voice & Text Assistant* | *14-Step Conversational Skill Mapping Flow* |
+| Home Dashboard | DISHA-AI Chat |
+|:---:|:---:|
+| ![Home Dashboard](screenshots/05_home.png) | ![DISHA-AI Chat](screenshots/06_ai_chat.png) |
+| *Auto-Detected Location & Voice Waveform Pulse Card* | *NVIDIA AI Powered Multilingual Voice & Text Assistant* |
 
 <br/>
 
 ### 3. NSQF Training Recommendations & Progress Journey
 
-| Skill Recommendations | Training Courses | Skill Progress Tracker |
-|:---:|:---:|:---:|
-| ![Skill Recommendations](screenshots/09_recommendations_digital_office.png) | ![Training Courses](screenshots/11_recommendations_list.png) | ![Progress Tracker](screenshots/12_progress_journey.png) |
-| *NSQF-Aligned Skill Pathway Matches* | *PM-AJAY GIA Funded Free Training Courses* | *7-Step Skilling & Certification Tracker* |
+| Skill Recommendations | Skill Progress Tracker |
+|:---:|:---:|
+| ![Skill Recommendations](screenshots/07_skills.png) | ![Progress Tracker](screenshots/08_progress.png) |
+| *NSQF-Aligned Skill Pathway Matches* | *7-Step Skilling & Certification Tracker* |
 
 <br/>
 
 ### 4. Beneficiary Profile & Edit Profile Management
 
-| Beneficiary Profile | Skills & Interests | Achievements & Stats |
+| Beneficiary Profile | Edit Profile & Bio | Legal & Scheme Details |
 |:---:|:---:|:---:|
-| ![Beneficiary Profile](screenshots/14_profile.png) | ![Skills & Interests](screenshots/06_skills.png) | ![Achievements](screenshots/13_achievements.png) |
-| *Section-Boxed Profile with SC Category Badge* | *Name, Bio & Profile Photo Upload* | *Certification Milestones & Badges* |
+| ![Beneficiary Profile](screenshots/09_profile.png) | ![Edit Profile](screenshots/10_edit_profile.png) | ![Legal Details](screenshots/11_legal.png) |
+| *Section-Boxed Profile with SC Category Badge* | *Name, Bio & Profile Photo Upload* | *PM-AJAY Scheme & Legal Options* |
 
 ---
 
