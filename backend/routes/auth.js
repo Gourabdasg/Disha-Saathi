@@ -11,12 +11,23 @@ const googleUsers = new Map();
 
 /**
  * Upserts a beneficiary & user profile record into PostgreSQL upon login / signup.
+ * Detects existing accounts by normalized email or mobile.
  */
 async function saveOrUpdateBeneficiary({ mobile, email, name, firebaseUid }) {
   try {
-    const keyMobile = mobile || (email ? `e_${email}` : '');
-    const keyEmail = email || '';
+    const keyEmail = (email || '').toLowerCase().trim();
+    const keyMobile = mobile || (keyEmail ? `e_${keyEmail}` : '');
     const keyName = name || '';
+
+    // Check for existing profile by email or mobile in user_profiles or beneficiaries
+    let isExisting = false;
+    if (keyEmail) {
+      const checkSql = `SELECT * FROM user_profiles WHERE LOWER(email) = LOWER($1) OR mobile = $2 LIMIT 1;`;
+      const checkRes = await query(checkSql, [keyEmail, keyMobile]);
+      if (checkRes.rows && checkRes.rows.length > 0) {
+        isExisting = true;
+      }
+    }
 
     const sqlBeneficiaries = `
       INSERT INTO beneficiaries (mobile, email, name, updated_at)
@@ -38,9 +49,11 @@ async function saveOrUpdateBeneficiary({ mobile, email, name, firebaseUid }) {
     `;
     await query(sqlUserProfiles, [keyMobile, keyEmail, keyName]);
 
-    console.log(`[PostgreSQL] Beneficiary & User Profile saved/updated for ${mobile || email}`);
+    console.log(`[PostgreSQL] Beneficiary & User Profile saved/updated for ${mobile || keyEmail} (Existing Account: ${isExisting})`);
+    return { isExisting, keyMobile, keyEmail };
   } catch (e) {
     console.warn('[PostgreSQL Warning] Beneficiary save error:', e.message);
+    return { isExisting: false, keyMobile: mobile || '', keyEmail: email || '' };
   }
 }
 
@@ -190,8 +203,14 @@ router.post('/email/otp/verify', async (req, res) => {
 
   if (check.valid) {
     emailOtpStore.delete(cleanEmail);
-    await saveOrUpdateBeneficiary({ email: cleanEmail });
-    return res.json({ verified: true, token: 'demo-email-otp-token', email: cleanEmail });
+    const { isExisting } = await saveOrUpdateBeneficiary({ email: cleanEmail });
+    return res.json({
+      verified: true,
+      isExisting,
+      token: 'demo-email-otp-token',
+      email: cleanEmail,
+      message: isExisting ? 'Existing account recognized. Signing you in...' : 'Email verification successful',
+    });
   }
 
   res.status(400).json({ verified: false, error: check.error || 'Invalid Email OTP code. Please try again.' });
@@ -201,26 +220,27 @@ router.post('/email/otp/verify', async (req, res) => {
 
 router.post('/google', async (req, res) => {
   const { email, name, googleId } = req.body;
-  if (!email) {
-    return res.status(400).json({ error: 'Google email is required' });
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ error: 'Valid Google email is required' });
   }
 
   const cleanEmail = email.toLowerCase().trim();
   const user = {
     email: cleanEmail,
-    name: name || 'Google User',
+    name: name || cleanEmail.split('@')[0],
     googleId: googleId || 'google-' + Date.now(),
     authenticatedAt: new Date(),
   };
 
   googleUsers.set(cleanEmail, user);
-  await saveOrUpdateBeneficiary({ email: cleanEmail, name: user.name, firebaseUid: user.googleId });
+  const { isExisting } = await saveOrUpdateBeneficiary({ email: cleanEmail, name: user.name, firebaseUid: user.googleId });
 
   return res.json({
     verified: true,
+    isExisting,
     token: 'demo-google-jwt-token',
     user,
-    message: 'Google Authentication successful',
+    message: isExisting ? 'This account already exists. Signing you in...' : 'Google Authentication successful',
   });
 });
 
