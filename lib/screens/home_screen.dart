@@ -412,6 +412,58 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                     ),
+
+                    const SizedBox(height: 24),
+
+                    // Restored Recent Activity Section (Matching Reference Screenshots)
+                    Text(
+                      state.tr('recent_activity'),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textDark),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 8,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          _activityTile(
+                            icon: Icons.check_rounded,
+                            iconBg: const Color(0xFFDCFCE7),
+                            iconFg: const Color(0xFF16A34A),
+                            title: completionPercent >= 100 ? 'Profile setup completed' : 'Profile assessment in progress',
+                            timeAgo: '2h ago',
+                          ),
+                          const Divider(height: 20, color: Color(0xFFF1F5F9)),
+                          _activityTile(
+                            icon: Icons.smart_toy_rounded,
+                            iconBg: const Color(0xFFE0F2FE),
+                            iconFg: const Color(0xFF0284C7),
+                            title: 'AI analyzed your skills',
+                            timeAgo: 'Yesterday',
+                          ),
+                          const Divider(height: 20, color: Color(0xFFF1F5F9)),
+                          _activityTile(
+                            icon: Icons.school_rounded,
+                            iconBg: const Color(0xFFF1F5F9),
+                            iconFg: const Color(0xFF64748B),
+                            title: '3 training courses matched',
+                            timeAgo: '2d ago',
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                   ],
                 ),
               ),
@@ -419,6 +471,37 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _activityTile({
+    required IconData icon,
+    required Color iconBg,
+    required Color iconFg,
+    required String title,
+    required String timeAgo,
+  }) {
+    return Row(
+      children: [
+        Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+          alignment: Alignment.center,
+          child: Icon(icon, color: iconFg, size: 20),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textDark),
+          ),
+        ),
+        Text(
+          timeAgo,
+          style: const TextStyle(fontSize: 12.5, color: AppColors.textMuted, fontWeight: FontWeight.w500),
+        ),
+      ],
     );
   }
 

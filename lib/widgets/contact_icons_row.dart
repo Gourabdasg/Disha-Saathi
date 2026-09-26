@@ -3,22 +3,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_theme.dart';
 
-/// WhatsApp + IVR call icon buttons — an alternate, lower-bandwidth channel
-/// into the same AI Livelihood Assistant, matching the "App + WhatsApp + IVR"
-/// access model from the original SIH proposal (see feasibility slide).
-///
-/// Icon-only by design, no text labels: this is a standard pattern in
-/// government/utility apps and doesn't need extra explanation in the UI.
-///
-/// IMPORTANT: for these buttons to work on Android 11+ (API 30+), your
-/// AndroidManifest.xml MUST include a <queries> block declaring the
-/// "https" and "tel" VIEW intents (see project docs / earlier chat).
-/// Without that, canLaunchUrl() silently returns false even when
-/// WhatsApp / the dialer are available.
+/// WhatsApp + IVR call icon buttons
 class ContactIconsRow extends StatelessWidget {
-  // Full international format, no "+" and no leading zero: 91 + 10-digit number.
-  static const String whatsappNumber = '916200590790';
-  static const String ivrNumber = '1800XXXXXXX'; // TODO: replace with your real IVR helpline
+  // Full international format: 91 + 10-digit number.
+  static const String whatsappNumber = '919876543210';
+  static const String ivrNumber = '1800112233'; // PM-AJAY GIA Helpline
 
   const ContactIconsRow({super.key});
 
@@ -29,19 +18,11 @@ class ContactIconsRow extends StatelessWidget {
 </svg>
 ''';
 
-  /// Opens a WhatsApp chat directly with [whatsappNumber].
-  ///
-  /// Tries the native `whatsapp://send` scheme first (opens the app
-  /// instantly, no browser hop). Falls back to the `https://wa.me/`
-  /// click-to-chat link if the native scheme isn't launchable — this
-  /// still opens WhatsApp itself when installed (wa.me redirects into
-  /// the app), and only drops to a browser if WhatsApp truly isn't
-  /// installed on the device.
+  /// Opens a WhatsApp chat directly pre-filled with "Hi, I need help with Disha Saathi".
   Future<void> _openWhatsApp(BuildContext context) async {
-    final nativeUri = Uri.parse(
-      'whatsapp://send?phone=$whatsappNumber&text=${Uri.encodeComponent("Hi, I need help with Disha Saathi")}',
-    );
-    final webUri = Uri.parse('https://wa.me/$whatsappNumber');
+    final textParam = Uri.encodeComponent('Hi, I need help with Disha Saathi');
+    final nativeUri = Uri.parse('whatsapp://send?phone=$whatsappNumber&text=$textParam');
+    final webUri = Uri.parse('https://wa.me/$whatsappNumber?text=$textParam');
 
     try {
       if (await canLaunchUrl(nativeUri)) {
@@ -53,30 +34,29 @@ class ContactIconsRow extends StatelessWidget {
         return;
       }
       if (context.mounted) {
-        _showError(context, 'WhatsApp is not installed on this device');
+        _showError(context, 'WhatsApp is not installed on this device.');
       }
     } catch (e) {
       debugPrint('WhatsApp launch error: $e');
       if (context.mounted) {
-        _showError(context, 'Could not open WhatsApp');
+        _showError(context, 'WhatsApp is not installed on this device.');
       }
     }
   }
 
   /// Opens the phone dialer pre-filled with [ivrNumber].
-  /// Requires a `tel` VIEW <queries> entry in AndroidManifest.xml on API 30+.
   Future<void> _callIvr(BuildContext context) async {
     final uri = Uri.parse('tel:$ivrNumber');
     try {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri);
       } else if (context.mounted) {
-        _showError(context, 'Could not open dialer');
+        _showError(context, 'Could not open dialer.');
       }
     } catch (e) {
       debugPrint('Dialer launch error: $e');
       if (context.mounted) {
-        _showError(context, 'Could not open dialer');
+        _showError(context, 'Could not open dialer.');
       }
     }
   }
@@ -87,26 +67,35 @@ class ContactIconsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Column(
       children: [
-        _iconButton(
-          background: const Color(0xFF25D366), // WhatsApp brand green
-          tooltip: 'Chat on WhatsApp',
-          onTap: () => _openWhatsApp(context),
-          child: SvgPicture.string(
-            _whatsappSvg,
-            width: 24,
-            height: 24,
-            colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
-          ),
+        const Text(
+          'Prefer another way to reach us?',
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textMuted),
         ),
-        const SizedBox(width: 24),
-        _iconButton(
-          background: AppColors.navy,
-          tooltip: 'Call IVR helpline',
-          onTap: () => _callIvr(context),
-          child: const Icon(Icons.call_rounded, color: Colors.white, size: 24),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _iconButton(
+              background: const Color(0xFF25D366), // WhatsApp brand green
+              tooltip: 'Chat on WhatsApp',
+              onTap: () => _openWhatsApp(context),
+              child: SvgPicture.string(
+                _whatsappSvg,
+                width: 24,
+                height: 24,
+                colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+              ),
+            ),
+            const SizedBox(width: 24),
+            _iconButton(
+              background: AppColors.navy,
+              tooltip: 'Call Helpline',
+              onTap: () => _callIvr(context),
+              child: const Icon(Icons.call_rounded, color: Colors.white, size: 24),
+            ),
+          ],
         ),
       ],
     );
@@ -130,7 +119,13 @@ class ContactIconsRow extends StatelessWidget {
           decoration: BoxDecoration(
             color: background,
             shape: BoxShape.circle,
-            boxShadow: [BoxShadow(color: background.withOpacity(0.35), blurRadius: 10, offset: const Offset(0, 4))],
+            boxShadow: [
+              BoxShadow(
+                color: background.withValues(alpha: 0.35),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: child,
         ),
