@@ -8,12 +8,16 @@ class DefaultFirebaseOptions {
     if (kIsWeb) {
       return web;
     }
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return android;
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return android;
+      case TargetPlatform.iOS:
+        return ios;
+      default:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions are not configured for this platform.',
+        );
     }
-    throw UnsupportedError(
-      'DefaultFirebaseOptions are configured for Android and Web currently.',
-    );
   }
 
   static const FirebaseOptions web = FirebaseOptions(
@@ -32,5 +36,14 @@ class DefaultFirebaseOptions {
     messagingSenderId: '610010711984',
     projectId: 'disha-saathi',
     storageBucket: 'disha-saathi.firebasestorage.app',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyDeV68K_ujjezzQNMmCG3-LZe1aeHCsEZI',
+    appId: '1:610010711984:ios:e8dc218f1b5d8a8ae43875',
+    messagingSenderId: '610010711984',
+    projectId: 'disha-saathi',
+    storageBucket: 'disha-saathi.firebasestorage.app',
+    iosBundleId: 'com.aialchemists.dishaSaathi',
   );
 }
