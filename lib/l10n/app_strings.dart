@@ -64,6 +64,7 @@ class AppStrings {
       'add_career_interests': 'Add Career Interests',
       'scheme_section': 'SCHEME',
       'pm_ajay_details': 'PM-AJAY GIA Details',
+      'profanity_warning': "I noticed some rude language in your message. Could you please tell me why you are using such language? Let's keep our conversation respectful so I can help you better.",
     },
     'hi': {
       'app_title': 'दिशा साथी',
@@ -127,6 +128,7 @@ class AppStrings {
       'add_career_interests': 'करियर रुचियां जोड़ें',
       'scheme_section': 'योजना',
       'pm_ajay_details': 'पीएम-अजय जीआईए विवरण',
+      'profanity_warning': 'मैंने आपके संदेश में कुछ अभद्र भाषा देखी है। क्या आप कृपया मुझे बता सकते हैं कि आप ऐसी भाषा का प्रयोग क्यों कर रहे हैं? आइए अपनी बातचीत को सम्मानजनक रखें ताकि मैं आपकी बेहतर मदद कर सकूँ।',
     },
     'bn': {
       'app_title': 'दिशा সাথী',
@@ -190,6 +192,7 @@ class AppStrings {
       'add_career_interests': 'ক্যারিয়ার আগ্রহ যোগ করুন',
       'scheme_section': 'প্রকল্প',
       'pm_ajay_details': 'পিএম-অজয় জিআইএ বিবরণ',
+      'profanity_warning': 'আমি আপনার বার্তায় কিছু অশালীন ভাষা লক্ষ্য করেছি। আপনি কি দয়া করে আমাকে বলবেন কেন আপনি এমন ভাষা ব্যবহার করছেন? আসুন আমাদের কথোপকথনটি শ্রদ্ধাশীল রাখি যাতে আমি আপনাকে আরও ভালোভাবে সাহায্য করতে পারি।',
     },
     'mr': {
       'app_title': 'दिशा साथी',

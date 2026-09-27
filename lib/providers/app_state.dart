@@ -5,6 +5,7 @@ import '../l10n/app_strings.dart';
 import '../models/app_models.dart';
 import '../services/api_service.dart';
 import '../services/firebase_auth_service.dart';
+import '../utils/profanity_filter.dart';
 
 String getInitialGreetingForLanguage(String langCode) {
   switch (langCode.toLowerCase().trim()) {
@@ -812,6 +813,15 @@ class AppState extends ChangeNotifier {
     if (text.trim().isEmpty) return;
     chatMessages.add(ChatMessage(text, false));
     notifyListeners();
+
+    // Reusable Moderation Layer: Profanity & Foul-Language Filter
+    if (ProfanityFilter.hasProfanity(text)) {
+      final warningMsg = tr('profanity_warning');
+      chatMessages.add(ChatMessage(warningMsg, true));
+      notifyListeners();
+      return; // Do NOT call AI backend or process original abusive question!
+    }
+
     final lookupKey = mobile.isNotEmpty ? mobile : email.trim().toLowerCase();
     try {
       final reply = await ApiService.sendChatMessage(
